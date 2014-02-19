@@ -6,7 +6,7 @@ A column oriented, embarrassingly distributed relational NoSQL database.
 *Features*
 
 * column oriented - super fast queries
-* distributed insert - Hustle is designed for tera/petabyte scale datasets in a distributed environment with massive write loads
+* distributed insert - Hustle is designed for petabyte scale datasets in a distributed environment with massive write loads
 * compressed - bitmap indexes, lz4, and prefix trie compression
 * relational - join gigantic datasets
 * partitioned - smart shards
@@ -14,15 +14,13 @@ A column oriented, embarrassingly distributed relational NoSQL database.
 * embarassingly fast (lmdb:  http://symas.com/mdb/)
 * NoSQL - Python DSL
 * bulk append only (it's for 'log'ish data)
-* distributed inserts - solves common write-bound issues with column orineted DBs
-* arguably ACID
 * definitely consistent
 * REPL/CLI query interface
 
 BETA / EAP
 ==========
 
-Please note that this software is beta/early access.  We intend that you thoroughly enjoy this software, but really have no idea how it will perform in your particular installation.  Be nice and drop us a GitHub 'issue' or just email me at tspurway@gmail.com for help.
+Please note that this software is beta/early access.  We intend that you thoroughly enjoy wrangling unimaginably large datasets with this software, but really have no idea how it will perform in your particular installation.  Be nice and drop us a GitHub 'issue' or just email me at tspurway@gmail.com for help.
 
 Installation
 ============
@@ -43,9 +41,7 @@ That should do it.  Now, there is a config file in /etc/hustle you should take a
 Tests
 =====
 
-Get your test working - please find the hustle/integration_test and hustle/test directories.
-
-Both of these  contain 'nose' tests (https://nose.readthedocs.org/en/latest/) that should be run before you do anything else.
+Get the tests working - please find the hustle/integration_test and hustle/test directories.  Both of these  contain 'nose' tests (https://nose.readthedocs.org/en/latest/) that should be run before you do anything else.
 
 The hustle/test tests should be attempted first, which should rout out any installation problems with hustle/deps.
 
@@ -59,7 +55,7 @@ Currently, Hustle supports inserting JSON log files.  These are defined as a fil
 
 One important consideration is that Hustle is designed to deal with large log files.  Each 'insert' will actually crate a new database on the 'local' machine, which will then be 'pushed' into DDFS.  This is Hustle's 'distributed insert' functionality.  It has several considerations:
 
-*  the bigger your files, the faster your queries will perform (shoot for 1GB insert files)
+*  the bigger your files, the faster your queries will perform (shoot for 1GB or larger insert files)
 *  you cannot insert a single record (or just a few records) into Hustle - it is designed to have gigantic, distributed inserts
 *  you cannot update data once it is inserted
 
@@ -108,6 +104,11 @@ Hustle is a relational database, but we reject the SQL language.  The queries ar
 * joins are against exactly two tables - if you need more you can nest queries in the 'where' clause
 * extensible, if you don't like the built-in aggregating functions, add your own, no worries
 * limit, desc, distinct, h_sum(), h_avg(), h_count() work as expected
+
+Promises
+========
+
+*  more docs
 
 
 
