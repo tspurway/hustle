@@ -1,17 +1,18 @@
 Hustle (beta)
 =============
 
-A column oriented, embarrassingly distributed relational NoSQL database.  Good for logs.
+A column oriented, embarrassingly distributed relational NoSQL database.
 
-There are a lot of databases, so let's just bulletpoint what Hustle is and does:
+*Features*
 
 * column oriented - super fast queries
-* compressed - uses bitmap indexes, lz4, and prefix trie compression
-* relational - joins across gigantic datasets
-* partitioned - helps manage your data, typically by 'date'
-* embarrassingly distributed (uses Disco: http://discoproject.org/)
-* embarassingly fast (uses lmdb:  http://symas.com/mdb/)
-* NoSQL - uses a Python DSL, which is frankly faster than interpretting ol' SQL
+* distributed insert - Hustle is designed for tera/petabyte scale datasets in a distributed environment with massive write loads
+* compressed - bitmap indexes, lz4, and prefix trie compression
+* relational - join gigantic datasets
+* partitioned - smart shards
+* embarrassingly distributed (Disco: http://discoproject.org/)
+* embarassingly fast (lmdb:  http://symas.com/mdb/)
+* NoSQL - Python DSL
 * bulk append only (it's for 'log'ish data)
 * distributed inserts - solves common write-bound issues with column orineted DBs
 * arguably ACID
@@ -21,29 +22,46 @@ There are a lot of databases, so let's just bulletpoint what Hustle is and does:
 BETA / EAP
 ==========
 
-Please note that this software is beta/early access.  We intend that you thoroughly enjoy this software, but really have no idea how it will perform in your particular installation.  Be nice and drop us a GitHub 'issue' or just email me at tspurway@gmail.com if there are issues and you want to throttle something.
+Please note that this software is beta/early access.  We intend that you thoroughly enjoy this software, but really have no idea how it will perform in your particular installation.  Be nice and drop us a GitHub 'issue' or just email me at tspurway@gmail.com for help.
 
 Installation
 ============
 
-After cloning this repo and plunging into install land, here are some considerations:
+After cloning this repo, here are some considerations:
 
+* you will need Python 2.7 or higher - note that it *probably* won't work on 2.6 (has to do with pickling lambdas...)
 * you need to install Disco 0.5 and it's dependencies - get that working first
-* you need to install Hustle and it's 'deps'
+* you need to install Hustle and it's 'deps' thusly:
 
 ```
 cd hustle
 sudo ./bootstrap.sh
 ```
 
-That should do it.  Now, there is a config file in /etc/hustle you should take a look at, and another in /etc/disco.  I will need to write more about these...
+That should do it.  Now, there is a config file in /etc/hustle you should take a look at, and another in /etc/disco.  More on this soon...
 
 Tests
 =====
 
-Before wandering too far down various rabbit holes, please find the hustle/integration_test and hustle/test directories.
+Get your test working - please find the hustle/integration_test and hustle/test directories.
 
-These contain 'nose' tests (https://nose.readthedocs.org/en/latest/) that should be run before you do anything else.  The hustle/test tests should be attempted first, which should rout out any installation problems with hustle/deps, then you should get Disco running and give the hustle/integration_test tests a go.  If all this passes, you will be good to go with your own data!
+Both of these  contain 'nose' tests (https://nose.readthedocs.org/en/latest/) that should be run before you do anything else.
+
+The hustle/test tests should be attempted first, which should rout out any installation problems with hustle/deps.
+
+The test in integration/test will actually create tables in your Disco/DDFS installation and run real queries against them.  Check out the readme in the integration_test directory for more info on running these.  If you get these passing, you are surely good to go with your own data.
+
+
+Inserting Data
+==============
+
+Currently, Hustle supports inserting JSON log files.  These are defined as a file with a single JSON dict on every line.  There is a tool at hustle/bin/insert that helps in inserting data into Hustle.
+
+One important consideration is that Hustle is designed to deal with large log files.  Each 'insert' will actually crate a new database on the 'local' machine, which will then be 'pushed' into DDFS.  This is Hustle's 'distributed insert' functionality.  It has several considerations:
+
+*  the bigger your files, the faster your queries will perform (shoot for 1GB insert files)
+*  you cannot insert a single record (or just a few records) into Hustle - it is designed to have gigantic, distributed inserts
+*  you cannot update data once it is inserted
 
 
 The CLI
@@ -54,7 +72,7 @@ cd hustle/bin
 ./hustle
 ```
 
-This will open up the Hustle command line REPL/query tool.  It has auto-completion of hustle defined columns and tables, and also defines and 'auto-dump' feature that allows you to simply query and get results printed nicely to your screen.
+This will open up the Hustle command line REPL/query tool.  It has auto-completion of hustle defined columns and tables, help features, knows Hustle defined tables, and also auto-dumps query results in a very nice format.
 
 
 Queries
@@ -63,18 +81,13 @@ Queries
 Let's take a quick gander at a Hustle query, remeber, the query langauge is Python.  We do some DSL tricks to make the 'where' clase especially crunchie:
 
 ```
-imps = Table.from_tag('impressions')
-
 select(imps.ad_id, imps.date, imps.cpm_millis,
        where=(imps.date > '2014-01-22') & (imps.ad_id == 30010))
 ```
 
-see?  check this one out:
+nice?  check this one out:
 
 ```
-imps = Table.from_tag('impressions')
-pix = Table.from_tag('pixels')
-
 select(imps.ad_id, imps.date, h_sum(pix.amount), h_count(),
        # please note the entirely necessary parentheses in the 'where' clause, and the multiple tables...
        where=((imps.date < '2014-01-13') & (imps.ad_id == 30010),
@@ -95,7 +108,6 @@ Hustle is a relational database, but we reject the SQL language.  The queries ar
 * joins are against exactly two tables - if you need more you can nest queries in the 'where' clause
 * extensible, if you don't like the built-in aggregating functions, add your own, no worries
 * limit, desc, distinct, h_sum(), h_avg(), h_count() work as expected
-
 
 
 
