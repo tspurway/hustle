@@ -19,5 +19,11 @@ There are a lot of databases, so let's just bulletpoint what Hustle is and does:
 
 Let's take a quick gander at a Hustle query, remeber, the query langauge is Python.  We do some DSL tricks to make the 'where' clase especially munchie:
 
+```
+imps = Table.from_tag('impressions')\
 
+res = select(
+    imps.ad_id, imps.date, imps.cpm_millis,
+    where=(imps.date > '2014-01-22') & (imps.ad_id == 30010))
 
+```
