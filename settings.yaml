@@ -1,0 +1,20 @@
+# disco server.
+server: disco://localhost
+
+# default hustle worker. Mostly, there is no need to change it.
+worker_class: hustle.core.pipeworker.Worker
+
+# print out the result to the terminal. If this is disabled, you need to call dump
+# function yourself to get the result.
+dump: False
+
+# save query results to a hustle table
+nest: False
+
+# partition number for the hustle pipeworker. If unspecified, 16 would be used.
+# This number would be used when assigning labels for the output for each
+# stage.
+partition: 16
+
+# size of history for hustle shell
+history_size: 1000
