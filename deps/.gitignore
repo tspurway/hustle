@@ -1,0 +1,14 @@
+build/
+cardunion/cardunion.c
+libwtrie/wtrie.c
+maxhash/maxhash.c
+liblru/pylru.cpp
+liblmdb/db.c
+liblmdb/mdb_copy
+liblmdb/mdb_stat
+libebset/pyebset.cpp
+*.pyc
+*.o
+*.a
+*.so
+*.swp

@@ -1,0 +1,11 @@
+INSTALL
+=======
+
+1. Install C Library
+--------------------
+make
+sudo make install
+
+2. Install Python Library
+-------------------------
+sudo python setup.py install

@@ -1,0 +1,97 @@
+#!/usr/bin/env python
+
+if __name__ == '__main__':
+    from argparse import ArgumentParser
+    from disco.func import disco_input_stream
+    from disco.comm import open_url
+    from hustle import Table, insert
+
+    parser = ArgumentParser(prog='insert', description="Hustle bulk load")
+
+    parser.add_argument(
+        "-s",
+        "--server",
+        dest="server",
+        help="DDFS server destination",
+        default='disco://localhost'
+    )
+
+    parser.add_argument(
+        "-f",
+        dest="infile",
+        help="A file containing a list of all files to be inserted",
+    )
+
+    parser.add_argument(
+        "-m",
+        "--maxsize",
+        dest="maxsize",
+        help="Initial size of Hustle marble",
+        default=1024*1024*1024
+    )
+
+    parser.add_argument(
+        "-t",
+        "--tmpdir",
+        dest="tmpdir",
+        help="Temporary directory for Hustle marble creation",
+        default='/tmp'
+    )
+
+    parser.add_argument(
+        "-p",
+        dest="processor",
+        help="a module.function for the Hustle import preprocessor",
+    )
+
+    parser.add_argument(
+        "--disco-chunk",
+        dest="disco_chunk",
+        help="Indicated if the input files are in Disco CHUNK format",
+        default=False,
+        action='store_true'
+    )
+
+    parser.add_argument(
+        "table",
+        metavar='TABLE',
+        type=str,
+        help="The Hustle table to insert to",
+    )
+
+    parser.add_argument(
+        "files",
+        metavar='FILES',
+        type=str,
+        nargs="+",
+        help="The JSON formated files to insert",
+    )
+
+    options = parser.parse_args()
+
+    tab = Table.from_tag(options.table, server=options.server)
+
+    if options.infile:
+        fd = open(options.infile)
+        files = fd.readlines()
+    else:
+        files = options.files
+
+    preproc = None
+    if options.processor:
+        spec = options.processor.split('.')
+        modname = '.'.join(spec[:-1])
+        funcname = spec[-1]
+        mod = __import__(modname, fromlist=[funcname])
+        preproc = getattr(mod, funcname)
+
+    streams = []
+    for f in files:
+        s = open_url(f)
+        if options.disco_chunk:
+            s = disco_input_stream(s, None, None)
+        streams.append(s)
+
+    insert(tab, streams=streams, preprocess=preproc,
+           maxsize=int(options.maxsize), tmpdir=options.tmpdir, server=options.server,
+           lru_size=25000)

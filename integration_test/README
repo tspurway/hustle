@@ -1,0 +1,12 @@
+Make sure you have Disco (0.5 or later) running locally.
+
+Make sure you've installed the ../deps correctly.
+
+Make sure you run setup.py to create all of the tables the tests will need.
+
+Run the test from within this directory using nose.
+
+Good luck, and please let us know if you are having problems or have feedback!
+
+tspurway AT gmail D0T com
+
