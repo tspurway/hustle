@@ -11,7 +11,7 @@ A column oriented, embarrassingly distributed relational NoSQL database.
 * relational - join gigantic datasets
 * partitioned - smart shards
 * embarrassingly distributed (Disco: http://discoproject.org/)
-* embarassingly fast (lmdb:  http://symas.com/mdb/)
+* embarrassingly fast (lmdb:  http://symas.com/mdb/)
 * NoSQL - Python DSL
 * bulk append only (it's for 'log'ish data)
 * definitely consistent
@@ -109,6 +109,3 @@ Promises
 ========
 
 *  more docs
-
-
-

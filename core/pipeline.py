@@ -3,7 +3,7 @@ from disco.worker.task_io import task_input_stream
 import hustle
 import hustle.core
 import hustle.core.marble
-from hustle.core.marble import Marble, Column, Aggregation, _insert_row
+from hustle.core.marble import Marble, Column, Aggregation
 from functools import partial
 from hustle.core.pipeworker import HustleStage
 import sys
@@ -224,8 +224,8 @@ class SelectPipe(Job):
             select_hash_cols = (1,)
 
         efs, gees, ehches, dflts = zip(*[(c.f, c.g, c.h, c.default)
-                                            if isinstance(c, Aggregation) else (None, None, None, None)
-                                            for c in project])
+                                         if isinstance(c, Aggregation) else (None, None, None, None)
+                                         for c in project])
         group_by_stage = []
         if any(efs):
             group_by_range = [i for i, c in enumerate(project) if isinstance(c, Column)]
@@ -320,17 +320,21 @@ def process_restrict(interface, state, label, inp, task, label_fn):
 
 
 def process_join(interface, state, label, inp, task, label_fn):
-    #TODO: detail the column order here in a comment
+    '''Processor function for the join stage.
+
+    Note that each key in the 'inp' is orgnized as:
+        key = (where_index, join_column, other_columns)
+
+    Firstly, all keys are divided into different groups based on the join_column.
+    Then the where_index is used to separate keys from different where clauses.
+    Finally, merging columns together.
+    '''
     from itertools import groupby
-    # import pydevd
-    # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
 
     def _merge_record(offset, r1, r2):
         return [i if i is not None else j for i, j in zip(r1[offset:], r2[offset:])]
 
-    # here inp is a list of (key, value) tuples.
-    # skip the first column, i.e. where index. The join cloumn is the 2nd item
-    # in the key.
+    # inp is a list of (key, value) tuples, the join_cloumn is the 2nd item of the key.
     for joinkey, rest in groupby(inp, lambda k: k[0][1]):
         # To process this join key, we must have values from both tables
         first_table = []

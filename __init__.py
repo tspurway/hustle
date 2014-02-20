@@ -331,7 +331,7 @@ def select(*project, **kwargs):
                      partition=partition,
                      nest=nest)
 
-    job.run(name='project_from_%s' % name, input=job_blobs, **settings)
+    job.run(name='select_from_%s' % name, input=job_blobs, **settings)
     blobs = job.wait()
     if nest:
         rtab = job.get_result_schema(project)

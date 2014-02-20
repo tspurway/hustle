@@ -429,7 +429,6 @@ class MarbleStream(object):
             pass
         return bitset
 
-
     def _vid_for_value(self, column, key):
         if column.is_trie:
             if column.rtrie_indicator == mdb.MDB_UINT_16:
@@ -990,6 +989,7 @@ def check_query(select, join, order_by, limit, wheres):
             raise ValueError("Negtive number is not allowed in the limit.")
 
     return True
+
 
 def mdb_fetch(key, txn=None, ixdb=None):
     from pyebset import BitSet
