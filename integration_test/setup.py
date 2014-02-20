@@ -1,5 +1,5 @@
 from hustle import create, insert
-from hustle.core.settings import Settings
+from hustle.core.settings import Settings, overrides
 
 IMPS = '__test_imps'
 PIXELS = '__test_pixels'
@@ -13,15 +13,20 @@ def imp_process(data):
     data['site_id'] = host
 
 
-def ensure_tables(settings=Settings()):
+def ensure_tables():
+    overrides['server'] = 'disco://localhost'
+    overrides['dump'] = False
+    overrides['nest'] = False
+    settings = Settings()
     ddfs = settings['ddfs']
+
     imps = create(IMPS,
                   fields=['=$token', '%url', '+%site_id', '@cpm_millis', '+#ad_id', '+$date', '+@time'],
                   partition='date',
                   force=True)
     pixels = create(PIXELS,
-                    fields=['=$token', '+%1isActive', '+%site_id', '@amount', '+#account_id', '+%city', '+%2state', '+#2metro',
-                            '$ip', '*keyword', '+$date'],
+                    fields=['=$token', '+@1isActive', '+%site_id', '@amount', '+#account_id', '+%city', '+%2state',
+                            '+#2metro', '$ip', '*keyword', '+$date'],
                     partition='date',
                     force=True)
 
