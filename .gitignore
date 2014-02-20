@@ -1,2 +1,30 @@
-.idea/
-*.pyc
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+*.a
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.idea
+.ropeproject
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Vim
+*.swp
