@@ -120,5 +120,3 @@ def ensure_list(val):
             return list(val)
         return [val]
     return val
-
-
