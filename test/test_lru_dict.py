@@ -2,7 +2,7 @@ import mdb
 import os
 import unittest
 from functools import partial
-from hustle.core.lru_dict import mdb_evict, mdb_fetch
+from hustle.core.marble import mdb_evict, mdb_fetch
 from pylru import LRUDict
 from pyebset import BitSet
 

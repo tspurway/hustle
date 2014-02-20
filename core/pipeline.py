@@ -2,7 +2,6 @@ from disco.core import Job
 from disco.worker.task_io import task_input_stream
 import hustle
 import hustle.core
-import hustle.core.lru_dict
 import hustle.core.marble
 from hustle.core.marble import Marble, Column, Aggregation, _insert_row
 from functools import partial
@@ -139,7 +138,6 @@ class SelectPipe(Job):
         ('hustle', hustle.__file__),
         ('hustle.core', hustle.core.__file__),
         ('hustle.core.pipeline', __file__),
-        ('hustle.core.lru_dict', hustle.core.lru_dict.__file__),
         ('hustle.core.marble', hustle.core.marble.__file__)]
 
     def get_result_schema(self, project):

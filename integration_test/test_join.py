@@ -61,13 +61,16 @@ class TestJoin(unittest.TestCase):
                     if imp_ad_id not in join:
                         join[imp_ad_id] = [0, 0]
                     join[imp_ad_id][0] += pix_amount
+                    join[imp_ad_id][1] += 1
 
         res = select(imps.ad_id, h_sum(pix.amount), h_count(),
                      where=(imps.date < '2014-01-13', pix.date < '2014-01-13'),
                      join=(imps.site_id, pix.site_id))
-        results = [(ad_id, amount) for (ad_id, amount), _ in result_iterator(res)]
+        results = [(ad_id, amount, count) for (ad_id, amount, count), _ in result_iterator(res)]
         self.assertTrue(len(results), len(join))
 
-        for jtup in join:
-            self.assertIn(jtup, results)
+        for (ad_id, amount, count) in results:
+            ramount, rcount = join[ad_id]
+            self.assertEqual(ramount, amount)
+            self.assertEqual(rcount, count)
 

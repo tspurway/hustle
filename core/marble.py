@@ -210,7 +210,6 @@ class Marble(object):
         return self._open_dbs(env, write, lru_size)
 
     def _open_dbs(self, env, write, lru_size):
-        from hustle.core.lru_dict import mdb_evict, mdb_fetch
         from pylru import LRUDict
         if write:
             txn = env.begin_txn()
@@ -991,3 +990,20 @@ def check_query(select, join, order_by, limit, wheres):
             raise ValueError("Negtive number is not allowed in the limit.")
 
     return True
+
+def mdb_fetch(key, txn=None, ixdb=None):
+    from pyebset import BitSet
+    try:
+        bitmaps = ixdb.get(txn, key)
+    except:
+        bitmaps = None
+
+    if bitmaps is not None:
+        bitset = BitSet()
+        bitset.loads(bitmaps)
+        return bitset
+    return None
+
+
+def mdb_evict(key, bitset, txn=None, ixdb=None):
+    ixdb.put(txn, key, bitset.dumps())
