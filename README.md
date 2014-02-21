@@ -29,8 +29,8 @@ Installation
 After cloning this repo, here are some considerations:
 
 * you will need Python 2.7 or higher - note that it *probably* won't work on 2.6 (has to do with pickling lambdas...)
-* you need to install Disco 0.5 and it's dependencies - get that working first
-* you need to install Hustle and it's 'deps' thusly:
+* you need to install Disco 0.5 and its dependencies - get that working first
+* you need to install Hustle and its 'deps' thusly:
 
 ```
 cd hustle
@@ -75,7 +75,7 @@ This will open up the Hustle command line REPL/query tool.  It has auto-completi
 Queries
 =======
 
-Let's take a quick gander at a Hustle query, remeber, the query langauge is Python.  We do some DSL tricks to make the 'where' clase especially crunchie:
+Let's take a quick gander at a Hustle query, remember, the query language is Python.  We do some DSL tricks to make the 'where' clause especially crunchy:
 
 ```
 select(imps.ad_id, imps.date, imps.cpm_millis,

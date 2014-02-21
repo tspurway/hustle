@@ -69,10 +69,10 @@ def h_avg(col):
 
     returns the average salary in each department
     """
-    return Aggregation("avg", 
-                       col, 
-                       lambda (a, c), v: (a + v, c + 1), 
-                       lambda (a, c): float(a) / c, 
+    return Aggregation("avg",
+                       col,
+                       lambda (a, c), v: (a + v, c + 1),
+                       lambda (a, c): float(a) / c,
                        default=lambda: (0, 0))
 
 
@@ -172,7 +172,7 @@ class Table(Marble):
 
     Partitions
     ----------
-    Hustle employs a tecnique for splitting up data into distinct partitions based on a column in the target table.
+    Hustle employs a technique for splitting up data into distinct partitions based on a column in the target table.
     This allows us to significantly increase query performance by only considering the data that matches the partition
     specified in the query.  Typically a partition column has the following attributes:
     * the same column is in most Tables
@@ -195,7 +195,7 @@ class Table(Marble):
     this is assuming that the *employee* table has the *date* field as a partition.  All of the data marbles for the
     date 2014-02-22 for the *employees* table is guaranteed to be stored under this DDFS tag.  When Hustle sees a query
     with a where clause identifying this exact date (or a range including this date), we will be able to directly
-    and quickly access the coreect data, thereby increasing the speed of the query.
+    and quickly access the correct data, thereby increasing the speed of the query.
 
     """
     def __init__(self, **kwargs):
@@ -599,6 +599,3 @@ def _get_blobs(table_or_expr, ddfs):
             replicas = list(ddfs.blobs(tag))
             blobs.extend(replicas)
         return blobs
-
-
-
