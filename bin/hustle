@@ -174,7 +174,7 @@ if __name__ == '__main__':
 
     # modules we want in our imported namespace
     from hustle import Table, h_min, h_avg, h_max, h_sum, h_count, select, \
-        create, dump, insert, star, extract_fields, tables, get_tables, \
+        dump, insert, star, tables, get_tables, \
         schema, partitions
     from hustle.core.settings import Settings, overrides
 
@@ -197,9 +197,7 @@ if __name__ == '__main__':
         "schema": schema,
         "partitions": partitions,
         "star": star,
-        "create": create,
         "insert": insert,
-        "extract_fields": extract_fields,
         "_settings": settings,
     }
 

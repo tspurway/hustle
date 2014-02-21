@@ -3,7 +3,8 @@ Hustle (beta)
 
 A column oriented, embarrassingly distributed relational NoSQL database.
 
-*Features*
+Features
+--------
 
 * column oriented - super fast queries
 * distributed insert - Hustle is designed for petabyte scale datasets in a distributed environment with massive write loads
