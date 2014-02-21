@@ -3,7 +3,8 @@ Hustle (beta)
 
 A column oriented, embarrassingly distributed relational NoSQL database.
 
-*Features*
+Features
+--------
 
 * column oriented - super fast queries
 * distributed insert - Hustle is designed for petabyte scale datasets in a distributed environment with massive write loads
@@ -13,7 +14,7 @@ A column oriented, embarrassingly distributed relational NoSQL database.
 * embarrassingly distributed (Disco: http://discoproject.org/)
 * embarrassingly fast (lmdb:  http://symas.com/mdb/)
 * NoSQL - Python DSL
-* bulk append only (it's for 'log'ish data)
+* bulk append only (it's for 'log' data)
 * definitely consistent
 * REPL/CLI query interface
 
@@ -28,8 +29,8 @@ Installation
 After cloning this repo, here are some considerations:
 
 * you will need Python 2.7 or higher - note that it *probably* won't work on 2.6 (has to do with pickling lambdas...)
-* you need to install Disco 0.5 and it's dependencies - get that working first
-* you need to install Hustle and it's 'deps' thusly:
+* you need to install Disco 0.5 and its dependencies - get that working first
+* you need to install Hustle and its 'deps' thusly:
 
 ```
 cd hustle
@@ -74,7 +75,7 @@ This will open up the Hustle command line REPL/query tool.  It has auto-completi
 Queries
 =======
 
-Let's take a quick gander at a Hustle query, remeber, the query langauge is Python.  We do some DSL tricks to make the 'where' clase especially crunchie:
+Let's take a quick gander at a Hustle query, remember, the query language is Python.  We do some DSL tricks to make the 'where' clause especially crunchy:
 
 ```
 select(imps.ad_id, imps.date, imps.cpm_millis,
@@ -96,7 +97,6 @@ select(imps.ad_id, imps.date, h_sum(pix.amount), h_count(),
 
 Hustle is a relational database, but we reject the SQL language.  The queries are similar to SQL with some defining differences:
 
-* no sql - it's damn python!
 * no 'group_by' clause - if there is an aggregating column, then all other non-aggregating columns are assumed to be 'group_by' columns
 * no 'from' clause - the 'where' clause lists all of the tables data is queried from
 * where clauses use binary operators &, | and ~.  Note that you will need to parenthesize everything...
