@@ -91,7 +91,7 @@ class Table(Marble):
     The fundamental data type to support Hustle's relational model.  A Table contains a number of named
     :ref:`Fields`, each of which is decorated with schema information.  Note that the table is stored in Disco's
     `DDFS<http://disco.readthedocs.org/en/latest/lib/ddfs.html>`_ distributed file system as a series of replicated
-    sub-database files encapsulated by :class:`hustle.core.marble.Marble`.  Each marble contains the actual rows of
+    sub-database files encapsulated by :class:`hustle.core.marble.Marble`.  Each :ref:`Marble` contains the actual rows of
     data in a memory-mapped b+ tree implemented using the mighty `LMDB<http://symas.com/mdb/>`_.
 
     Normally, a table is created using :meth:`hustle.Table.create`, which creates the appropriately named DDFS tag and
@@ -127,7 +127,7 @@ class Table(Marble):
     consideration of overall memory/disk space used by that column in your database.  An indexed column will take up
     to twice the amount of memory as an unindexed column.
 
-    Wide indexes (the '=' indicator) are used simply as a hint to Hustle to expect the number of unique values for
+    :ref:`Wide Indexes` (the '=' indicator) are used simply as a hint to Hustle to expect the number of unique values for
     the specified column to be very high with respect to the overall number of rows.  The Hustle query optimizer and
     :func:`hustle.insert` function use this information to better manage memory usage when dealing with these columns.
 
@@ -197,25 +197,22 @@ class Table(Marble):
     with a where clause identifying this exact date (or a range including this date), we will be able to directly
     and quickly access the coreect data, thereby increasing the speed of the query.
 
-    :type  name: string
-    :param name: the name of the table to create
-
-    :type  fields: sequence of string
-    :param fields: the list of :ref:`Fields` and their encoded index/type information
-
-    :type  partition: string
-    :param partition: the name of the column to act as the partition for this table
-
-    :type  force: bool
-    :param force: overwrite the existing DDFS base tag with this schema
-
     """
-    def __init__(self, name, fields=(), partition=None, ):
-        super(Table, self).__init__(name, fields, partition)
+    def __init__(self, **kwargs):
+        """
+        Create a new Hustle table.  Typically you would use :meth:`hustle.Table.create` to create Tables.
+        """
+        super(Table, self).__init__(**kwargs)
         self._blobs = None
 
     @classmethod
     def from_tag(cls, name, **kwargs):
+        """
+        Instantiate a named :class:`hustle.Table` based on meta data from a :ref:`DDFS` tag
+
+        :type  name: string
+        :param name: the name of the table
+        """
         from hustle.core.settings import Settings
         settings = Settings(**kwargs)
         ddfs = settings['ddfs']
@@ -226,6 +223,23 @@ class Table(Marble):
 
     @classmethod
     def create(cls, name, fields=(), partition=None, force=False, **kwargs):
+        """
+        Create a new hustle table, replace existing table if force=True.
+
+        :type  name: string
+        :param name: the name of the table to create
+
+        :type  fields: sequence of string
+        :param fields: the list of :ref:`Fields` and their encoded index/type information
+
+        :type  partition: string
+        :param partition: the name of the column to act as the partition for this table
+
+        :type  force: bool
+        :param force: overwrite the existing DDFS base tag with this schema
+
+        For a good example of creating a partitioned Hustle database see :mod:`hustle.integration_test.setup`
+        """
         from hustle.core.settings import Settings
         settings = Settings(**kwargs)
         ddfs = settings['ddfs']
@@ -242,10 +256,17 @@ class Table(Marble):
         return cls(name=name, fields=fields, partition=partition)
 
     @classmethod
-    def base_tag(cls, name, partition=None, extension=''):
+    def base_tag(cls, name, partition=None):
+        """
+        return the :ref:`DDFS` tag name for a given hustle table name
+
+        :type  name: string
+        :param name: the name of the table
+
+        :type  partition: string
+        :param partition: the value of the partition
+        """
         rval = "hustle:" + name
-        if extension:
-            rval += ':' + extension
         if partition:
             rval += ':' + str(partition)
         return rval
@@ -254,6 +275,57 @@ class Table(Marble):
 def insert(table, phile=None, streams=None, preprocess=None,
            maxsize=100 * 1024 * 1024, tmpdir='/tmp', decoder=json_decoder,
            lru_size=10000, **kwargs):
+    """
+    Insert data into a Hustle :ref:`hustle.Table`.
+
+    Create a  :ref:`Marble` file given the input file or streams according to the schema of the table.  Push
+    this (these) file(s) into :ref:`DDFS` under the appropriated (possibly) partitioned DDFS tags.
+
+    Note that a call to :func:`hustle.insert` may actually create and push more than one file, depending on how
+    many partition values exist in the input.  Be careful.
+
+    For a good example of inserting into a partitioned Hustle database see :mod:`hustle.integration_test.setup`
+
+    :type  table: :class:`hustle.Table`
+    :param table: the table to perform the insert on
+
+    :type  phile: string
+    :param phile: the file path to open
+
+    :type  streams: sequence of iterable
+    :param streams: as an alternative to the *phile* argument, you can specify a list of generators as input
+
+    :type  preprocess: function
+    :param preprocess: a function that accepts and returns a dict()
+
+        The input is transformed into a :class:`dict` by the *decoder* param, then the *preprocess* function is
+        called for every record.  This gives you the opportunity to transform, filter or otherwise clean your
+        data before it is inserted into the :ref:`Marble`
+
+    :type  maxsize: int
+    :param maxsize: the initial size in bytes of the :ref:`LMDB` memory mapped file
+
+        Note that the actual underlying LMDB file will grow as data is added to it - this setting is just for it's
+        initial size.
+
+    :type  tmpdir: string
+    :param tmpdir: the temporary directory to write the :ref:`LMDB` memory mapped file
+
+        Note that choosing a directory on an SSD drive will nicely increase throughput.
+
+    :type  decoder: function
+    :param decoder: accepts a line of raw input from the input and returns a :class:`dict`
+
+        The dict is expected to have keys that correspond to the column names in the table you are inserting to.  There
+        are two built-in decoders in Hustle: :func:`hustle.core.marble.json_decoder` (default) and
+        :func:`hustle.core.marble.kv_decoder` for processing JSON and Disco *chain* input files, respectively.
+
+    :type  lru_size: int
+    :param lru_size: the size in records of the LRU cache for holding bitmapped indexes of :ref:`Wide Indexes`
+
+        You probably won't have to worry about this unless you find your insert is running out of memory or is too
+        slow when inserting gigantic files or on nodes with limited memory resources.
+    """
     from hustle.core.settings import Settings
     settings = Settings(**kwargs)
     ddfs = settings['ddfs']
