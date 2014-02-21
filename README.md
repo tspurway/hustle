@@ -14,7 +14,7 @@ Features
 * embarrassingly distributed (Disco: http://discoproject.org/)
 * embarrassingly fast (lmdb:  http://symas.com/mdb/)
 * NoSQL - Python DSL
-* bulk append only (it's for 'log'ish data)
+* bulk append only (it's for 'log' data)
 * definitely consistent
 * REPL/CLI query interface
 
@@ -97,7 +97,6 @@ select(imps.ad_id, imps.date, h_sum(pix.amount), h_count(),
 
 Hustle is a relational database, but we reject the SQL language.  The queries are similar to SQL with some defining differences:
 
-* no sql - it's damn python!
 * no 'group_by' clause - if there is an aggregating column, then all other non-aggregating columns are assumed to be 'group_by' columns
 * no 'from' clause - the 'where' clause lists all of the tables data is queried from
 * where clauses use binary operators &, | and ~.  Note that you will need to parenthesize everything...
