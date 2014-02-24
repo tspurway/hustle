@@ -119,6 +119,17 @@ class Table(Marble):
     fields are specified using the following convention:  *[+|=][type[width]]name*, for example::
         fields=["+$name", "+%2department", "@2salary", "*bio"]
 
+    Accessing Fields
+    ----------------
+
+    Consider the following code:
+
+        ```imps = Table.from_tag('impressions')
+        select(imps.date, imps.site_id, where=imps)```
+
+    This is a simple Hustle query written in Python.  Note that the column names *date* and *site_id* are accessed
+    using the Python *dot* notation.  All columns are accessed as though they were members of the Table class.
+
     Indexes
     -------
     By default, columns in Hustle are unindexed.  By indexing a column you make it available for use as a key in
@@ -352,11 +363,13 @@ def insert(table, phile=None, streams=None, preprocess=None,
 
 def dump(result_urls, width=80):
     """
-    Dump the results of a query or a table.
+    Dump the results of a query.
 
-    Arguments:
-    result_urls - result of a project/aggregate query
-    width - the number of columns to constrain output to
+    :type result_urls: sequence of strings
+    :param result_urls: result of an (unnested) query
+
+    :type width: int
+    :param width: the number of columns to constrain output to
     """
     from disco.core import result_iterator
     alignments = None
@@ -370,43 +383,125 @@ def dump(result_urls, width=80):
                 except:
                     alignments.append(_ALG_LEFT)
 
-        _print_line(columns, width=width, cols=len(alignments),
-                   alignments=alignments)
+        _print_line(columns, width=width, cols=len(alignments), alignments=alignments)
 
 
 def select(*project, **kwargs):
     """
     Perform a relational query, by selecting rows and columns from one or more tables.
 
+    The return value is either:
+    * a list of urls containing the result records.  This is the same as normal results from Disco
+    * a :class:`hustle.Table` instance when :param:`nest` == True
+
+    For all of the examples below, *imps* and *pix* are instances of :class:`hustle.Table`.
+
     Arguments:
-    project - a positional argument list of columns and aggregate expressions to return in the result
-    where - a  list of tables and/or column expressions to restrict the rows of the relations
-    join - a list of columns to perform a relational join on
-    order_by - a list of columns to order the output by
-    distinct - a boolean indicating whether to remove duplicates
-    limit - a number or a tuple(offset, total_number) to limit the number of output
+    :type project: list of :class:`hustle.core.marble.Column` | :class:`hustle.core.marble.Aggregation`
+    :param project: a positional argument list of columns and aggregate expressions to return in the result
 
-    Example:
-    # simple projection - note the where expression syntax
-    select(
-        impressions.timestamp, impressions.userid, impressions.time_on_site,
-        where=(impressions.date > '2013-11-01') & (impressions.site == 'metalmusicmachine.com'))
+        ```# simple projection
+        select(imps.ad_id, imps.date, imps.cpm_millis, where=imps)```
 
-    # simple aggregation - note that a grouping by employee.name is implied
-    #   also note that where clauses can have entire tables
-    select(
-        employee.name, h_sum(employee.salary),
-        where=employee,
-        order_by=employee.name)
+        Selects three columns from the *imps* table.
 
-    # aggregation with joins, ordering and limits
-    #   - note the where and join clauses must each contain exactly two tables
-    select(
-        employee.name, department.name, h_sum(employee.salary), h_sum(department.population),
-        where=((employee.age > 27) & (employee.sex == 'male'), department),
-        join=(employee.department_id, department.id),
-        order_by=(department.name, 'sum(salary)'),
-        desc=True)"""
+        Hustle also allows for *aggregation functions* such as :func:`hustle.h_sum`, :func:`hustle.h_count`,
+        :func:`hustle.h_min`, :func:`hustle.h_max`, :func:`h_avg` as in this example which sums the imps.cpm_millis
+        column:
+
+            ```select(imps.ad_id, h_sum(imps.cpm_millis), h_count(), where=imps.date == '2014-01-27')```
+
+        Note that Hustle doesn't have a *group by* clause.  In this query, the output will be *grouped* by the
+        imps.ad_id column implicitly.  Note that in Hustle, if there is an aggregation function present in the
+        *project* param, the query results will be *grouped* by all non-aggregation present.
+
+    :type where: (optional) sequence of :class:`hustle.Table` | :class:`hustle.core.marble.Expr`
+    :param where: the Tables to fetch data from, as well as the conditions in the :ref:`Where Clause`
+
+        The *where clause* serves two purposes: to specify the tables that are to be queried and to allow for the
+        selection of data under specific criteria with our Python DSL selection syntax, much the like SQL's *where
+        clause*.
+
+            ```# simple projection with restriction
+            select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.date == '2014-01-27')```
+
+        Note the *==* operation between the imps.date column and the date string.  The :class:`hustle.core.marble.Column`
+        class overrides all of Python's comparison operators, which, along with the *&*, *|* and *~* logical
+        operators allows you to build arbitrarily complex column selection expressions like this:
+
+            ```select(imps.ad_id, imps.date, imps.cpm_millis,
+                    where=((imps.date >= '2014-01-21') & (imps.date <= '2014-01-23')) |
+                          ~(imps.site_id == 'google.com))```
+
+        Note that for these expressions, the column must come first.  This means that the following expression is **illegal**:
+
+            ```select(imps.ad_id, imps.date, imps.cpm_millis, where='2014-01-27' == imps.date)```
+
+        In addition, multiple tables can be specified in the where clause like this:
+
+            ```select(imps.ad_id, pix.amount, where=(imps.date < '2014-01-13', pix))```
+
+        which specifies an expression (imps.date < '2014-01-13') and a :class:`hustle.Table` tuple.  This query
+        will simply return all of the *ad_id* values in *imps* for dates less than January 13th followed by all of the
+        *amound* values in the *pix* table.
+
+        Using multiple columns is typically reserved for when you use a :ref:`Join Clause`.
+
+    :type join: sequence of exactly length 2 of :class:`hustle.core.marble.Column`
+    :param join: specified the columns to perform a relational join operation on for the query
+
+        Here's an example of a Hustle join:
+
+            ```select(imps.ad_id, imps.site_id, h_sum(pix.amount), h_count(),
+                   where=(imps.date < '2014-01-13', pix.date < '2014-01-13'),
+                   join=(imps.site_id, pix.site_id))```
+
+        which joins the *imps* and *pix* tables on their common *site_id* column, then returns the sum of the
+        *pix.amount* columns and a count, grouped by the *ad_id* and the *site_id*.  The equivalent query in SQL
+        is:
+
+            ```select i.ad_id, i.site_id, sum(p.amount), count(*)
+            from imps i
+            join pix p on p.site_id = p.site_id
+            where i.date < '2014-01-13' and i.date < '2014-01-13'
+            group by i.ad_id, i.site_id```
+
+    :type order_by: string | :class:`hustle.core.marble.Column` | (sequence of string | :class:`hustle.core.marble.Column)
+    :param order_by: the column(s) to sort the result by
+
+        The sort columns can be specified either as a Column or a list of Columns.  Alternatively, you can specify
+        a column by using a string with either the name of the column or the *table.column* string notation.  Here
+        are a few examples:
+
+            ```
+            select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by=imps.date)
+            select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by=(imps.date, imps.ad_id))
+            select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by='date')
+            select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by='imps.date')
+            select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by=('date', imps.ad_id))
+            ```
+    :type desc: boolean
+    :param desc: affects sort order of the *order_by clause* to descending (default ascending)
+
+    :type distinct: boolean
+    :param distinct: indicates whether to remove duplicates in results
+
+    :type limit: int
+    :param limit: limits the total number of records in the output
+
+    :type nest: boolean (default = False)
+    :param nest: specify that the return value is a :class:`hustle.Table` to be used in another query
+
+        This allows us to build nested queries.  You may want to do this to join more than two tables, or to reuse
+        the results of a query in more than one subsequent query.  For example:
+
+            ```active_pix = select(*star(pix), where=pix.isActive > 0, nest=True)
+            select(h_sum(active_pix.amount), where=active_pix)```
+
+    :type kwargs: dict
+    :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
+
+    """
 
     from hustle import _get_blobs
     from hustle.core.settings import Settings
@@ -462,12 +557,17 @@ def select(*project, **kwargs):
                    alignments=[_ALG_RIGHT if c.is_numeric else _ALG_LEFT for c in project])
         _print_separator(80)
         dump(blobs, 80)
-        return
-    else:
-        return blobs
+    return blobs
 
 
 def get_tables(**kwargs):
+    """
+    return the visible Hustle tables in the currently configured DDFS server.  Hustle finds tables by looking
+    for DDFS tags that have a *hustle:* prefix.
+
+    :type kwargs: dict
+    :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
+    """
     from hustle.core.settings import Settings
     settings = Settings(**kwargs)
     tags = settings["ddfs"].list(_TAG_PREFIX)
@@ -486,13 +586,23 @@ def get_tables(**kwargs):
 
 
 def tables(**kwargs):
-    """Print all available tables."""
+    """
+    Print all available tables.
+
+    :type kwargs: dict
+    :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
+    """
     uniqs = get_tables(**kwargs)
     _print_line(uniqs)
 
 
 def schema(tab, index_only=False, **kwargs):
-    """Print the schema for a given table"""
+    """
+    Print the schema for a given table
+
+    :type kwargs: dict
+    :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
+    """
     if not isinstance(tab, Marble):
         table = Table.from_tag(tab, **kwargs)
     else:
@@ -509,7 +619,12 @@ def schema(tab, index_only=False, **kwargs):
 
 
 def partitions(table, **kwargs):
-    """Print the partitions for a given table."""
+    """
+    Print the partitions for a given table.
+
+    :type kwargs: dict
+    :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
+    """
     from hustle.core.settings import Settings
     settings = Settings(**kwargs)
     ddfs = settings["ddfs"]
