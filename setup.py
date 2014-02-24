@@ -31,5 +31,5 @@ setup(
     test_suite='nose.collector',
     entry_points="""
     [console_scripts]
-    inferno=hustle.bin.hustle:main
+    hustle=hustle.bin.hustle:main
     """, requires=['disco'])
