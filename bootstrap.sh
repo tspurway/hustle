@@ -7,8 +7,8 @@ CONFIG_DIR=/etc/hustle
 FROM=${PWD}/settings.yaml
 DEST=${CONFIG_DIR}/settings.yaml
 
-cd ${PWD}/deps && make install
-cd ${PWD} && ${PYTHON} setup.py install
+cd deps && make install
+${PYTHON} setup.py install
 
 if [[ ! -d ${CONFIG_DIR} ]]; then
     mkdir ${CONFIG_DIR}
