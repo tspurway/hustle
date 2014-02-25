@@ -29,7 +29,4 @@ setup(
     install_requires=install_requires,
     tests_require=tests_require,
     test_suite='nose.collector',
-    entry_points="""
-    [console_scripts]
-    hustle=hustle.bin.hustle:main
-    """, requires=['disco'])
+    requires=['disco'])
