@@ -134,6 +134,7 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
 
 
 class SelectPipe(Job):
+    # profile = True
     required_modules = [
         ('hustle', hustle.__file__),
         ('hustle.core', hustle.core.__file__),
@@ -293,9 +294,10 @@ class SelectPipe(Job):
 
 
 def _tuple_hash(key, cols, p):
-    keys = [key[c] for c in cols]
-    rval = reduce(lambda a, b: hash(a) ^ hash(b), keys, 0)
-    return rval % p
+    r = 0
+    for c in cols:
+        r ^= hash(key[c])
+    return r % p
 
 
 def process_restrict(interface, state, label, inp, task, label_fn):
@@ -383,7 +385,7 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
     # print "Base: %s" % repr(baseaccums)
 
     # pull the key apart
-    for group, tups in groupby(inp, lambda (k, _): tuple(e if ef is None else None for e, ef in zip(k, ffuncs))):
+    for group, tups in groupby(inp, lambda (k, _): tuple([e if ef is None else None for e, ef in zip(k, ffuncs)])):
         accums = copy.copy(baseaccums)
         for record, _ in tups:
             # print "REC: %s" % repr(record)
