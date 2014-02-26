@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Hustle Schema Design Guide &mdash; Hustle 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Hustle 0.1 documentation" href="../index.html" />
+    <link rel="next" title="Hustle Query Guide" href="query.html" />
+    <link rel="prev" title="Hustle Command Line Interface (CLI)" href="cli.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="query.html" title="Hustle Query Guide"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="cli.html" title="Hustle Command Line Interface (CLI)"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Hustle 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="hustle-schema-design-guide">
+<span id="schemadesign"></span><h1>Hustle Schema Design Guide<a class="headerlink" href="#hustle-schema-design-guide" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="fields">
+<h2>Fields<a class="headerlink" href="#fields" title="Permalink to this headline">¶</a></h2>
+<p>The fields of a Table are it&#8217;s columns.  Each field has a type, an optional width and an optional index indicator
+as detailed in the following table:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="22%" />
+<col width="67%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Prefix</th>
+<th class="head">Type</th>
+<th class="head">Notes</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>index</td>
+<td>create a normal index on this column</td>
+</tr>
+<tr class="row-odd"><td>=</td>
+<td>index</td>
+<td>create a wide index on this column</td>
+</tr>
+<tr class="row-even"><td>&#64;N</td>
+<td>unsigned int</td>
+<td><tt class="docutils literal"><span class="pre">N</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">|</span> <span class="pre">2</span> <span class="pre">|</span> <span class="pre">*4</span> <span class="pre">|</span> <span class="pre">8</span></tt></td>
+</tr>
+<tr class="row-odd"><td>#N</td>
+<td>signed int</td>
+<td><tt class="docutils literal"><span class="pre">N</span> <span class="pre">=</span> <span class="pre">1</span> <span class="pre">|</span> <span class="pre">2</span> <span class="pre">|</span> <span class="pre">*4</span> <span class="pre">|</span> <span class="pre">8</span></tt></td>
+</tr>
+<tr class="row-even"><td>$</td>
+<td>string</td>
+<td>uncompressed string data</td>
+</tr>
+<tr class="row-odd"><td>%N</td>
+<td>string</td>
+<td>trie compressed N = 2 | 4</td>
+</tr>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">*</span></tt></td>
+<td>string</td>
+<td>lz4 compressed</td>
+</tr>
+<tr class="row-odd"><td><tt class="docutils literal"><span class="pre">&amp;</span></tt></td>
+<td>binary</td>
+<td>uncompressed blob data</td>
+</tr>
+</tbody>
+</table>
+<p>fields are specified using the following convention:  <em>[+|=][type[width]]name</em>, for example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;+$name&quot;</span><span class="p">,</span> <span class="s">&quot;+</span><span class="si">%2d</span><span class="s">epartment&quot;</span><span class="p">,</span> <span class="s">&quot;@2salary&quot;</span><span class="p">,</span> <span class="s">&quot;*bio&quot;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="accessing-fields">
+<h2>Accessing Fields<a class="headerlink" href="#accessing-fields" title="Permalink to this headline">¶</a></h2>
+<p>Consider the following code:</p>
+<blockquote>
+<div>imps = Table.from_tag(&#8216;impressions&#8217;)
+select(imps.date, imps.site_id, where=imps)</div></blockquote>
+<p>This is a simple Hustle query written in Python.  Note that the column names <em>date</em> and <em>site_id</em> are accessed
+using the Python <em>dot</em> notation.  All columns are accessed as though they were members of the Table class.</p>
+</div>
+<div class="section" id="indexes">
+<h2>Indexes<a class="headerlink" href="#indexes" title="Permalink to this headline">¶</a></h2>
+<p>By default, columns in Hustle are unindexed.  By indexing a column you make it available for use as a key in
+<em>where clause</em> and <em>join clauses</em> in the <a class="reference internal" href="../api/hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">hustle.select()</span></tt></a> statement.  Unindexed columns can still
+be in the list of selected columns or in aggregation function.  The question whether to index a column or not is a
+consideration of overall memory/disk space used by that column in your database.  An indexed column will take up
+to twice the amount of memory as an unindexed column.</p>
+<p><em>Wide indexes</em> (the &#8216;=&#8217; indicator) are used simply as a hint to Hustle to expect the number of unique values for
+the specified column to be very high with respect to the overall number of rows.  The Hustle query optimizer and
+<a class="reference internal" href="../api/hustle.html#hustle.insert" title="hustle.insert"><tt class="xref py py-func docutils literal"><span class="pre">hustle.insert()</span></tt></a> function use this information to better manage memory usage when dealing with these columns.</p>
+</div>
+<div class="section" id="integer-data">
+<h2>Integer Data<a class="headerlink" href="#integer-data" title="Permalink to this headline">¶</a></h2>
+<p>Integers can be 1, 2, 4 or 8 bytes and are either signed or unsigned.</p>
+</div>
+<div class="section" id="string-data-and-compression">
+<h2>String Data and Compression<a class="headerlink" href="#string-data-and-compression" title="Permalink to this headline">¶</a></h2>
+<p>One of the fundamental design goals of Hustle was to allow for the highest level of compression possible.
+String data is one area that we can maximize compression.  Hustle has a total of five types of string
+representations: uncompressed, lz4 compressed, two flavours of <a class="reference external" href="http://en.wikipedia.org/wiki/Trie">Prefix Trie</a>
+compression, and a binary/blob format.</p>
+<p>The first choice for string compression should be the trie compression.  This offers the best performance and can
+offer dramatic compression ratios for string data that has many duplicates or many shared prefixes (consider the
+strings beginning with &#8220;<a class="reference external" href="http://www">http://www</a>.&#8221;, for example).  The Hustle trie compression comes in either 2 or 4 byte
+flavours.  The two byte flavour can encode up to 65,536 unique strings, and the 4 byte version can encode over
+4 billion strings.  Pick the two byte flavour for those columns that have a high degree of full-word repetition,
+like &#8216;department&#8217;, &#8216;sex&#8217;, &#8216;state&#8217;, &#8216;country&#8217; - whose overall bounds are known.  For strings that have a larger
+range, but still have common prefixes and whose overall length is generally less than 256 bytes, like &#8216;url&#8217;,
+&#8216;last_name&#8217;, &#8216;city&#8217;, &#8216;user_agent&#8217;,</p>
+<p>We investigated many algorithms and implementations of compression algorithms for compressing intermediate sized
+string data, strings that are more than 256 bytes.  We found our implementation of lz4 to be both faster and
+have much higher compression ratios than <a class="reference external" href="https://code.google.com/p/snappy/">Snappy</a>.  Use LZ4 for fields like
+&#8216;page_content&#8217;, &#8216;bio&#8217;, &#8216;except&#8217;, &#8216;abstract&#8217;.</p>
+<p>Some data doesn&#8217;t like to be compressed.  UIDs and many other hash based data fields are designed to be evenly
+distributed, and therefore defeat most (all of our) compression schemes.  In this case, it is more efficient to
+simply store the uncompressed string.</p>
+</div>
+<div class="section" id="binary-data">
+<h2>Binary Data<a class="headerlink" href="#binary-data" title="Permalink to this headline">¶</a></h2>
+<p>In Hustle, binary data is an attribute that doesn&#8217;t affect how a string is compressed, but rather, it affects how
+the value is treated in our query pipeline.  Normally, result sets are sorted and grouped to execute
+<em>group by clause</em> and <em>distinct clause</em> elements of <a class="reference internal" href="../api/hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">hustle.select()</span></tt></a>.  If you have a column that
+contains binary data, such as a .png image or sound file, it doesn&#8217;t make any sense to sort or group it.</p>
+</div>
+<div class="section" id="partitions">
+<h2>Partitions<a class="headerlink" href="#partitions" title="Permalink to this headline">¶</a></h2>
+<p>Hustle employs a technique for splitting up data into distinct partitions based on a column in the target table.
+This allows us to significantly increase query performance by only considering the data that matches the partition
+specified in the query.  Typically a partition column has the following attributes:
+* the same column is in most Tables
+* the number of unique values for the column is low
+* the column is often in <em>where clauses</em>, often as ranges</p>
+<p>The DATE column usually fits the bill for the partition in most LOG type applications.</p>
+<p>Hustle currently supports a single column partition per table.  All partitions must also be indexed.  Partitions
+must currently be uncompressed string types (&#8216;$&#8217; indicator).</p>
+<p>Partitions are implemented both as regular columns in the database and with a DDFS tagging convention.  All Hustle
+tables have DDFS tags that look like:</p>
+<div class="highlight-python"><div class="highlight"><pre>hustle:employees
+</pre></div>
+</div>
+<p>where the <em>name</em> of the Table is employees.  Tables that have partitions will never actually store data under this
+<em>root tag</em> name, rather they will store it under tags that look like:</p>
+<div class="highlight-python"><div class="highlight"><pre>hustle:employees:2014-02-21
+</pre></div>
+</div>
+<p>this is assuming that the <em>employee</em> table has the <em>date</em> field as a partition.  All of the data marbles for the
+date 2014-02-22 for the <em>employees</em> table is guaranteed to be stored under this DDFS tag.  When Hustle sees a query
+with a where clause identifying this exact date (or a range including this date), we will be able to directly
+and quickly access the correct data, thereby increasing the speed of the query.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Hustle Schema Design Guide</a><ul>
+<li><a class="reference internal" href="#fields">Fields</a></li>
+<li><a class="reference internal" href="#accessing-fields">Accessing Fields</a></li>
+<li><a class="reference internal" href="#indexes">Indexes</a></li>
+<li><a class="reference internal" href="#integer-data">Integer Data</a></li>
+<li><a class="reference internal" href="#string-data-and-compression">String Data and Compression</a></li>
+<li><a class="reference internal" href="#binary-data">Binary Data</a></li>
+<li><a class="reference internal" href="#partitions">Partitions</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="cli.html"
+                        title="previous chapter">Hustle Command Line Interface (CLI)</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="query.html"
+                        title="next chapter">Hustle Query Guide</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/howto/schema.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="query.html" title="Hustle Query Guide"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="cli.html" title="Hustle Command Line Interface (CLI)"
+             >previous</a> |</li>
+        <li><a href="../index.html">Hustle 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Tim Spurway.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+    </div>
+  </body>
+</html>

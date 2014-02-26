@@ -1,0 +1,222 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Hustle Documentation &mdash; Hustle 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Hustle 0.1 documentation" href="#" />
+    <link rel="next" title="Installing Hustle" href="start/install.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="start/install.html" title="Installing Hustle"
+             accesskey="N">next</a> |</li>
+        <li><a href="#">Hustle 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="hustle-documentation">
+<h1>Hustle Documentation<a class="headerlink" href="#hustle-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Hustle is a distributed, column oriented, relational
+<a class="reference external" href="http://en.wikipedia.org/wiki/Online_analytical_processing">OLAP Database</a>.  Hustle supports parallel insertions
+and queries over large data sets, stored on an unreliable cluster of computers.  It is meant to load and query the
+enormous data sets typical of ad-tech, high volume web services, and other large-scale analytics applications.</p>
+<p>Hustle is a distributed database.  When data is inserted into Hustle, it is replicated across a cluster to enhance
+availability, horizontal scalability and enable parallel query execution.  When data is replicated on multiple nodes,
+your database becomes resistant to node failure because there is always multiple copies of it on the cluster.  This
+allows you to simply add more machines to increase both overall storage and to decrease query time by performing
+more operations in parallel.</p>
+<p>Hustle is a relational database, so, unlike other NoSQL databases, it stores it&#8217;s data in rows and columns in a fixed
+schema.  This means that you must <em>create</em> Tables with a fixed number of Columns of specific data types, before
+<em>inserting</em> data into the database.  The advantage of this is that both storage and query execution can be
+fine tuned to minimize both the data footprint and the query execution time.</p>
+<p>Hustle uses a <a class="reference external" href="http://en.wikipedia.org/wiki/Column-oriented_DBMS">column oriented format</a> for storing data.  This
+scheme is often used for very large databases, as it is more efficient for aggregation operations such as sum() and
+average() functions over a particular column as well as relational <em>joins</em> across tables.</p>
+<p>Although Hustle has a relational data model, it is not a SQL database.  Hustle extends the Python language to
+facilitate it&#8217;s relational query facility.  Let&#8217;s take a look at a typical Hustle query in Python:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">h_sum</span><span class="p">(</span><span class="n">pixels</span><span class="o">.</span><span class="n">amount</span><span class="p">),</span> <span class="n">h_count</span><span class="p">(),</span>
+       <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">,</span> <span class="n">pixels</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">),</span>
+       <span class="n">join</span><span class="o">=</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span> <span class="n">pixels</span><span class="o">.</span><span class="n">site_id</span><span class="p">),</span>
+       <span class="n">order_by</span><span class="o">=</span><span class="s">&#39;ad_id&#39;</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>which would be equivalent to the SQL query:</p>
+<div class="highlight-python"><div class="highlight"><pre>SELECT i.ad_id, i.site_id, sum(p.amount), count(*)
+FROM impressions i
+JOIN pixels p on p.site_id = p.site_id
+WHERE i.date &lt; &#39;2014-01-13&#39; and p.date &lt; &#39;2014-01-13&#39;
+ORDER BY i.ad_id DESC
+GROUP BY i.ad_id, i.site_id
+</pre></div>
+</div>
+<p>The two approaches seem equivalent, however, Python is extensible, whereas SQL is not.  You can do much more
+with Hustle than just query data.  Hustle was designed to express distributed computation over indexed data which
+includes, but is not limited to the classic relational <em>select</em> statement.  SQL is good at queries, not as an ecosystem
+for general purpose data-centric distributed computation.</p>
+<p>Hustle is meant for large, distributed inserts, and has <em>append only</em> semantics.  It is suited to very large <em>log</em>
+file style inputs, and once data is inserted, it cannot be changed.  This scheme is typically suitable for
+distributed applications that generate large log files, with many (possibly hundreds of) thousands of events
+per second.  Hustle has been streamlined to accept structured JSON log files as it&#8217;s primary input format, and to
+perform <em>distributed</em> inserts.  A distributed insert delegates most of the database creation work to the <em>client</em>,
+thereby freeing up the cluster&#8217;s resources and avoiding a central computational pinch point like in other <em>write bound</em>
+relational OLAP databases.  Hustle can easily handle almost unlimited write load using this scheme.</p>
+<p>Hustle utilizes modern compression and indexing data structures and algorithms to minimize overall memory footprint
+and to maximize query performance.  It utilizes bitmap indexes, prefix trie (dictionary) and lz4 compression, and has a
+very rich set of string and numeric data types of various sizes.  Typically, Hustle data sets are 25% to 50% than
+their equivalent GZIPed JSON sources.</p>
+<p>Hustle has several auxiliary tools:</p>
+<ul class="simple">
+<li>a command line interface (CLI) Python shell with auto-completion of Hustle tables and functions</li>
+<li>a client side insert script</li>
+</ul>
+<div class="section" id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>column oriented - super fast queries</li>
+<li>distributed insert - Hustle is designed for petabyte scale datasets in a distributed environment with massive write loads</li>
+<li>compressed - bitmap indexes, lz4, and prefix trie compression</li>
+<li>relational - join gigantic data sets</li>
+<li>partitioned - smart shards</li>
+<li>embarrassingly distributed (<a class="reference external" href="http://discoproject.org/">based on Disco</a>)</li>
+<li>embarrassingly fast (<a class="reference external" href="http://symas.com/mdb/">uses LMDB</a>)</li>
+<li>NoSQL - Python DSL</li>
+<li>bulk append only semantics</li>
+<li>highly available, horizontally scalable</li>
+<li>REPL/CLI query interface</li>
+</ul>
+</div>
+<div class="section" id="getting-started">
+<h2>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="start/install.html">Installing Hustle</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="start/tutorial.html">Hustle Tutorial</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="hustle-in-depth">
+<h2>Hustle In Depth<a class="headerlink" href="#hustle-in-depth" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="howto/integration_tests.html">Hustle Integration Test Suite</a></li>
+<li class="toctree-l1"><a class="reference internal" href="howto/configure.html">Configuring Hustle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="howto/cli.html">Hustle Command Line Interface (CLI)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="howto/schema.html">Hustle Schema Design Guide</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="howto/query.html">Hustle Query Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="howto/insert.html">Inserting Data To Hustle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="howto/index.html">Hustle Indexes</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="reference">
+<h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/hustle.html"><tt class="docutils literal"><span class="pre">hustle</span></tt> &#8211; Hustle Distributed OLAP Database</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/core.html"><tt class="docutils literal"><span class="pre">hustle.core.marble</span></tt> &#8211; The Hustle Database Core</a></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Hustle Documentation</a><ul>
+<li><a class="reference internal" href="#features">Features</a></li>
+<li><a class="reference internal" href="#getting-started">Getting started</a></li>
+<li><a class="reference internal" href="#hustle-in-depth">Hustle In Depth</a></li>
+<li><a class="reference internal" href="#reference">Reference</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="start/install.html"
+                        title="next chapter">Installing Hustle</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="start/install.html" title="Installing Hustle"
+             >next</a> |</li>
+        <li><a href="#">Hustle 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Tim Spurway.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+    </div>
+  </body>
+</html>

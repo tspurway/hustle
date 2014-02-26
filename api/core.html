@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>hustle.core.marble – The Hustle Database Core &mdash; Hustle 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Hustle 0.1 documentation" href="../index.html" />
+    <link rel="prev" title="hustle – Hustle Distributed OLAP Database" href="hustle.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="hustle.html" title="hustle – Hustle Distributed OLAP Database"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Hustle 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <span class="target" id="module-hustle.core.marble"></span><div class="section" id="hustle-core-marble-the-hustle-database-core">
+<h1><a class="reference internal" href="#module-hustle.core.marble" title="hustle.core.marble"><tt class="xref py py-mod docutils literal"><span class="pre">hustle.core.marble</span></tt></a> &#8211; The Hustle Database Core<a class="headerlink" href="#hustle-core-marble-the-hustle-database-core" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="hustle.core.marble.Marble">
+<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Marble</tt><big>(</big><em>name=None</em>, <em>fields=()</em>, <em>partition=None</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Marble" title="Permalink to this definition">¶</a></dt>
+<dd><p>The Marble is the smallest unit of distribution and replication in Hustle.  The Marble is a wrapper around a
+standalone <a class="reference external" href="http://symas.com/mdb/">LMDB</a> key/value store.  An <em>LMDB</em> key/value store may have many sub key/value
+stores, which are called DBs in LMDB terminology.  Each Hustle column is represented by one LMDB DB (called the column
+DB), plus another LMDB DB if that column is indexed (called the index DB) (see <a class="reference internal" href="../howto/schema.html#schemadesign"><em>Hustle Schema Design Guide</em></a>).</p>
+<p>The Marble file is also the unit of insertion and replication of data into the Hustle system.  Marbles can be built
+on remote systems, in a completely distributed manner.  They are then <em>pushed</em> into the cluster&#8217;s DDFS file system,
+which is a relatively inexpensive operation.  This is Hustle&#8217;s <a class="reference internal" href="../howto/insert.html#insertguide"><em>distributed insert functionality</em></a>.</p>
+<p>In addition each Marble contains several LMDB meta DBs for meta-data for prefix Tries, schema, and table statistics
+used by the query optimizer.</p>
+<p>The column DB is a key/value store that stores data for a particular column.  It has a locally unique row identifier (RID) as
+the key, and the actual value for that column&#8217;s data as it&#8217;s value, encoded depending on the schema data type of
+the column.  All integer types are directly encoded in LMDB as integers, whereas the Trie compression types are encoded
+as integers (called VIDs), which actually are keys in the two dedicated Trie meta DBs (one for 32 and one for 16
+bit Tries).  Uncompressed strings, as well as lz4 and binary style data is simply encoded as byte string values.</p>
+<p>The index DB for a column is a key/value store that inverts the key and the value of the column DB.  It is used to
+perform the identity and range queries required form Hustle&#8217;s <em>where clause</em>.  The key in the index DB is the
+actual value for that column, but the value is a <em>bitmap index</em> of the RIDs where that value is present.  This is
+a very efficient and compact way to store the index in an append-only database like Hustle.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#basestring" title="(in Python v2.7)"><em>basestring</em></a>) &#8211; the name of the <em>Marble</em> to create</li>
+<li><strong>name</strong> &#8211; the schema specification of the columns (see <a class="reference internal" href="../howto/schema.html#schemadesign"><em>Hustle Schema Guide</em></a></li>
+<li><strong>partition</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#basestring" title="(in Python v2.7)"><em>basestring</em></a>) &#8211; the column that will serve as the partition for this <em>Marble</em></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="classmethod">
+<dt id="hustle.core.marble.Marble.from_file">
+<em class="property">classmethod </em><tt class="descname">from_file</tt><big>(</big><em>filename</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Marble.from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate a <a class="reference internal" href="#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">Marble</span></tt></a> from an <em>LMDB</em></p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.core.marble.check_query">
+<tt class="descclassname">hustle.core.marble.</tt><tt class="descname">check_query</tt><big>(</big><em>select</em>, <em>join</em>, <em>order_by</em>, <em>limit</em>, <em>wheres</em><big>)</big><a class="headerlink" href="#hustle.core.marble.check_query" title="Permalink to this definition">¶</a></dt>
+<dd><p>Query checker for hustle.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="hustle.html"
+                        title="previous chapter"><tt class="docutils literal"><span class="pre">hustle</span></tt> &#8211; Hustle Distributed OLAP Database</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/api/core.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="hustle.html" title="hustle – Hustle Distributed OLAP Database"
+             >previous</a> |</li>
+        <li><a href="../index.html">Hustle 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Tim Spurway.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+    </div>
+  </body>
+</html>

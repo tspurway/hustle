@@ -1,0 +1,159 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Installing Hustle &mdash; Hustle 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Hustle 0.1 documentation" href="../index.html" />
+    <link rel="next" title="Hustle Tutorial" href="tutorial.html" />
+    <link rel="prev" title="Hustle Documentation" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tutorial.html" title="Hustle Tutorial"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../index.html" title="Hustle Documentation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Hustle 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="installing-hustle">
+<span id="installguide"></span><h1>Installing Hustle<a class="headerlink" href="#installing-hustle" title="Permalink to this headline">¶</a></h1>
+<p>Hustle is hosted on <a class="reference external" href="https://github.com/changoinc/hustle">GitHub</a> and should be cloned from that repo:</p>
+<div class="highlight-python"><div class="highlight"><pre>git clone git@github.com:changoinc/hustle.git
+</pre></div>
+</div>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<p>Hustle has the following dependencies:
+* you will need <cite>Python 2.7 &lt;http://www.python.org/downloads/&gt;</cite>
+* you will need <cite>Disco 0.5 &lt;http://disco.readthedocs.org/en/latest/start/install.html&gt;</cite></p>
+</div>
+<div class="section" id="installing-the-hustle-client">
+<h2>Installing the Hustle Client<a class="headerlink" href="#installing-the-hustle-client" title="Permalink to this headline">¶</a></h2>
+<p>In order to run Hustle, you will need to install it onto an existing <em>Disco v0.5</em> cluster.</p>
+<p>In order to query a Hustle/Disco cluster, you will need to install the Hustle software on that <em>client</em> machine:</p>
+<div class="highlight-python"><div class="highlight"><pre>cd hustle
+sudo ./bootstrap.sh
+</pre></div>
+</div>
+<p>This will build and install Hustle on your client machine.</p>
+</div>
+<div class="section" id="installing-on-the-cluster">
+<h2>Installing on the Cluster<a class="headerlink" href="#installing-on-the-cluster" title="Permalink to this headline">¶</a></h2>
+<p>Disco is a distributed system and may have many nodes.  Each of the nodes in your Disco cluster will need to install
+the Hustle dependencies.  These can be found in the <em>hustle/deps</em> directory.  The easiest way to install Hustle on
+your disco slave nodes is to:</p>
+<div class="highlight-python"><div class="highlight"><pre>cd hustle/deps
+make
+sudo make install
+</pre></div>
+</div>
+<p>on <strong>ALL</strong> you disco slave nodes.</p>
+<p>You may now want to go and run the <a class="reference internal" href="../howto/integration_tests.html#integrationtests"><em>Integration Tests</em></a> to validate your installation.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Installing Hustle</a><ul>
+<li><a class="reference internal" href="#dependencies">Dependencies</a></li>
+<li><a class="reference internal" href="#installing-the-hustle-client">Installing the Hustle Client</a></li>
+<li><a class="reference internal" href="#installing-on-the-cluster">Installing on the Cluster</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../index.html"
+                        title="previous chapter">Hustle Documentation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="tutorial.html"
+                        title="next chapter">Hustle Tutorial</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/start/install.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="tutorial.html" title="Hustle Tutorial"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../index.html" title="Hustle Documentation"
+             >previous</a> |</li>
+        <li><a href="../index.html">Hustle 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Tim Spurway.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
+    </div>
+  </body>
+</html>
