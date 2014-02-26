@@ -77,18 +77,14 @@ attributes.  To instantiate an existing Table (to use in a query, for example), 
 method is used.</p>
 <p>see <a class="reference internal" href="../howto/schema.html#schemadesign"><em>Hustle Schema Design Guide</em></a> for a detailed look at Hustle&#8217;s schema design language and features.</p>
 <dl class="classmethod">
-<dt id="hustle.Table.base_tag">
-<em class="property">classmethod </em><tt class="descname">base_tag</tt><big>(</big><em>name</em>, <em>partition=None</em><big>)</big><a class="headerlink" href="#hustle.Table.base_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>return the <em>DDFS</em> tag name for a given hustle table name</p>
+<dt id="hustle.Table.from_tag">
+<em class="property">classmethod </em><tt class="descname">from_tag</tt><big>(</big><em>name</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.Table.from_tag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Instantiate a named <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> based on meta data from a <em>DDFS</em> tag.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the name of the table</li>
-<li><strong>partition</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the value of the partition</li>
-</ul>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the name of the table</td>
 </tr>
 </tbody>
 </table>
@@ -126,32 +122,16 @@ by deleting and reloading your data.</p>
 </dd></dl>
 
 <dl class="classmethod">
-<dt id="hustle.Table.from_tag">
-<em class="property">classmethod </em><tt class="descname">from_tag</tt><big>(</big><em>name</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.Table.from_tag" title="Permalink to this definition">¶</a></dt>
-<dd><p>Instantiate a named <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> based on meta data from a <em>DDFS</em> tag.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the name of the table</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="function">
-<dt id="hustle.dump">
-<tt class="descclassname">hustle.</tt><tt class="descname">dump</tt><big>(</big><em>result_urls</em>, <em>width=80</em><big>)</big><a class="headerlink" href="#hustle.dump" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dump the results of a query.</p>
+<dt id="hustle.Table.base_tag">
+<em class="property">classmethod </em><tt class="descname">base_tag</tt><big>(</big><em>name</em>, <em>partition=None</em><big>)</big><a class="headerlink" href="#hustle.Table.base_tag" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the <em>DDFS</em> tag name for a given hustle table name</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>result_urls</strong> (<em>sequence of strings</em>) &#8211; result of an (unnested) query</li>
-<li><strong>width</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; the number of columns to constrain output to</li>
+<li><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the name of the table</li>
+<li><strong>partition</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the value of the partition</li>
 </ul>
 </td>
 </tr>
@@ -159,102 +139,6 @@ by deleting and reloading your data.</p>
 </table>
 </dd></dl>
 
-<dl class="function">
-<dt id="hustle.get_tables">
-<tt class="descclassname">hustle.</tt><tt class="descname">get_tables</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.get_tables" title="Permalink to this definition">¶</a></dt>
-<dd><p>return the visible Hustle tables in the currently configured DDFS server.  Hustle finds tables by looking
-for DDFS tags that have a <em>hustle:</em> prefix.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; custom settings for this query see <tt class="xref py py-mod docutils literal"><span class="pre">hustle.core.settings</span></tt></td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="hustle.h_avg">
-<tt class="descclassname">hustle.</tt><tt class="descname">h_avg</tt><big>(</big><em>col</em><big>)</big><a class="headerlink" href="#hustle.h_avg" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return an aggregation for the average of the given column.  Like the SQL avg() function:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_avg</span><span class="p">(</span><span class="n">employee</span><span class="o">.</span><span class="n">salary</span><span class="p">),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>returns the average salary in each department</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="hustle.h_count">
-<tt class="descclassname">hustle.</tt><tt class="descname">h_count</tt><big>(</big><big>)</big><a class="headerlink" href="#hustle.h_count" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return an aggregation for the count of each grouped key in a query.  Like SQL count() function:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_count</span><span class="p">(),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>returns a count of the number of employees in each department.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="hustle.h_max">
-<tt class="descclassname">hustle.</tt><tt class="descname">h_max</tt><big>(</big><em>col</em><big>)</big><a class="headerlink" href="#hustle.h_max" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return an aggregation for the maximum of the given column.  Like the SQL max() function:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_max</span><span class="p">(</span><span class="n">employee</span><span class="o">.</span><span class="n">salary</span><span class="p">),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>returns the highest salary for each department.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="hustle.h_min">
-<tt class="descclassname">hustle.</tt><tt class="descname">h_min</tt><big>(</big><em>col</em><big>)</big><a class="headerlink" href="#hustle.h_min" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return an aggregation for the minimum of the given column.  Like the SQL min() function:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_min</span><span class="p">(</span><span class="n">employee</span><span class="o">.</span><span class="n">salar</span><span class="p">),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>returns the lowest salary in each department.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="hustle.h_sum">
-<tt class="descclassname">hustle.</tt><tt class="descname">h_sum</tt><big>(</big><em>col</em><big>)</big><a class="headerlink" href="#hustle.h_sum" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return an aggregation for the sum of the given column.  Like SQL sum() function.
-This is used in <a class="reference internal" href="#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">hustle.select()</span></tt></a> calls to specify the sum aggregation over a column in a query:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_sum</span><span class="p">(</span><span class="n">employee</span><span class="o">.</span><span class="n">salary</span><span class="p">),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="o">.</span><span class="n">age</span> <span class="o">&gt;</span> <span class="mi">25</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>returns the total salaries for each departments employees over 25 years old</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
-</tr>
-</tbody>
-</table>
 </dd></dl>
 
 <dl class="function">
@@ -298,34 +182,6 @@ slow when inserting gigantic files or on nodes with limited memory resources.  s
 </li>
 </ul>
 </td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="hustle.partitions">
-<tt class="descclassname">hustle.</tt><tt class="descname">partitions</tt><big>(</big><em>table</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.partitions" title="Permalink to this definition">¶</a></dt>
-<dd><p>Print the partitions for a given table.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; custom settings for this query see <tt class="xref py py-mod docutils literal"><span class="pre">hustle.core.settings</span></tt></td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="hustle.schema">
-<tt class="descclassname">hustle.</tt><tt class="descname">schema</tt><big>(</big><em>tab</em>, <em>index_only=False</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.schema" title="Permalink to this definition">¶</a></dt>
-<dd><p>Print the schema for a given table</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; custom settings for this query see <tt class="xref py py-mod docutils literal"><span class="pre">hustle.core.settings</span></tt></td>
 </tr>
 </tbody>
 </table>
@@ -441,6 +297,89 @@ select(h_sum(active_pix.amount), where=active_pix)
 </dd></dl>
 
 <dl class="function">
+<dt id="hustle.h_sum">
+<tt class="descclassname">hustle.</tt><tt class="descname">h_sum</tt><big>(</big><em>col</em><big>)</big><a class="headerlink" href="#hustle.h_sum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an aggregation for the sum of the given column.  Like SQL sum() function.
+This is used in <a class="reference internal" href="#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">hustle.select()</span></tt></a> calls to specify the sum aggregation over a column in a query:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_sum</span><span class="p">(</span><span class="n">employee</span><span class="o">.</span><span class="n">salary</span><span class="p">),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="o">.</span><span class="n">age</span> <span class="o">&gt;</span> <span class="mi">25</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>returns the total salaries for each departments employees over 25 years old</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.h_count">
+<tt class="descclassname">hustle.</tt><tt class="descname">h_count</tt><big>(</big><big>)</big><a class="headerlink" href="#hustle.h_count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an aggregation for the count of each grouped key in a query.  Like SQL count() function:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_count</span><span class="p">(),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>returns a count of the number of employees in each department.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.h_max">
+<tt class="descclassname">hustle.</tt><tt class="descname">h_max</tt><big>(</big><em>col</em><big>)</big><a class="headerlink" href="#hustle.h_max" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an aggregation for the maximum of the given column.  Like the SQL max() function:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_max</span><span class="p">(</span><span class="n">employee</span><span class="o">.</span><span class="n">salary</span><span class="p">),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>returns the highest salary for each department.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.h_min">
+<tt class="descclassname">hustle.</tt><tt class="descname">h_min</tt><big>(</big><em>col</em><big>)</big><a class="headerlink" href="#hustle.h_min" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an aggregation for the minimum of the given column.  Like the SQL min() function:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_min</span><span class="p">(</span><span class="n">employee</span><span class="o">.</span><span class="n">salar</span><span class="p">),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>returns the lowest salary in each department.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.h_avg">
+<tt class="descclassname">hustle.</tt><tt class="descname">h_avg</tt><big>(</big><em>col</em><big>)</big><a class="headerlink" href="#hustle.h_avg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an aggregation for the average of the given column.  Like the SQL avg() function:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_avg</span><span class="p">(</span><span class="n">employee</span><span class="o">.</span><span class="n">salary</span><span class="p">),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>returns the average salary in each department</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="hustle.star">
 <tt class="descclassname">hustle.</tt><tt class="descname">star</tt><big>(</big><em>table</em><big>)</big><a class="headerlink" href="#hustle.star" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the list of all columns in a table.  This is used much like the <tt class="docutils literal"><span class="pre">*</span></tt> notation in SQL:</p>
@@ -459,9 +398,70 @@ select(h_sum(active_pix.amount), where=active_pix)
 </dd></dl>
 
 <dl class="function">
+<dt id="hustle.dump">
+<tt class="descclassname">hustle.</tt><tt class="descname">dump</tt><big>(</big><em>result_urls</em>, <em>width=80</em><big>)</big><a class="headerlink" href="#hustle.dump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the results of a query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>result_urls</strong> (<em>sequence of strings</em>) &#8211; result of an (unnested) query</li>
+<li><strong>width</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; the number of columns to constrain output to</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.get_tables">
+<tt class="descclassname">hustle.</tt><tt class="descname">get_tables</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.get_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the visible Hustle tables in the currently configured DDFS server.  Hustle finds tables by looking
+for DDFS tags that have a <em>hustle:</em> prefix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; custom settings for this query see <tt class="xref py py-mod docutils literal"><span class="pre">hustle.core.settings</span></tt></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="hustle.tables">
 <tt class="descclassname">hustle.</tt><tt class="descname">tables</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.tables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Print all available tables.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; custom settings for this query see <tt class="xref py py-mod docutils literal"><span class="pre">hustle.core.settings</span></tt></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.schema">
+<tt class="descclassname">hustle.</tt><tt class="descname">schema</tt><big>(</big><em>tab</em>, <em>index_only=False</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print the schema for a given table</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; custom settings for this query see <tt class="xref py py-mod docutils literal"><span class="pre">hustle.core.settings</span></tt></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.partitions">
+<tt class="descclassname">hustle.</tt><tt class="descname">partitions</tt><big>(</big><em>table</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.partitions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print the partitions for a given table.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
