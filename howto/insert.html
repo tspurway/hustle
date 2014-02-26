@@ -24,7 +24,7 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="top" title="Hustle 0.1 documentation" href="../index.html" />
-    <link rel="next" title="Hustle Indexes" href="index.html" />
+    <link rel="next" title="hustle – Hustle Distributed OLAP Database" href="../api/hustle.html" />
     <link rel="prev" title="Hustle Query Guide" href="query.html" /> 
   </head>
   <body>
@@ -38,7 +38,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Hustle Indexes"
+          <a href="../api/hustle.html" title="hustle – Hustle Distributed OLAP Database"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="query.html" title="Hustle Query Guide"
@@ -54,6 +54,28 @@
             
   <div class="section" id="inserting-data-to-hustle">
 <span id="insertguide"></span><h1>Inserting Data To Hustle<a class="headerlink" href="#inserting-data-to-hustle" title="Permalink to this headline">¶</a></h1>
+<p>The process of inserting data into a Hustle cluster is referred to as a <em>distributed</em> insert.  It is
+distributed because the client machine does the heavy lifting of creating a
+<a class="reference internal" href="../api/core.html#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">Marble</span></tt></a>, which is a self-contained large grained database fragment, which
+is then <a class="reference external" href="http://disco.readthedocs.org/en/latest/howto/ddfs.html#ddfs">pushed into the distributed file system DDFS</a>,
+which is a relatively inexpensive HTTP operation.  The write throughput to the Hustle cluster, then, is only
+bound by the number of machines inserting into it.</p>
+<p>Hustle currently supports <a class="reference external" href="http://json.org">one JSON object per line</a> style input, as well as
+<a class="reference external" href="http://disco.readthedocs.org/en/latest/faq.html#chaining">Disco&#8217;s native results format</a>.</p>
+<p>Here is an example insert:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">hustle</span> <span class="kn">import</span> <span class="n">Table</span><span class="p">,</span> <span class="n">insert</span>
+<span class="n">impressions</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_tag</span><span class="p">(</span><span class="s">&#39;impressions&#39;</span><span class="p">)</span>
+<span class="n">insert</span><span class="p">(</span><span class="n">impressions</span><span class="p">,</span> <span class="s">&#39;./imprsions-june-8.json&#39;</span><span class="p">,</span> <span class="n">server</span><span class="o">=</span><span class="s">&#39;disco://hustle&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<dl class="docutils">
+<dt>Page <a class="reference internal" href="integration_tests.html#integrationtests"><em>Hustle Integration Test Suite</em></a></dt>
+<dd>Hustle&#8217;s Integration Test Suite for creating and inserting to partitioned Tables.</dd>
+</dl>
+<p class="last"><a class="reference internal" href="../api/hustle.html#hustle.insert" title="hustle.insert"><tt class="xref py py-func docutils literal"><span class="pre">insert()</span> <span class="pre">function</span></tt></a></p>
+</div>
 </div>
 
 
@@ -66,8 +88,8 @@
   <p class="topless"><a href="query.html"
                         title="previous chapter">Hustle Query Guide</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="next chapter">Hustle Indexes</a></p>
+  <p class="topless"><a href="../api/hustle.html"
+                        title="next chapter"><tt class="docutils literal"><span class="pre">hustle</span></tt> &#8211; Hustle Distributed OLAP Database</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="../_sources/howto/insert.txt"
@@ -100,7 +122,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Hustle Indexes"
+          <a href="../api/hustle.html" title="hustle – Hustle Distributed OLAP Database"
              >next</a> |</li>
         <li class="right" >
           <a href="query.html" title="Hustle Query Guide"

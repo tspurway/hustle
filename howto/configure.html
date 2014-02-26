@@ -54,6 +54,50 @@
             
   <div class="section" id="configuring-hustle">
 <span id="configureguide"></span><h1>Configuring Hustle<a class="headerlink" href="#configuring-hustle" title="Permalink to this headline">¶</a></h1>
+<p>Hustle has a configuration file located at:</p>
+<div class="highlight-python"><div class="highlight"><pre>/etc/hustle/settings.yaml
+</pre></div>
+</div>
+<p>and has the following possible settings:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="16%" />
+<col width="33%" />
+<col width="51%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Name</th>
+<th class="head">Default Value</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>server:</td>
+<td>disco://localhost</td>
+<td>The Disco master node</td>
+</tr>
+<tr class="row-odd"><td>worker_class:</td>
+<td>hustle.core.pipeworker.Worker</td>
+<td>The Disco Worker class</td>
+</tr>
+<tr class="row-even"><td>dump:</td>
+<td>False</td>
+<td>True will automatically print select() results</td>
+</tr>
+<tr class="row-odd"><td>nest:</td>
+<td>False</td>
+<td>True will return a Table from select()</td>
+</tr>
+<tr class="row-even"><td>partition:</td>
+<td>16</td>
+<td>The number of partitions for restrict-select</td>
+</tr>
+<tr class="row-odd"><td>history_size:</td>
+<td>1000</td>
+<td>The number of history entries in the CLI</td>
+</tr>
+</tbody>
+</table>
 </div>
 
 
