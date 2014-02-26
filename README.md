@@ -17,10 +17,6 @@ Features
 * definitely consistent
 * REPL/CLI query interface
 
-Documentation
--------------
-
-http://changoinc.github.io/hustle/
 
 BETA / EAP
 ----------
@@ -41,7 +37,7 @@ cd hustle
 sudo ./bootstrap.sh
 ```
 
-Please refer to the [Installation Guide](http://changoinc.github.io/hustle/start/install.html) for more details
+Please refer to the [Installation Guide](http://chango.github.io/hustle/start/install.html) for more details
 
 Documentation
 =============
