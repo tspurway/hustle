@@ -46,7 +46,7 @@ Please refer to the [Installation Guide](http://changoinc.github.io/hustle/start
 Documentation
 =============
 
-http://changoinc.github.io/hustle/
+http://chango.github.io/hustle/
 
 
 Credits
