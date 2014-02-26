@@ -97,7 +97,6 @@ Hustle In Depth
    howto/schema
    howto/query
    howto/insert
-   howto/index
 
 Reference
 ---------
