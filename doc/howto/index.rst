@@ -1,0 +1,4 @@
+.. _indexguide:
+
+Hustle Indexes
+==============

@@ -220,6 +220,7 @@ class Worker(worker.Worker):
                     newmap[label] = [input]
             else:
                 for label, inputs in map.iteritems():
+
                     input = chainify(shuffled(inputs))
                     newmap[label] = [disk_sort(input,
                                                task.path('sort.dl'),
