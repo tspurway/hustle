@@ -34,14 +34,13 @@ def ensure_tables():
     tags = ddfs.list("hustle:%s:" % IMPS)
     if len(tags) == 0:
         # insert the files
-        insert(imps, file='fixtures/imps.json', preprocess=imp_process)
+        insert(imps, phile='fixtures/imps.json', preprocess=imp_process)
 
     tags = ddfs.list("hustle:%s:" % PIXELS)
     if len(tags) == 0:
         # insert the files
-        insert(pixels, file='fixtures/pixel.json')
+        insert(pixels, phile='fixtures/pixel.json')
 
 
 if __name__ == '__main__':
     ensure_tables()
-
