@@ -105,3 +105,14 @@ Hustle is a relational database, but we reject the SQL language.  The queries ar
 * extensible, if you don't like the built-in aggregating functions, add your own, no worries
 * limit, desc, distinct, h_sum(), h_avg(), h_count() work as expected
 
+
+Credits
+=======
+
+Special thanks to following open-source projects:
+
+* [EWAHBoolArray](https://github.com/lemire/EWAHBoolArray)
+* [disco](http://discoproject.org/)
+* [liblmdb](http://symas.com/mdb/)
+* [lz4](https://code.google.com/p/lz4/)
+* [ultrajson](https://github.com/esnme/ultrajson)
