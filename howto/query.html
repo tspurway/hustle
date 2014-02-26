@@ -54,6 +54,40 @@
             
   <div class="section" id="hustle-query-guide">
 <span id="queryguide"></span><h1>Hustle Query Guide<a class="headerlink" href="#hustle-query-guide" title="Permalink to this headline">¶</a></h1>
+<p>Let&#8217;s take a quick gander at a Hustle query, remember, the query language is Python.  We do some DSL tricks to
+make the &#8216;where&#8217; clause especially crunchy:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">impressions</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">impressions</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span>
+       <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">date</span> <span class="o">&gt;</span> <span class="s">&#39;2014-01-22&#39;</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">ad_id</span> <span class="o">==</span> <span class="mi">30010</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">impressions</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">h_sum</span><span class="p">(</span><span class="n">pix</span><span class="o">.</span><span class="n">amount</span><span class="p">),</span> <span class="n">h_count</span><span class="p">(),</span>
+       <span class="n">where</span><span class="o">=</span><span class="p">((</span><span class="n">impressions</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">ad_id</span> <span class="o">==</span> <span class="mi">30010</span><span class="p">),</span> <span class="n">pix</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">),</span>
+       <span class="n">join</span><span class="o">=</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span> <span class="n">pix</span><span class="o">.</span><span class="n">site_id</span><span class="p">),</span>
+       <span class="n">order_by</span><span class="o">=</span><span class="s">&#39;amount&#39;</span><span class="p">,</span>
+       <span class="n">desc</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+       <span class="n">limit</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Hustle is a relational database, but we reject the SQL language.  The queries are similar to SQL with some
+defining differences:</p>
+<ul class="simple">
+<li>no &#8216;group_by&#8217; clause - if there is an aggregating column, then all other non-aggregating columns are assumed to</li>
+</ul>
+<p>be &#8216;group_by&#8217; columns
+* no &#8216;from&#8217; clause - the &#8216;where&#8217; clause lists all of the tables data is queried from
+* where clauses use binary operators &amp;, | and ~.  Note that you will need to parenthesize everything...
+* joins are not comparisons - unlike SQL, you need to list the join columns, and it uses the equality operator
+* joins are against exactly two tables - if you need more you can nest queries in the &#8216;where&#8217; clause
+* extensible, if you don&#8217;t like the built-in aggregating functions, add your own, no worries
+* limit, desc, distinct, h_sum(), h_avg(), h_count() work as expected</p>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<dl class="last docutils">
+<dt><a class="reference internal" href="../api/hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">hustle.select()</span></tt></a></dt>
+<dd>Hustle&#8217;s select statment</dd>
+</dl>
+</div>
 </div>
 
 
