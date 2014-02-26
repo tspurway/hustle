@@ -21,8 +21,8 @@ Hustle uses a `column oriented format <http://en.wikipedia.org/wiki/Column-orien
 scheme is often used for very large databases, as it is more efficient for aggregation operations such as sum() and
 average() functions over a particular column as well as relational *joins* across tables.
 
-Although Hustle has a relational data model, it is not a SQL database.  Hustle extends the Python language to
-facilitate it's relational query facility.  Let's take a look at a typical Hustle query in Python::
+Although Hustle has a relational data model, it is not a SQL database.  Hustle extends the Python language for
+it's relational query facility.  Let's take a look at a typical Hustle query in Python::
 
     select(impressions.ad_id, h_sum(pixels.amount), h_count(),
            where=(impressions.date < '2014-01-13', pixels.date < '2014-01-13'),
