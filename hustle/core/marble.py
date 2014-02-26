@@ -1,3 +1,9 @@
+"""
+:mod:`hustle.core.marble` -- The Hustle Database Core
+=====================================================
+
+
+"""
 from functools import partial
 from collections import defaultdict
 from pyebset import BitSet
@@ -11,60 +17,40 @@ import rtrie
 COMMIT_THRESHOLD = 50000
 
 
-class DUMMY(object):
-    tobj = None
-
-    def __getitem__(self, item):
-        return self.tobj
-
-_dummy = DUMMY()
-_dummy_bitmap = DUMMY()
-_dummy.tobj = _dummy_bitmap
-
-ZERO_BS = BitSet()
-ZERO_BS.set(0)
-
-setattr(_dummy_bitmap, 'set', (lambda k: k))
-setattr(_dummy, 'get', lambda k: _dummy_bitmap)
-
-
-def json_decoder(line):
-    return ujson.loads(line)
-
-
-def kv_decoder(line, kvs=()):
-    key, value = line
-    return dict(zip(kvs, key + value))
-
-
-class Victor(object):
-    def __init__(self, fn, txn, db):
-        self.fn = fn
-        self.txn = txn
-        self.db = db
-
-    def __call__(self, *args):
-        if len(args) > 1:
-            return self.fn(args[0], args[1], txn=self.txn, ixdb=self.db)
-        else:
-            return self.fn(args[0], txn=self.txn, ixdb=self.db)
-
-
-def _insert_row(data, txn, dbs, row_id, vid_trie, vid16_trie):
-    column = None
-    try:
-        for subdb, _, bitmap_dict, column in dbs.itervalues():
-
-            val = column.converter(data.get(column.name, column.default_value) or column.default_value,
-                                   vid_trie, vid16_trie)
-            subdb.put(txn, row_id, val)
-            bitmap_dict[val].set(row_id)
-    except Exception as e:
-        print "Can't INSERT: %s %s: %s" % (repr(data), column, e)
-
-
 class Marble(object):
-    """Adding a comment!"""
+    """
+    The Marble is the smallest unit of distribution and replication in Hustle.  The Marble is a wrapper around a
+    standalone `LMDB <http://symas.com/mdb/>`_ key/value store.  An *LMDB* key/value store may have many sub key/value
+    stores, which are called DBs in LMDB terminology.  Each Hustle column is represented by one LMDB DB (called the column
+    DB), plus another LMDB DB if that column is indexed (called the index DB) (see :ref:`schemadesign`).
+
+    The Marble file is also the unit of insertion and replication of data into the Hustle system.  Marbles can be built
+    on remote systems, in a completely distributed manner.  They are then *pushed* into the cluster's DDFS file system,
+    which is a relatively inexpensive operation.  This is Hustle's :ref:`distributed insert functionality <insertguide>`.
+
+    In addition each Marble contains several LMDB meta DBs for meta-data for prefix Tries, schema, and table statistics
+    used by the query optimizer.
+
+    The column DB is a key/value store that stores data for a particular column.  It has a locally unique row identifier (RID) as
+    the key, and the actual value for that column's data as it's value, encoded depending on the schema data type of
+    the column.  All integer types are directly encoded in LMDB as integers, whereas the Trie compression types are encoded
+    as integers (called VIDs), which actually are keys in the two dedicated Trie meta DBs (one for 32 and one for 16
+    bit Tries).  Uncompressed strings, as well as lz4 and binary style data is simply encoded as byte string values.
+
+    The index DB for a column is a key/value store that inverts the key and the value of the column DB.  It is used to
+    perform the identity and range queries required form Hustle's *where clause*.  The key in the index DB is the
+    actual value for that column, but the value is a *bitmap index* of the RIDs where that value is present.  This is
+    a very efficient and compact way to store the index in an append-only database like Hustle.
+
+    :type name: basestring
+    :param name: the name of the *Marble* to create
+
+    :type fields: sequence of string
+    :param name: the schema specification of the columns (see :ref:`Hustle Schema Guide <schemadesign>`
+
+    :type partition: basestring
+    :param partition: the column that will serve as the partition for this *Marble*
+    """
     def __init__(self, name=None, fields=(), partition=None):
         self._name = name
         self._fields = fields
@@ -174,6 +160,9 @@ class Marble(object):
 
     @classmethod
     def from_file(cls, filename):
+        """
+        Instantiate a :class:`Marble <hustle.core.marble.Marble>` from an *LMDB*
+        """
         env, txn, db = mdb.mdb_read_handle(filename, '_meta_', False,
                                            False, False,
                                            mdb.MDB_NOSUBDIR | mdb.MDB_NOLOCK)
@@ -254,9 +243,12 @@ class Marble(object):
         return env, txn, dbs, meta
 
     def _insert(self, streams, preprocess=None, maxsize=1024 * 1024 * 1024,
-                tmpdir='/tmp', decoder=json_decoder, lru_size=10000):
+                tmpdir='/tmp', decoder=None, lru_size=10000):
         """insert a file into the hustle table."""
         from wtrie import Trie
+
+        if not decoder:
+            decoder = json_decoder
 
         partitions = {}
         counters = {}
@@ -496,121 +488,10 @@ class MarbleStream(object):
         except:
             pass
 
-
-def in_not(obj, invert, expr):
-    if expr is None:
-        return BitSet()
-    return expr(obj, not invert)
-
-
 def part_all(tags, invert=False):
     if invert:
         return []
     return tags
-
-
-def part_conditional(obj, invert, op, l_expr, r_expr):
-    if (op == 'and' and not invert) or (op == 'or' and invert):
-        # and
-        l_set = set(l_expr(obj, invert))
-        for uid in r_expr(obj, invert):
-            if uid in l_set:
-                yield uid
-    else:
-        # or
-        l_set = set(l_expr(obj, invert))
-        for uid in l_set:
-            yield uid
-        for uid in r_expr(obj, invert):
-            if uid not in l_set:
-                yield uid
-
-
-def in_conditional(tablet, invert, op, l_expr, r_expr):
-    if (op == 'and' and not invert) or (op == 'or' and invert):
-        # and
-        if l_expr is None:
-            return r_expr(tablet, invert)
-        elif r_expr is None:
-            return l_expr(tablet, invert)
-        return l_expr(tablet, invert) & r_expr(tablet, invert)
-    else:
-        # or
-        if l_expr is None or r_expr is None:
-            return None
-        return l_expr(tablet, invert) | r_expr(tablet, invert)
-
-
-def in_eq(tablet, invert, col, other):
-    if invert:
-        return tablet.bit_ne(col, other)
-    return tablet.bit_eq(col, other)
-
-
-def part_eq(tags, invert, other):
-    if invert:
-        return part_ne(tags, False, other)
-    return (t for t in tags if t == other)
-
-
-def in_ne(tablet, invert, col, other):
-    if invert:
-        return tablet.bit_eq(col, other)
-    return tablet.bit_ne(col, other)
-
-
-def part_ne(tags, invert, other):
-    if invert:
-        return part_eq(tags, False, other)
-    return (t for t in tags if t != other)
-
-
-def in_lt(tablet, invert, col, other):
-    if invert:
-        return tablet.bit_ge(col, other)
-    return tablet.bit_lt(col, other)
-
-
-def part_lt(tags, invert, other):
-    if invert:
-        return part_ge(tags, False, other)
-    return (t for t in tags if t < other)
-
-
-def in_gt(tablet, invert, col, other):
-    if invert:
-        return tablet.bit_le(col, other)
-    return tablet.bit_gt(col, other)
-
-
-def part_gt(tags, invert, other):
-    if invert:
-        return part_le(tags, False, other)
-    return (t for t in tags if t > other)
-
-
-def in_ge(tablet, invert, col, other):
-    if invert:
-        return tablet.bit_lt(col, other)
-    return tablet.bit_ge(col, other)
-
-
-def part_ge(tags, invert, other):
-    if invert:
-        return part_lt(tags, False, other)
-    return (t for t in tags if t >= other)
-
-
-def in_le(tablet, invert, col, other):
-    if invert:
-        return tablet.bit_gt(col, other)
-    return tablet.bit_le(col, other)
-
-
-def part_le(tags, invert, other):
-    if invert:
-        return part_gt(tags, False, other)
-    return (t for t in tags if t <= other)
 
 
 class Expr(object):
@@ -730,61 +611,6 @@ class Expr(object):
 
     def partition(self, tags, invert=False):
         return self.part_f(tags, invert)
-
-
-def _convert_vid16(val, vid_trie=None, vid_trie16=None):
-    try:
-        val = str(val)
-    except:
-        val = val.encode('utf-8')
-
-    return vid_trie16.add(val)
-
-
-def _convert_vid(val, vid_trie=None, vid_trie16=None):
-    try:
-        val = str(val)
-    except:
-        val = val.encode('utf-8')
-    return vid_trie.add(val)
-
-
-def _convert_int(val, vid_trie=None, vid_trie16=None):
-    if type(val) is int or type(val) is long:
-        return val
-    return int(val)
-
-
-def _convert_str(val, vid_trie=None, vid_trie16=None):
-    try:
-        val = str(val)
-    except:
-        val = val.encode('utf-8')
-    return val
-
-
-def _convert_lz4(val, vid_trie=None, vid_trie16=None):
-    try:
-        val = str(val)
-    except:
-        val = val.encode('utf-8')
-    return clz4.compress(val)
-
-
-def _fetch_vid16(vid, vid16_nodes, vid16_kids, vid_nodes, vid_kids):
-    return rtrie.value_for_vid(vid16_nodes, vid16_kids, vid)
-
-
-def _fetch_vid(vid, vid16_nodes, vid16_kids, vid_nodes, vid_kids):
-    return rtrie.value_for_vid(vid_nodes, vid_kids, vid)
-
-
-def _fetch_lz4(data, vid16_nodes, vid16_kids, vid_nodes, vid_kids):
-    return clz4.decompress(data)
-
-
-def _fetch_me(data, vid16_nodes, vid16_kids, vid_nodes, vid_kids):
-    return data
 
 
 class Column(object):
@@ -928,6 +754,171 @@ class Aggregation(object):
         return self.column.table
 
 
+def _convert_vid16(val, vid_trie=None, vid_trie16=None):
+    try:
+        val = str(val)
+    except:
+        val = val.encode('utf-8')
+
+    return vid_trie16.add(val)
+
+
+def _convert_vid(val, vid_trie=None, vid_trie16=None):
+    try:
+        val = str(val)
+    except:
+        val = val.encode('utf-8')
+    return vid_trie.add(val)
+
+
+def _convert_int(val, vid_trie=None, vid_trie16=None):
+    if type(val) is int or type(val) is long:
+        return val
+    return int(val)
+
+
+def _convert_str(val, vid_trie=None, vid_trie16=None):
+    try:
+        val = str(val)
+    except:
+        val = val.encode('utf-8')
+    return val
+
+
+def _convert_lz4(val, vid_trie=None, vid_trie16=None):
+    try:
+        val = str(val)
+    except:
+        val = val.encode('utf-8')
+    return clz4.compress(val)
+
+
+def _fetch_vid16(vid, vid16_nodes, vid16_kids, vid_nodes, vid_kids):
+    return rtrie.value_for_vid(vid16_nodes, vid16_kids, vid)
+
+
+def _fetch_vid(vid, vid16_nodes, vid16_kids, vid_nodes, vid_kids):
+    return rtrie.value_for_vid(vid_nodes, vid_kids, vid)
+
+
+def _fetch_lz4(data, vid16_nodes, vid16_kids, vid_nodes, vid_kids):
+    return clz4.decompress(data)
+
+
+def _fetch_me(data, vid16_nodes, vid16_kids, vid_nodes, vid_kids):
+    return data
+
+
+def in_not(obj, invert, expr):
+    if expr is None:
+        return BitSet()
+    return expr(obj, not invert)
+
+
+def part_conditional(obj, invert, op, l_expr, r_expr):
+    if (op == 'and' and not invert) or (op == 'or' and invert):
+        # and
+        l_set = set(l_expr(obj, invert))
+        for uid in r_expr(obj, invert):
+            if uid in l_set:
+                yield uid
+    else:
+        # or
+        l_set = set(l_expr(obj, invert))
+        for uid in l_set:
+            yield uid
+        for uid in r_expr(obj, invert):
+            if uid not in l_set:
+                yield uid
+
+
+def in_conditional(tablet, invert, op, l_expr, r_expr):
+    if (op == 'and' and not invert) or (op == 'or' and invert):
+        # and
+        if l_expr is None:
+            return r_expr(tablet, invert)
+        elif r_expr is None:
+            return l_expr(tablet, invert)
+        return l_expr(tablet, invert) & r_expr(tablet, invert)
+    else:
+        # or
+        if l_expr is None or r_expr is None:
+            return None
+        return l_expr(tablet, invert) | r_expr(tablet, invert)
+
+
+def in_eq(tablet, invert, col, other):
+    if invert:
+        return tablet.bit_ne(col, other)
+    return tablet.bit_eq(col, other)
+
+
+def part_eq(tags, invert, other):
+    if invert:
+        return part_ne(tags, False, other)
+    return (t for t in tags if t == other)
+
+
+def in_ne(tablet, invert, col, other):
+    if invert:
+        return tablet.bit_eq(col, other)
+    return tablet.bit_ne(col, other)
+
+
+def part_ne(tags, invert, other):
+    if invert:
+        return part_eq(tags, False, other)
+    return (t for t in tags if t != other)
+
+
+def in_lt(tablet, invert, col, other):
+    if invert:
+        return tablet.bit_ge(col, other)
+    return tablet.bit_lt(col, other)
+
+
+def part_lt(tags, invert, other):
+    if invert:
+        return part_ge(tags, False, other)
+    return (t for t in tags if t < other)
+
+
+def in_gt(tablet, invert, col, other):
+    if invert:
+        return tablet.bit_le(col, other)
+    return tablet.bit_gt(col, other)
+
+
+def part_gt(tags, invert, other):
+    if invert:
+        return part_le(tags, False, other)
+    return (t for t in tags if t > other)
+
+
+def in_ge(tablet, invert, col, other):
+    if invert:
+        return tablet.bit_lt(col, other)
+    return tablet.bit_ge(col, other)
+
+
+def part_ge(tags, invert, other):
+    if invert:
+        return part_lt(tags, False, other)
+    return (t for t in tags if t >= other)
+
+
+def in_le(tablet, invert, col, other):
+    if invert:
+        return tablet.bit_gt(col, other)
+    return tablet.bit_le(col, other)
+
+
+def part_le(tags, invert, other):
+    if invert:
+        return part_gt(tags, False, other)
+    return (t for t in tags if t <= other)
+
+
 def check_query(select, join, order_by, limit, wheres):
     """Query checker for hustle."""
 
@@ -1007,3 +998,56 @@ def mdb_fetch(key, txn=None, ixdb=None):
 
 def mdb_evict(key, bitset, txn=None, ixdb=None):
     ixdb.put(txn, key, bitset.dumps())
+
+class DUMMY(object):
+    tobj = None
+
+    def __getitem__(self, item):
+        return self.tobj
+
+_dummy = DUMMY()
+_dummy_bitmap = DUMMY()
+_dummy.tobj = _dummy_bitmap
+
+ZERO_BS = BitSet()
+ZERO_BS.set(0)
+
+setattr(_dummy_bitmap, 'set', (lambda k: k))
+setattr(_dummy, 'get', lambda k: _dummy_bitmap)
+
+
+def kv_decoder(line, kvs=()):
+    key, value = line
+    return dict(zip(kvs, key + value))
+
+
+def json_decoder(line):
+    return ujson.loads(line)
+
+
+class Victor(object):
+    def __init__(self, fn, txn, db):
+        self.fn = fn
+        self.txn = txn
+        self.db = db
+
+    def __call__(self, *args):
+        if len(args) > 1:
+            return self.fn(args[0], args[1], txn=self.txn, ixdb=self.db)
+        else:
+            return self.fn(args[0], txn=self.txn, ixdb=self.db)
+
+
+def _insert_row(data, txn, dbs, row_id, vid_trie, vid16_trie):
+    column = None
+    try:
+        for subdb, _, bitmap_dict, column in dbs.itervalues():
+
+            val = column.converter(data.get(column.name, column.default_value) or column.default_value,
+                                   vid_trie, vid16_trie)
+            subdb.put(txn, row_id, val)
+            bitmap_dict[val].set(row_id)
+    except Exception as e:
+        print "Can't INSERT: %s %s: %s" % (repr(data), column, e)
+
+

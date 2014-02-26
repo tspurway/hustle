@@ -105,7 +105,3 @@ Hustle is a relational database, but we reject the SQL language.  The queries ar
 * extensible, if you don't like the built-in aggregating functions, add your own, no worries
 * limit, desc, distinct, h_sum(), h_avg(), h_count() work as expected
 
-Promises
-========
-
-*  more docs
