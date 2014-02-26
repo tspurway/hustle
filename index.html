@@ -66,8 +66,8 @@ fine tuned to minimize both the data footprint and the query execution time.</p>
 <p>Hustle uses a <a class="reference external" href="http://en.wikipedia.org/wiki/Column-oriented_DBMS">column oriented format</a> for storing data.  This
 scheme is often used for very large databases, as it is more efficient for aggregation operations such as sum() and
 average() functions over a particular column as well as relational <em>joins</em> across tables.</p>
-<p>Although Hustle has a relational data model, it is not a SQL database.  Hustle extends the Python language to
-facilitate it&#8217;s relational query facility.  Let&#8217;s take a look at a typical Hustle query in Python:</p>
+<p>Although Hustle has a relational data model, it is not a SQL database.  Hustle extends the Python language for
+it&#8217;s relational query facility.  Let&#8217;s take a look at a typical Hustle query in Python:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">h_sum</span><span class="p">(</span><span class="n">pixels</span><span class="o">.</span><span class="n">amount</span><span class="p">),</span> <span class="n">h_count</span><span class="p">(),</span>
        <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">,</span> <span class="n">pixels</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">),</span>
        <span class="n">join</span><span class="o">=</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span> <span class="n">pixels</span><span class="o">.</span><span class="n">site_id</span><span class="p">),</span>
