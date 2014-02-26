@@ -1,8 +1,5 @@
 ![Hustle](doc/_static/hustle.png)
 
-Hustle (beta)
-=============
-
 A column oriented, embarrassingly distributed relational NoSQL database.
 
 Features
@@ -20,13 +17,18 @@ Features
 * definitely consistent
 * REPL/CLI query interface
 
+Documentation
+-------------
+
+http://changoinc.github.io/hustle/
+
 BETA / EAP
-==========
+----------
 
 Please note that this software is beta/early access.  We intend that you thoroughly enjoy wrangling unimaginably large datasets with this software, but really have no idea how it will perform in your particular installation.  Be nice and drop us a GitHub 'issue' or just email me at tspurway@gmail.com for help.
 
 Installation
-============
+------------
 
 After cloning this repo, here are some considerations:
 
@@ -39,9 +41,4 @@ cd hustle
 sudo ./bootstrap.sh
 ```
 
-That should do it.  Now, there is a config file in /etc/hustle you should take a look at, and another in /etc/disco.  More on this soon...
-
-Documentation
-=============
-
-http://changoinc.github.io/hustle/
+Please refer to the [Installation Guide](http://changoinc.github.io/hustle/start/install.html) for more details
