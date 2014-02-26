@@ -11,8 +11,9 @@ Dependencies
 ------------
 
 Hustle has the following dependencies:
-* you will need `Python 2.7 <http://www.python.org/downloads/>`
-* you will need `Disco 0.5 <http://disco.readthedocs.org/en/latest/start/install.html>`
+
+* you will need `Python 2.7 <http://www.python.org/downloads/>`_
+* you will need `Disco 0.5 <http://disco.readthedocs.org/en/latest/start/install.html>`_
 
 Installing the Hustle Client
 ----------------------------
