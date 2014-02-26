@@ -4,12 +4,14 @@ set -e
 
 PYTHON=python
 CONFIG_DIR=/etc/hustle
+BIN_DIR=/usr/local/bin
 WORK_DIR=${PWD}
 FROM=${WORK_DIR}/settings.yaml
 DEST=${CONFIG_DIR}/settings.yaml
 
 cd deps && make install
 cd ${WORK_DIR} && ${PYTHON} setup.py install
+cp bin/hustle ${BIN_DIR}/hustle
 
 if [[ ! -d ${CONFIG_DIR} ]]; then
     mkdir ${CONFIG_DIR}
