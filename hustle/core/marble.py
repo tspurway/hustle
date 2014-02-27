@@ -488,132 +488,13 @@ class MarbleStream(object):
         except:
             pass
 
-def part_all(tags, invert=False):
-    if invert:
-        return []
-    return tags
-
-
-class Expr(object):
-    def __init__(self, table, f=None, part_f=part_all, is_partition=False):
-        self.table = table
-        self.f = f
-        self.part_f = part_f
-        self.is_partition = is_partition
-
-    @property
-    def _name(self):
-        return self.table._name
-
-    @property
-    def has_partition(self):
-        return self.part_f != part_all
-
-    @property
-    def has_no_partition(self):
-        return not self.has_partition
-
-    def _assert_unity(self, other_expr):
-        if self.table is not None and other_expr.table is not None and self.table._name != other_expr.table._name:
-            raise Exception("Error Expression must have a single table: %s != %s" %
-                            (self.table._name, other_expr.table._name))
-
-    def __and__(self, other_expr):
-        self._assert_unity(other_expr)
-
-        # p & p
-        if self.is_partition and other_expr.is_partition:
-            return Expr(self.table,
-                        None,
-                        partial(part_conditional, op='and', l_expr=self.part_f, r_expr=other_expr.part_f),
-                        True)
-        # n & n
-        elif self.has_no_partition and other_expr.has_no_partition:
-            return Expr(self.table,
-                        partial(in_conditional, op='and', l_expr=self.f, r_expr=other_expr.f),
-                        part_all)
-        # n & p
-        elif (self.is_partition and other_expr.has_no_partition) or \
-                (self.has_no_partition and other_expr.is_partition):
-            if self.is_partition:
-                f_expr = other_expr.f
-                pf_expr = self.part_f
-            else:
-                f_expr = self.f
-                pf_expr = other_expr.part_f
-            return Expr(self.table, f_expr, pf_expr)
-        # n & np
-        elif (self.has_no_partition and other_expr.has_partition) or \
-                (self.has_partition and other_expr.has_no_partition):
-            if self.has_partition:
-                pf_expr = self.part_f
-            else:
-                pf_expr = other_expr.part_f
-            return Expr(self.table,
-                        partial(in_conditional, op='and', l_expr=self.f, r_expr=other_expr.f),
-                        pf_expr)
-        # p & np
-        elif (self.is_partition and other_expr.has_partition) or (self.has_partition and other_expr.is_partition):
-            if self.is_partition:
-                f_expr = other_expr.f
-            else:
-                f_expr = self.f
-            return Expr(self.table,
-                        f_expr,
-                        partial(part_conditional, op='and', l_expr=self.part_f, r_expr=other_expr.part_f))
-        # np & np
-        elif self.has_partition and other_expr.has_partition:
-            return Expr(self.table,
-                        partial(in_conditional, op='and', l_expr=self.f, r_expr=other_expr.f),
-                        partial(part_conditional, op='and', l_expr=self.part_f, r_expr=other_expr.part_f))
-        else:
-            raise Exception("Error in partitions (and)")
-
-    def __or__(self, other_expr):
-        self._assert_unity(other_expr)
-
-        # p | p
-        if self.is_partition and other_expr.is_partition:
-            return Expr(self.table,
-                        partial(in_conditional, op='or', l_expr=self.f, r_expr=other_expr.f),
-                        partial(part_conditional, op='or', l_expr=self.part_f, r_expr=other_expr.part_f),
-                        True)
-        # p | np
-        elif (self.is_partition and other_expr.has_partition) or (self.has_partition and other_expr.is_partition):
-            if self.is_partition:
-                f_expr = other_expr.f
-            else:
-                f_expr = self.f
-            return Expr(self.table,
-                        f_expr,
-                        partial(part_conditional, op='or', l_expr=self.part_f, r_expr=other_expr.part_f))
-        # np | np
-        elif self.has_partition and other_expr.has_partition:
-            return Expr(self.table,
-                        partial(in_conditional, op='or', l_expr=self.f, r_expr=other_expr.f),
-                        partial(part_conditional, op='or', l_expr=self.part_f, r_expr=other_expr.part_f))
-        # n | n, n | p, n | np
-        elif self.has_no_partition or other_expr.has_no_partition:
-            return Expr(self.table,
-                        partial(in_conditional, op='or', l_expr=self.f, r_expr=other_expr.f),
-                        part_all)
-        else:
-            raise Exception("Error in partitions (or)")
-
-    def __invert__(self):
-        return Expr(self.table,
-                    partial(in_not, expr=self.f),
-                    partial(in_not, expr=self.part_f),
-                    self.is_partition)
-
-    def __call__(self, tablet, invert=False):
-        return self.f(tablet, invert)
-
-    def partition(self, tags, invert=False):
-        return self.part_f(tags, invert)
-
-
 class Column(object):
+    """
+    A *Column* is the named, typed field of a :class:`Marble <hustle.core.marble.Marble>`.   *Columns* are typically
+    created automatically by parsing the *fields* of a the *Marble* instantiation.
+
+    The
+    """
     def __init__(self, name, table, index_indicator=0, partition=False, type_indicator=0,
                  compression_indicator=0, rtrie_indicator=mdb.MDB_UINT_32):
         self.name = name
@@ -754,6 +635,127 @@ class Aggregation(object):
         return self.column.table
 
 
+class Expr(object):
+    def __init__(self, table, f=None, part_f=None, is_partition=False):
+        if not part_f:
+            part_f = part_all
+        self.table = table
+        self.f = f
+        self.part_f = part_f
+        self.is_partition = is_partition
+
+    @property
+    def _name(self):
+        return self.table._name
+
+    @property
+    def has_partition(self):
+        return self.part_f != part_all
+
+    @property
+    def has_no_partition(self):
+        return not self.has_partition
+
+    def _assert_unity(self, other_expr):
+        if self.table is not None and other_expr.table is not None and self.table._name != other_expr.table._name:
+            raise Exception("Error Expression must have a single table: %s != %s" %
+                            (self.table._name, other_expr.table._name))
+
+    def __and__(self, other_expr):
+        self._assert_unity(other_expr)
+
+        # p & p
+        if self.is_partition and other_expr.is_partition:
+            return Expr(self.table,
+                        None,
+                        partial(part_conditional, op='and', l_expr=self.part_f, r_expr=other_expr.part_f),
+                        True)
+        # n & n
+        elif self.has_no_partition and other_expr.has_no_partition:
+            return Expr(self.table,
+                        partial(in_conditional, op='and', l_expr=self.f, r_expr=other_expr.f),
+                        part_all)
+        # n & p
+        elif (self.is_partition and other_expr.has_no_partition) or \
+                (self.has_no_partition and other_expr.is_partition):
+            if self.is_partition:
+                f_expr = other_expr.f
+                pf_expr = self.part_f
+            else:
+                f_expr = self.f
+                pf_expr = other_expr.part_f
+            return Expr(self.table, f_expr, pf_expr)
+        # n & np
+        elif (self.has_no_partition and other_expr.has_partition) or \
+                (self.has_partition and other_expr.has_no_partition):
+            if self.has_partition:
+                pf_expr = self.part_f
+            else:
+                pf_expr = other_expr.part_f
+            return Expr(self.table,
+                        partial(in_conditional, op='and', l_expr=self.f, r_expr=other_expr.f),
+                        pf_expr)
+        # p & np
+        elif (self.is_partition and other_expr.has_partition) or (self.has_partition and other_expr.is_partition):
+            if self.is_partition:
+                f_expr = other_expr.f
+            else:
+                f_expr = self.f
+            return Expr(self.table,
+                        f_expr,
+                        partial(part_conditional, op='and', l_expr=self.part_f, r_expr=other_expr.part_f))
+        # np & np
+        elif self.has_partition and other_expr.has_partition:
+            return Expr(self.table,
+                        partial(in_conditional, op='and', l_expr=self.f, r_expr=other_expr.f),
+                        partial(part_conditional, op='and', l_expr=self.part_f, r_expr=other_expr.part_f))
+        else:
+            raise Exception("Error in partitions (and)")
+
+    def __or__(self, other_expr):
+        self._assert_unity(other_expr)
+
+        # p | p
+        if self.is_partition and other_expr.is_partition:
+            return Expr(self.table,
+                        partial(in_conditional, op='or', l_expr=self.f, r_expr=other_expr.f),
+                        partial(part_conditional, op='or', l_expr=self.part_f, r_expr=other_expr.part_f),
+                        True)
+        # p | np
+        elif (self.is_partition and other_expr.has_partition) or (self.has_partition and other_expr.is_partition):
+            if self.is_partition:
+                f_expr = other_expr.f
+            else:
+                f_expr = self.f
+            return Expr(self.table,
+                        f_expr,
+                        partial(part_conditional, op='or', l_expr=self.part_f, r_expr=other_expr.part_f))
+        # np | np
+        elif self.has_partition and other_expr.has_partition:
+            return Expr(self.table,
+                        partial(in_conditional, op='or', l_expr=self.f, r_expr=other_expr.f),
+                        partial(part_conditional, op='or', l_expr=self.part_f, r_expr=other_expr.part_f))
+        # n | n, n | p, n | np
+        elif self.has_no_partition or other_expr.has_no_partition:
+            return Expr(self.table,
+                        partial(in_conditional, op='or', l_expr=self.f, r_expr=other_expr.f),
+                        part_all)
+        else:
+            raise Exception("Error in partitions (or)")
+
+    def __invert__(self):
+        return Expr(self.table,
+                    partial(in_not, expr=self.f),
+                    partial(in_not, expr=self.part_f),
+                    self.is_partition)
+
+    def __call__(self, tablet, invert=False):
+        return self.f(tablet, invert)
+
+    def partition(self, tags, invert=False):
+        return self.part_f(tags, invert)
+
+
 def _convert_vid16(val, vid_trie=None, vid_trie16=None):
     try:
         val = str(val)
@@ -813,6 +815,12 @@ def in_not(obj, invert, expr):
     if expr is None:
         return BitSet()
     return expr(obj, not invert)
+
+
+def part_all(tags, invert=False):
+    if invert:
+        return []
+    return tags
 
 
 def part_conditional(obj, invert, op, l_expr, r_expr):

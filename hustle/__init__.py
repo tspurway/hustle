@@ -34,9 +34,9 @@ class Table(Marble):
     :class:`Marbles <hustle.core.marble.Marble>`.  Each *Marble* contains the data for the rows and columns
     of the Table.
 
-    Normally, a table is created using :meth:`hustle.Table.create`, which creates the appropriately named DDFS tag and
-    attributes.  To instantiate an existing Table (to use in a query, for example), the :meth:`hustle.Table.from_tag`
-    method is used.
+    Normally, a table is created using :meth:`create() <hustle.Table.create>`, which creates the appropriately
+    named DDFS tag and attributes.  To instantiate an existing Table (to use in a query, for example), the
+    :meth:`from_tag() <hustle.Table.from_tag>` method is used.
 
     see :ref:`schemadesign` for a detailed look at Hustle's schema design language and features.
     """
@@ -72,7 +72,7 @@ class Table(Marble):
         :param name: the name of the table to create
 
         :type  fields: sequence of string
-        :param fields: the list of *columns* and their encoded index/type information (see :ref:`schemadesign`)
+        :param fields: the list of *columns* and their encoded index/type information
 
         :type  partition: string
         :param partition: the name of the column to act as the partition for this table
@@ -81,13 +81,13 @@ class Table(Marble):
         :param force: overwrite the existing DDFS base tag with this schema
 
         .. warning::
-            This function will not delete or update existing data in any way.  If you use force=True to change
+            This function will not delete or update existing data in any way.  If you use :code:`force=True` to change
             the schema, make sure you either make the change backward compatible (by only adding new columns), or
             by deleting and reloading your data.
 
         .. seealso::
             For a good example of creating a partitioned Hustle database see
-            :ref:`Hustle Integration Tests <integrationtests>`
+            :ref:`integrationtests`
         """
         from hustle.core.settings import Settings
         settings = Settings(**kwargs)
@@ -125,18 +125,18 @@ def insert(table, phile=None, streams=None, preprocess=None,
            maxsize=100 * 1024 * 1024, tmpdir='/tmp', decoder=None,
            lru_size=10000, **kwargs):
     """
-    Insert data into a Hustle :class:`hustle.Table`.
+    Insert data into a Hustle :class:`Table <hustle.Table>`.
 
-    Create a  :class:`hustle.core.marble.Marble` file given the input file or streams according to the schema of the
-    table.  Push this (these) file(s) into *DDFS* under the appropriated (possibly) partitioned *DDFS* tags.
+    Create a  :class:`Marble <hustle.core.marble.Marble>` file given the input file or streams according to the
+    schema of the table.  Push this (these) file(s) into *DDFS* under the appropriated (possibly) partitioned *DDFS*
+    tags.
 
-    Note that a call to :func:`hustle.insert` may actually create and push more than one file, depending on how
-    many partition values exist in the input.  Be careful.
+    Note that a call to :func:`insert() <hustle.insert>` may actually create and push more than one file,
+    depending on how many partition values exist in the input.  Be careful.
 
-    For a good example of inserting into a partitioned Hustle database see :mod:`hustle.integration_test.setup` and
-    :ref:`insertguide`
+    For a good example of inserting into a partitioned Hustle database see :ref:`insertguide`
 
-    :type  table: :class:`hustle.Table`
+    :type  table: :class:`Table <hustle.Table>`
     :param table: the table to perform the insert on
 
     :type  phile: string
@@ -150,7 +150,7 @@ def insert(table, phile=None, streams=None, preprocess=None,
 
         The input is transformed into a :class:`dict` by the *decoder* param, then the *preprocess* function is
         called for every record.  This gives you the opportunity to transform, filter or otherwise clean your
-        data before it is inserted into the :class:`hustle.core.marble.Marble`
+        data before it is inserted into the :class:`Marble <hustle.core.marble.Marble>`
 
     :type  maxsize: int
     :param maxsize: the initial size in bytes of the *LMDB* memory mapped file
@@ -167,8 +167,9 @@ def insert(table, phile=None, streams=None, preprocess=None,
     :param decoder: accepts a line of raw input from the input and returns a :class:`dict`
 
         The dict is expected to have keys that correspond to the column names in the table you are inserting to.  There
-        are two built-in decoders in Hustle: :func:`hustle.core.marble.json_decoder` (default) and
-        :func:`hustle.core.marble.kv_decoder` for processing JSON and Disco *chain* input files, respectively.
+        are two built-in decoders in Hustle: :func:`json_decoder() <hustle.core.marble.json_decoder>` (default) and
+        :func:`kv_decoder() <hustle.core.marble.kv_decoder>` for processing JSON and Disco *chain* input files,
+        respectively.
 
     :type  lru_size: int
     :param lru_size: the size in records of the LRU cache for holding bitmapped indexes
@@ -209,31 +210,33 @@ def select(*project, **kwargs):
     Perform a relational query, by selecting rows and columns from one or more tables.
 
     The return value is either:
+
     * a list of urls containing the result records.  This is the same as normal results from Disco
-    * a :class:`hustle.Table` instance when *nest* == True
+    * a :class:`Table <hustle.Table>` instance when :code:`nest==True`
 
-    For all of the examples below, *imps* and *pix* are instances of :class:`hustle.Table`.
+    For all of the examples below, *imps* and *pix* are instances of :class:`Table <hustle.Table>`.
 
-    Arguments:
-    :type project: list of :class:`hustle.core.marble.Column` | :class:`hustle.core.marble.Aggregation`
+    :type project: list of :class:`Column <hustle.core.marble.Column>` | :class:`Aggregation <hustle.core.marble.Aggregation>`
     :param project: a positional argument list of columns and aggregate expressions to return in the result
 
-        # simple projection
-        select(imps.ad_id, imps.date, imps.cpm_millis, where=imps)
+        A simple projection::
+
+            select(imps.ad_id, imps.date, imps.cpm_millis, where=imps)
 
         Selects three columns from the *imps* table.
 
-        Hustle also allows for *aggregation functions* such as :func:`hustle.h_sum`, :func:`hustle.h_count`,
-        :func:`hustle.h_min`, :func:`hustle.h_max`, :func:`h_avg` as in this example which sums the imps.cpm_millis
+        Hustle also allows for *aggregation functions* such as :func:`h_sum() <hustle.h_sum>`,
+        :func:`h_count <hustle.h_count>`, :func:`h_min() <hustle.h_min>`, :func:`h_max() <hustle.h_max>`,
+        :func:`h_avg <hustle.h_avg>` as in this example which sums the :code:`imps.cpm_millis`
         column::
 
             select(imps.ad_id, h_sum(imps.cpm_millis), h_count(), where=imps.date == '2014-01-27')
 
         Note that Hustle doesn't have a *group by* clause.  In this query, the output will be *grouped* by the
-        imps.ad_id column implicitly.  Note that in Hustle, if there is an aggregation function present in the
-        *project* param, the query results will be *grouped* by all non-aggregation present.
+        :code:`imps.ad_id` column implicitly.  Note that in Hustle, if there is an aggregation function present in the
+        :code:`project` param, the query results will be *grouped* by all non-aggregation present.
 
-    :type where: (optional) sequence of :class:`hustle.Table` | :class:`hustle.core.marble.Expr`
+    :type where: (optional) sequence of :class:`Table <hustle.Table>` | :class:`Expr <hustle.core.marble.Expr>`
     :param where: the Tables to fetch data from, as well as the conditions in the *where clause*
 
         This two purposes: to specify the tables that are to be queried and to allow for the
@@ -243,7 +246,8 @@ def select(*project, **kwargs):
             # simple projection with restriction
             select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.date == '2014-01-27')
 
-        Note the *==* operation between the imps.date column and the date string.  The :class:`hustle.core.marble.Column`
+        Note the :code:`==` operation between the :code:`imps.date` column and the date string.
+        The :class:`Column <hustle.core.marble.Column>`
         class overrides all of Python's comparison operators, which, along with the *&*, *|* and *~* logical
         operators allows you to build arbitrarily complex column selection expressions like this::
 
@@ -260,13 +264,13 @@ def select(*project, **kwargs):
 
             select(imps.ad_id, pix.amount, where=(imps.date < '2014-01-13', pix))
 
-        which specifies an expression (imps.date < '2014-01-13') and a :class:`hustle.Table` tuple.  This query
-        will simply return all of the *ad_id* values in *imps* for dates less than January 13th followed by all of the
-        *amound* values in the *pix* table.
+        which specifies an expression, :code:`imps.date < '2014-01-13'` and a :class:`Table <hustle.Table>` tuple.
+        This query will simply return all of the *ad_id* values in *imps* for dates less than January 13th followed
+        by all of the *amount* values in the *pix* table.
 
         Using multiple columns is typically reserved for when you use a *join clause*
 
-    :type join: sequence of exactly length 2 of :class:`hustle.core.marble.Column`
+    :type join: sequence of exactly length 2 of :class:`Column <hustle.core.marble.Column>`
     :param join: specified the columns to perform a relational join operation on for the query
 
         Here's an example of a Hustle join::
@@ -285,7 +289,7 @@ def select(*project, **kwargs):
             where i.date < '2014-01-13' and i.date < '2014-01-13'
             group by i.ad_id, i.site_id
 
-    :type order_by: string | :class:`hustle.core.marble.Column` | (sequence of string | :class:`hustle.core.marble.Column`)
+    :type order_by: string | :class:`Column <hustle.core.marble.Column>` | (sequence of string | :class:`Column <hustle.core.marble.Column>`)
     :param order_by: the column(s) to sort the result by
 
         The sort columns can be specified either as a Column or a list of Columns.  Alternatively, you can specify
@@ -308,7 +312,7 @@ def select(*project, **kwargs):
     :param limit: limits the total number of records in the output
 
     :type nest: boolean (default = False)
-    :param nest: specify that the return value is a :class:`hustle.Table` to be used in another query
+    :param nest: specify that the return value is a :class:`Table <hustle.Table>` to be used in another query
 
         This allows us to build nested queries.  You may want to do this to join more than two tables, or to reuse
         the results of a query in more than one subsequent query.  For example::
