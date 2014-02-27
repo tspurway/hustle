@@ -174,7 +174,7 @@ def insert(table, phile=None, streams=None, preprocess=None,
     :param lru_size: the size in records of the LRU cache for holding bitmapped indexes
 
         You probably won't have to worry about this unless you find your insert is running out of memory or is too
-        slow when inserting gigantic files or on nodes with limited memory resources.  see :ref:`indexguide`
+        slow when inserting gigantic files or on nodes with limited memory resources.
     """
     from hustle.core.settings import Settings
     settings = Settings(**kwargs)
