@@ -11,9 +11,9 @@ Features
 * relational - join gigantic datasets
 * partitioned - smart shards
 * embarrassingly distributed (Disco: http://discoproject.org/)
-* embarrassingly fast (lmdb:  http://symas.com/mdb/)
+* embarrassingly fast (LMDB:  http://symas.com/mdb/)
 * NoSQL - Python DSL
-* bulk append only (it's for 'log' data)
+* bulk append only
 * definitely consistent
 * REPL/CLI query interface
 

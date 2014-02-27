@@ -155,7 +155,7 @@ def insert(table, phile=None, streams=None, preprocess=None,
     :type  maxsize: int
     :param maxsize: the initial size in bytes of the *LMDB* memory mapped file
 
-        Note that the actual underlying LMDB file will grow as data is added to it - this setting is just for it's
+        Note that the actual underlying LMDB file will grow as data is added to it - this setting is just for its
         initial size.
 
     :type  tmpdir: string
@@ -289,18 +289,22 @@ def select(*project, **kwargs):
             where i.date < '2014-01-13' and i.date < '2014-01-13'
             group by i.ad_id, i.site_id
 
-    :type order_by: string | :class:`Column <hustle.core.marble.Column>` | (sequence of string | :class:`Column <hustle.core.marble.Column>`)
+    :type order_by: string | :class:`Column <hustle.core.marble.Column>` | int |
+        (sequence of string | :class:`Column <hustle.core.marble.Column>` | int)
     :param order_by: the column(s) to sort the result by
 
         The sort columns can be specified either as a Column or a list of Columns.  Alternatively, you can specify
-        a column by using a string with either the name of the column or the *table.column* string notation.  Here
-        are a few examples::
+        a column by using a string with either the name of the column or the *table.column* string notation.
+        Furthermore, you can also represent the column using a zero based index of the *projected* columns.  This
+        last case would be used for *Aggregations*.  Here are a few examples::
 
             select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by=imps.date)
             select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by=(imps.date, imps.ad_id))
             select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by='date')
             select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by='imps.date')
             select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by=('date', imps.ad_id))
+            select(imps.ad_id, imps.date, imps.cpm_millis, where=imps, order_by=('date', 2))
+            select(imps.ad_id, imps.date, h_sum(imps.cpm_millis), where=imps, order_by=2)
 
     :type desc: boolean
     :param desc: affects sort order of the *order_by clause* to descending (default ascending)
@@ -395,7 +399,10 @@ def h_sum(col):
     :type col: :class:`hustle.core.marble.Column`
     :param col: the column to aggregate
     """
-    return Aggregation("sum", col, lambda a, v: a + v, default=lambda: 0)
+    return Aggregation("sum",
+                       col,
+                       f=lambda a, v: a + v,
+                       default=lambda: 0)
 
 
 def h_count():
@@ -408,7 +415,7 @@ def h_count():
     """
     return Aggregation("count",
                        Column('all', None, type_indicator=1),
-                       lambda a, v: a + (v or 1),
+                       f=lambda a, v: a + (v or 1),
                        default=lambda: 0)
 
 
@@ -423,7 +430,10 @@ def h_max(col):
     :type col: :class:`hustle.core.marble.Column`
     :param col: the column to aggregate
     """
-    return Aggregation("max", col, lambda a, v: a if a > v else v, default=lambda: -9223372036854775808)
+    return Aggregation("max",
+                       col,
+                       f=lambda a, v: a if a > v else v,
+                       default=lambda: -9223372036854775808)
 
 
 def h_min(col):
@@ -437,7 +447,10 @@ def h_min(col):
     :type col: :class:`hustle.core.marble.Column`
     :param col: the column to aggregate
     """
-    return Aggregation("min", col, lambda a, v: a if a < v else v, default=lambda: 9223372036854775807)
+    return Aggregation("min",
+                       col,
+                       f=lambda a, v: a if a < v else v,
+                       default=lambda: 9223372036854775807)
 
 
 def h_avg(col):
@@ -453,8 +466,8 @@ def h_avg(col):
    """
     return Aggregation("avg",
                        col,
-                       lambda (a, c), v: (a + v, c + 1),
-                       lambda (a, c): float(a) / c,
+                       f=lambda (a, c), v: (a + v, c + 1),
+                       g=lambda (a, c): float(a) / c,
                        default=lambda: (0, 0))
 
 

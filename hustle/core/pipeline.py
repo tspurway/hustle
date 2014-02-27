@@ -117,7 +117,7 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
                 if type(where) is Expr and not where.is_partition:
                     bitmaps[index] = where(otab)
                 else:
-                    # it's either the table itself, or a partition expression.  either way,
+                    # it is either the table itself, or a partition expression.  either way,
                     # return the entire table
                     bitmaps[index] = otab.iter_all()
 
@@ -287,7 +287,7 @@ class SelectPipe(Job):
                                                              key_names=self._get_key_names(project, join))]))
                     ] + join_stage + group_by_stage + list(pre_order_stage) + order_stage
 
-        # determine the style of output (ie. if it's a Hustle Table), and modify the last stage accordingly
+        # determine the style of output (ie. if it is a Hustle Table), and modify the last stage accordingly
         if nest:
             pipeline[-1][1].output_chain = [partial(hustle_output_stream, result_table=self.get_result_schema(project))]
         self.pipeline = pipeline
@@ -378,6 +378,8 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
 
     empty = ()
 
+    # import sys
+    # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
     # import pydevd
     # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
 

@@ -32,7 +32,7 @@ class Marble(object):
     used by the query optimizer.
 
     The column DB is a key/value store that stores data for a particular column.  It has a locally unique row identifier (RID) as
-    the key, and the actual value for that column's data as it's value, encoded depending on the schema data type of
+    the key, and the actual value for that column's data as its value, encoded depending on the schema data type of
     the column.  All integer types are directly encoded in LMDB as integers, whereas the Trie compression types are encoded
     as integers (called VIDs), which actually are keys in the two dedicated Trie meta DBs (one for 32 and one for 16
     bit Tries).  Uncompressed strings, as well as lz4 and binary style data is simply encoded as byte string values.
@@ -488,12 +488,31 @@ class MarbleStream(object):
         except:
             pass
 
+
 class Column(object):
     """
     A *Column* is the named, typed field of a :class:`Marble <hustle.core.marble.Marble>`.   *Columns* are typically
     created automatically by parsing the *fields* of a the *Marble* instantiation.
 
-    The
+    The *Column* overrides Python's relational operators :code:`> < <= >= ==` which forms the basis for
+    the :ref:`Query DSL <queryguide>`.  All of these operators expect a *Python literal* as their second
+    (right hand side) argument which should be the same type as the *Column*.  These *Column Expressions* are
+    represented by the :class:`Expr <hustle.core.marble.Expr>` class.
+
+    Note that the *Marble* and *Table* classes expose their *Columns* as Python *attributes*::
+
+        # instantiate a table
+        imps = Table.from_tag('impressions')
+
+        # access a the date column
+        date_column = imps.date
+
+        # create a Column Expression
+        date_column_expression = imps.site_id == 'google.com'
+
+        # query
+        select(date_column, where=date_column_expression)
+
     """
     def __init__(self, name, table, index_indicator=0, partition=False, type_indicator=0,
                  compression_indicator=0, rtrie_indicator=mdb.MDB_UINT_32):
@@ -562,6 +581,9 @@ class Column(object):
         return prefix + rval
 
     def description(self):
+        """
+        Return a human-readable type description for this column.
+        """
         type_lookup = ['', 'int32', 'uint32', 'int16', 'uint16', 'int8',
                        'uint8', 'int64', 'uint64']
         dict_lookup = ['', '', '(32)', '', '(16)', '', '']
@@ -619,6 +641,57 @@ class Column(object):
 
 
 class Aggregation(object):
+    """
+    An *Aggregation* is a Column Function that represents some aggregating computation over the values of that
+    column.  It is exclusively used in the *project* section of the :func:`select() <hustle.select>` function.
+
+    An *Aggregation* object holds onto four distinct function references which are called at specific times
+    during the *group_by stage* of the query pipeline.
+
+    :type f: func(accumulator, value)
+    :param f: the function called for every value of the *column*, returns a new accumulator (the MAP aggregator)
+
+    :type g: func(accumulator)
+    :param g: the function called to produce the final value (the REDUCE aggregator)
+
+    :type h: func(accumulator)
+    :param h: the function called to produce intermediate values (the COMBINE aggregator)
+
+    :type default: func()
+    :param default:  the function called to produce the initial aggregation accumulator
+
+    :type column: :class:`Column <hustle.core.marble.Column>`
+    :param column: the column to aggregate
+
+    :type name: basestring
+    :param name: the unique name of the aggregator.  Used to assign a column name to the result
+
+    .. note::
+
+        Here is the actual implementation of the h_avg() *Aggregation* which will give us the average value
+        for a numeric column in a :func:`select() <hustle.select>` statement::
+
+            def h_avg(col):
+                return Aggregation("avg",
+                                   col,
+                                   f=lambda (accum, count), val: (accum + val, count + 1),
+                                   g=lambda (accum, count): float(accum) / count,
+                                   h=lambda (accum, count): (accum, count),
+                                   default=lambda: (0, 0))
+
+        First look at the *default()* function which returns the tuple (0, 0).  This sets the *accum* and *count* values
+        that we will be tracking both to zero.  Next, let's see what's happening in the *f()* function.  Note that it
+        performs two computations, one :code:`accum + val` builds a sum of the values, and the :code:`count + 1` will
+        count the total number of values.  The difference between the *g()* and *h()* functions is when they take place.
+        The *h()* function is used to summarize results.  It should always return an *accum* that can be further
+        inputted into the *f()* function.  The *g()* function is used at the very end of the computation to compute the
+        final value to return the client.
+
+    .. seealso::
+        :func:`h_sum() <hustle.h_sum>`, :func:`h_count() <hustle.h_count>`, :func:`h_avg() <hustle.h_avg>`
+            Some of Hustle's aggregation functions
+
+    """
     def __init__(self, name=None, column=None, f=None, g=lambda a: a, h=lambda a: a, default=lambda: None):
         self.column = column
         self.f = f
@@ -636,6 +709,47 @@ class Aggregation(object):
 
 
 class Expr(object):
+    """
+    The *Expr* is returned by the overloaded relational operators of the :class:`Column <hustle.core.marble.Column>`
+    class.
+
+    The *Expr* is a recursive class, that can be composed of other *Exprs* all connected with the logical
+    :code:`& | ~` operators (*and, or, not*).
+
+    Each *Expr* instance must be aware if its sub-expressions *have* partitions or *are* partitions.  This is to
+    because the *&* and *|* operators will optimize expressions over patitioned columns differently.  Consider the
+    following query::
+
+        select(impressions.site_id, where=(impressions.date == '2014-02-20') & (impressions.amount > 10))
+
+    Let's assume that the *impressions.date* column is a partition column.  It should be clear that we can optimize
+    this query by only executing the query on the '2014-02-20' partition, which if we had many dates would vastly
+    improve our query execution.
+
+    On the other hand consider the following, almost identical query::
+
+        select(impressions.site_id, where=(impressions.date == '2014-02-20') | (impressions.amount > 10))
+
+    In this case, we cannot optimize according to our partition.  We need to visit *all* partitions in *impressions*
+    and execute the *OR* operation across those rows for the *amount* expression.
+
+    .. note::
+
+        It is important to realize that all Column Expressions in an Expr must refer to the same *Table*
+
+    :type table: :class:`Table <hustle.Table>`
+    :param table: the *Table* this *Expr* queries
+
+    :type f: func(MarbleStream)
+    :param f: the function to execute to actually perform the expression on data in the *Marble*
+
+    :type part_f: func(list of strings)
+    :param part_f: the function to execute to perform the expresson on data in the *partition*
+
+    :type is_partition: bool
+    :param is_partition: indicates if this Expr only has partition columns
+
+    """
     def __init__(self, table, f=None, part_f=None, is_partition=False):
         if not part_f:
             part_f = part_all
