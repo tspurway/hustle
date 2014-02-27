@@ -25,7 +25,14 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="top" title="Hustle 0.1 documentation" href="../index.html" />
     <link rel="next" title="hustle.core.marble – The Hustle Database Core" href="core.html" />
-    <link rel="prev" title="Inserting Data To Hustle" href="../howto/insert.html" /> 
+    <link rel="prev" title="Inserting Data To Hustle" href="../howto/insert.html" />
+ 
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-48426035-1']);
+  _gaq.push(['_trackPageview']);
+</script>
+
   </head>
   <body>
     <div class="related">
@@ -97,15 +104,15 @@ Queries are run using a <a class="reference internal" href="../howto/query.html#
 <dt id="hustle.Table">
 <em class="property">class </em><tt class="descclassname">hustle.</tt><tt class="descname">Table</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.Table" title="Permalink to this definition">¶</a></dt>
 <dd><p>The fundamental data type to support Hustle&#8217;s relational model.  A Table contains a number of named
-<tt class="xref py py-class docutils literal"><span class="pre">Columns</span></tt>, each of which is decorated with schema information.
+<a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Columns</span></tt></a>, each of which is decorated with schema information.
 Note that the table is stored in Disco&#8217;s
 <a class="reference external" href="http://disco.readthedocs.org/en/latest/lib/ddfs.html">DDFS</a> distributed file system as a series of replicated
 sub-database files encapsulated by <a class="reference external" href="http://symas.com/mdb/">LMDB</a> memory mapped b+ tree files called
 <a class="reference internal" href="core.html#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">Marbles</span></tt></a>.  Each <em>Marble</em> contains the data for the rows and columns
 of the Table.</p>
-<p>Normally, a table is created using <a class="reference internal" href="#hustle.Table.create" title="hustle.Table.create"><tt class="xref py py-meth docutils literal"><span class="pre">hustle.Table.create()</span></tt></a>, which creates the appropriately named DDFS tag and
-attributes.  To instantiate an existing Table (to use in a query, for example), the <a class="reference internal" href="#hustle.Table.from_tag" title="hustle.Table.from_tag"><tt class="xref py py-meth docutils literal"><span class="pre">hustle.Table.from_tag()</span></tt></a>
-method is used.</p>
+<p>Normally, a table is created using <a class="reference internal" href="#hustle.Table.create" title="hustle.Table.create"><tt class="xref py py-meth docutils literal"><span class="pre">create()</span></tt></a>, which creates the appropriately
+named DDFS tag and attributes.  To instantiate an existing Table (to use in a query, for example), the
+<a class="reference internal" href="#hustle.Table.from_tag" title="hustle.Table.from_tag"><tt class="xref py py-meth docutils literal"><span class="pre">from_tag()</span></tt></a> method is used.</p>
 <p>see <a class="reference internal" href="../howto/schema.html#schemadesign"><em>Hustle Schema Design Guide</em></a> for a detailed look at Hustle&#8217;s schema design language and features.</p>
 <dl class="classmethod">
 <dt id="hustle.Table.from_tag">
@@ -131,7 +138,7 @@ method is used.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the name of the table to create</li>
-<li><strong>fields</strong> (<em>sequence of string</em>) &#8211; the list of <em>columns</em> and their encoded index/type information (see <a class="reference internal" href="../howto/schema.html#schemadesign"><em>Hustle Schema Design Guide</em></a>)</li>
+<li><strong>fields</strong> (<em>sequence of string</em>) &#8211; the list of <em>columns</em> and their encoded index/type information</li>
 <li><strong>partition</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the name of the column to act as the partition for this table</li>
 <li><strong>force</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; overwrite the existing DDFS base tag with this schema</li>
 </ul>
@@ -141,14 +148,14 @@ method is used.</p>
 </table>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">This function will not delete or update existing data in any way.  If you use force=True to change
+<p class="last">This function will not delete or update existing data in any way.  If you use <tt class="code docutils literal"><span class="pre">force=True</span></tt> to change
 the schema, make sure you either make the change backward compatible (by only adding new columns), or
 by deleting and reloading your data.</p>
 </div>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
 <p class="last">For a good example of creating a partitioned Hustle database see
-<a class="reference internal" href="../howto/integration_tests.html#integrationtests"><em>Hustle Integration Tests</em></a></p>
+<a class="reference internal" href="../howto/integration_tests.html#integrationtests"><em>Hustle Integration Test Suite</em></a></p>
 </div>
 </dd></dl>
 
@@ -175,28 +182,28 @@ by deleting and reloading your data.</p>
 <dl class="function">
 <dt id="hustle.insert">
 <tt class="descclassname">hustle.</tt><tt class="descname">insert</tt><big>(</big><em>table</em>, <em>phile=None</em>, <em>streams=None</em>, <em>preprocess=None</em>, <em>maxsize=104857600</em>, <em>tmpdir='/tmp'</em>, <em>decoder=None</em>, <em>lru_size=10000</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.insert" title="Permalink to this definition">¶</a></dt>
-<dd><p>Insert data into a Hustle <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">hustle.Table</span></tt></a>.</p>
-<p>Create a  <a class="reference internal" href="core.html#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Marble</span></tt></a> file given the input file or streams according to the schema of the
-table.  Push this (these) file(s) into <em>DDFS</em> under the appropriated (possibly) partitioned <em>DDFS</em> tags.</p>
-<p>Note that a call to <a class="reference internal" href="#hustle.insert" title="hustle.insert"><tt class="xref py py-func docutils literal"><span class="pre">hustle.insert()</span></tt></a> may actually create and push more than one file, depending on how
-many partition values exist in the input.  Be careful.</p>
-<p>For a good example of inserting into a partitioned Hustle database see <tt class="xref py py-mod docutils literal"><span class="pre">hustle.integration_test.setup</span></tt> and
-<a class="reference internal" href="../howto/insert.html#insertguide"><em>Inserting Data To Hustle</em></a></p>
+<dd><p>Insert data into a Hustle <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a>.</p>
+<p>Create a  <a class="reference internal" href="core.html#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">Marble</span></tt></a> file given the input file or streams according to the
+schema of the table.  Push this (these) file(s) into <em>DDFS</em> under the appropriated (possibly) partitioned <em>DDFS</em>
+tags.</p>
+<p>Note that a call to <a class="reference internal" href="#hustle.insert" title="hustle.insert"><tt class="xref py py-func docutils literal"><span class="pre">insert()</span></tt></a> may actually create and push more than one file,
+depending on how many partition values exist in the input.  Be careful.</p>
+<p>For a good example of inserting into a partitioned Hustle database see <a class="reference internal" href="../howto/insert.html#insertguide"><em>Inserting Data To Hustle</em></a></p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>table</strong> (<a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">hustle.Table</span></tt></a>) &#8211; the table to perform the insert on</li>
+<li><strong>table</strong> (<a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a>) &#8211; the table to perform the insert on</li>
 <li><strong>phile</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the file path to open</li>
 <li><strong>streams</strong> (<em>sequence of iterable</em>) &#8211; as an alternative to the <em>phile</em> argument, you can specify a list of generators as input</li>
 <li><strong>preprocess</strong> (<em>function</em>) &#8211; <p>a function that accepts and returns a dict()</p>
 <p>The input is transformed into a <a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">dict</span></tt></a> by the <em>decoder</em> param, then the <em>preprocess</em> function is
 called for every record.  This gives you the opportunity to transform, filter or otherwise clean your
-data before it is inserted into the <a class="reference internal" href="core.html#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Marble</span></tt></a></p>
+data before it is inserted into the <a class="reference internal" href="core.html#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">Marble</span></tt></a></p>
 </li>
 <li><strong>maxsize</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; <p>the initial size in bytes of the <em>LMDB</em> memory mapped file</p>
-<p>Note that the actual underlying LMDB file will grow as data is added to it - this setting is just for it&#8217;s
+<p>Note that the actual underlying LMDB file will grow as data is added to it - this setting is just for its
 initial size.</p>
 </li>
 <li><strong>tmpdir</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; <p>the temporary directory to write the LMDB memory mapped file</p>
@@ -204,8 +211,9 @@ initial size.</p>
 </li>
 <li><strong>decoder</strong> (<em>function</em>) &#8211; <p>accepts a line of raw input from the input and returns a <a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">dict</span></tt></a></p>
 <p>The dict is expected to have keys that correspond to the column names in the table you are inserting to.  There
-are two built-in decoders in Hustle: <tt class="xref py py-func docutils literal"><span class="pre">hustle.core.marble.json_decoder()</span></tt> (default) and
-<tt class="xref py py-func docutils literal"><span class="pre">hustle.core.marble.kv_decoder()</span></tt> for processing JSON and Disco <em>chain</em> input files, respectively.</p>
+are two built-in decoders in Hustle: <tt class="xref py py-func docutils literal"><span class="pre">json_decoder()</span></tt> (default) and
+<tt class="xref py py-func docutils literal"><span class="pre">kv_decoder()</span></tt> for processing JSON and Disco <em>chain</em> input files,
+respectively.</p>
 </li>
 <li><strong>lru_size</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; <p>the size in records of the LRU cache for holding bitmapped indexes</p>
 <p>You probably won&#8217;t have to worry about this unless you find your insert is running out of memory or is too
@@ -222,33 +230,35 @@ slow when inserting gigantic files or on nodes with limited memory resources.</p
 <dt id="hustle.select">
 <tt class="descclassname">hustle.</tt><tt class="descname">select</tt><big>(</big><em>*project</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.select" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform a relational query, by selecting rows and columns from one or more tables.</p>
-<p>The return value is either:
-* a list of urls containing the result records.  This is the same as normal results from Disco
-* a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">hustle.Table</span></tt></a> instance when <em>nest</em> == True</p>
-<p>For all of the examples below, <em>imps</em> and <em>pix</em> are instances of <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">hustle.Table</span></tt></a>.</p>
-<p>Arguments:
-:type project: list of <tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt> | <tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Aggregation</span></tt>
-:param project: a positional argument list of columns and aggregate expressions to return in the result</p>
-<blockquote>
-<div><p># simple projection
-select(imps.ad_id, imps.date, imps.cpm_millis, where=imps)</p>
-<p>Selects three columns from the <em>imps</em> table.</p>
-<p>Hustle also allows for <em>aggregation functions</em> such as <a class="reference internal" href="#hustle.h_sum" title="hustle.h_sum"><tt class="xref py py-func docutils literal"><span class="pre">hustle.h_sum()</span></tt></a>, <a class="reference internal" href="#hustle.h_count" title="hustle.h_count"><tt class="xref py py-func docutils literal"><span class="pre">hustle.h_count()</span></tt></a>,
-<a class="reference internal" href="#hustle.h_min" title="hustle.h_min"><tt class="xref py py-func docutils literal"><span class="pre">hustle.h_min()</span></tt></a>, <a class="reference internal" href="#hustle.h_max" title="hustle.h_max"><tt class="xref py py-func docutils literal"><span class="pre">hustle.h_max()</span></tt></a>, <a class="reference internal" href="#hustle.h_avg" title="hustle.h_avg"><tt class="xref py py-func docutils literal"><span class="pre">h_avg()</span></tt></a> as in this example which sums the imps.cpm_millis
-column:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">h_sum</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">),</span> <span class="n">h_count</span><span class="p">(),</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span> <span class="o">==</span> <span class="s">&#39;2014-01-27&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Note that Hustle doesn&#8217;t have a <em>group by</em> clause.  In this query, the output will be <em>grouped</em> by the
-imps.ad_id column implicitly.  Note that in Hustle, if there is an aggregation function present in the
-<em>project</em> param, the query results will be <em>grouped</em> by all non-aggregation present.</p>
-</div></blockquote>
+<p>The return value is either:</p>
+<ul class="simple">
+<li>a list of urls containing the result records.  This is the same as normal results from Disco</li>
+<li>a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> instance when <tt class="code docutils literal"><span class="pre">nest==True</span></tt></li>
+</ul>
+<p>For all of the examples below, <em>imps</em> and <em>pix</em> are instances of <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>where</strong> ((optional) sequence of <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">hustle.Table</span></tt></a> | <tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Expr</span></tt>) &#8211; <p>the Tables to fetch data from, as well as the conditions in the <em>where clause</em></p>
+<li><strong>project</strong> (list of <a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a> | <a class="reference internal" href="core.html#hustle.core.marble.Aggregation" title="hustle.core.marble.Aggregation"><tt class="xref py py-class docutils literal"><span class="pre">Aggregation</span></tt></a>) &#8211; <p>a positional argument list of columns and aggregate expressions to return in the result</p>
+<p>A simple projection:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Selects three columns from the <em>imps</em> table.</p>
+<p>Hustle also allows for <em>aggregation functions</em> such as <a class="reference internal" href="#hustle.h_sum" title="hustle.h_sum"><tt class="xref py py-func docutils literal"><span class="pre">h_sum()</span></tt></a>,
+<a class="reference internal" href="#hustle.h_count" title="hustle.h_count"><tt class="xref py py-func docutils literal"><span class="pre">h_count</span></tt></a>, <a class="reference internal" href="#hustle.h_min" title="hustle.h_min"><tt class="xref py py-func docutils literal"><span class="pre">h_min()</span></tt></a>, <a class="reference internal" href="#hustle.h_max" title="hustle.h_max"><tt class="xref py py-func docutils literal"><span class="pre">h_max()</span></tt></a>,
+<a class="reference internal" href="#hustle.h_avg" title="hustle.h_avg"><tt class="xref py py-func docutils literal"><span class="pre">h_avg</span></tt></a> as in this example which sums the <tt class="code docutils literal"><span class="pre">imps.cpm_millis</span></tt>
+column:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">h_sum</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">),</span> <span class="n">h_count</span><span class="p">(),</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span> <span class="o">==</span> <span class="s">&#39;2014-01-27&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that Hustle doesn&#8217;t have a <em>group by</em> clause.  In this query, the output will be <em>grouped</em> by the
+<tt class="code docutils literal"><span class="pre">imps.ad_id</span></tt> column implicitly.  Note that in Hustle, if there is an aggregation function present in the
+<tt class="code docutils literal"><span class="pre">project</span></tt> param, the query results will be <em>grouped</em> by all non-aggregation present.</p>
+</li>
+<li><strong>where</strong> ((optional) sequence of <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> | <a class="reference internal" href="core.html#hustle.core.marble.Expr" title="hustle.core.marble.Expr"><tt class="xref py py-class docutils literal"><span class="pre">Expr</span></tt></a>) &#8211; <p>the Tables to fetch data from, as well as the conditions in the <em>where clause</em></p>
 <p>This two purposes: to specify the tables that are to be queried and to allow for the
 selection of data under specific criteria with our Python DSL selection syntax, much the like SQL&#8217;s <em>where
 clause</em>:</p>
@@ -256,7 +266,8 @@ clause</em>:</p>
 <span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span> <span class="o">==</span> <span class="s">&#39;2014-01-27&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Note the <em>==</em> operation between the imps.date column and the date string.  The <tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>
+<p>Note the <tt class="code docutils literal"><span class="pre">==</span></tt> operation between the <tt class="code docutils literal"><span class="pre">imps.date</span></tt> column and the date string.
+The <a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a>
 class overrides all of Python&#8217;s comparison operators, which, along with the <em>&amp;</em>, <em>|</em> and <em>~</em> logical
 operators allows you to build arbitrarily complex column selection expressions like this:</p>
 <div class="highlight-python"><div class="highlight"><pre>select(imps.ad_id, imps.date, imps.cpm_millis,
@@ -273,12 +284,12 @@ operators allows you to build arbitrarily complex column selection expressions l
 <div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">pix</span><span class="o">.</span><span class="n">amount</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">,</span> <span class="n">pix</span><span class="p">))</span>
 </pre></div>
 </div>
-<p>which specifies an expression (imps.date &lt; &#8216;2014-01-13&#8217;) and a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">hustle.Table</span></tt></a> tuple.  This query
-will simply return all of the <em>ad_id</em> values in <em>imps</em> for dates less than January 13th followed by all of the
-<em>amound</em> values in the <em>pix</em> table.</p>
+<p>which specifies an expression, <tt class="code docutils literal"><span class="pre">imps.date</span> <span class="pre">&lt;</span> <span class="pre">'2014-01-13'</span></tt> and a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> tuple.
+This query will simply return all of the <em>ad_id</em> values in <em>imps</em> for dates less than January 13th followed
+by all of the <em>amount</em> values in the <em>pix</em> table.</p>
 <p>Using multiple columns is typically reserved for when you use a <em>join clause</em></p>
 </li>
-<li><strong>join</strong> (sequence of exactly length 2 of <tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; <p>specified the columns to perform a relational join operation on for the query</p>
+<li><strong>join</strong> (sequence of exactly length 2 of <a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a>) &#8211; <p>specified the columns to perform a relational join operation on for the query</p>
 <p>Here&#8217;s an example of a Hustle join:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span> <span class="n">h_sum</span><span class="p">(</span><span class="n">pix</span><span class="o">.</span><span class="n">amount</span><span class="p">),</span> <span class="n">h_count</span><span class="p">(),</span>
        <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">,</span> <span class="n">pix</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">),</span>
@@ -296,22 +307,26 @@ group by i.ad_id, i.site_id
 </pre></div>
 </div>
 </li>
-<li><strong>order_by</strong> (string | <tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt> | (sequence of string | <tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>)) &#8211; <p>the column(s) to sort the result by</p>
+<li><strong>order_by</strong> (string | <a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a> | int |
+(sequence of string | <a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a> | int)) &#8211; <p>the column(s) to sort the result by</p>
 <p>The sort columns can be specified either as a Column or a list of Columns.  Alternatively, you can specify
-a column by using a string with either the name of the column or the <em>table.column</em> string notation.  Here
-are a few examples:</p>
+a column by using a string with either the name of the column or the <em>table.column</em> string notation.
+Furthermore, you can also represent the column using a zero based index of the <em>projected</em> columns.  This
+last case would be used for <em>Aggregations</em>.  Here are a few examples:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">)</span>
 <span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">))</span>
 <span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="s">&#39;date&#39;</span><span class="p">)</span>
 <span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="s">&#39;imps.date&#39;</span><span class="p">)</span>
 <span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;date&#39;</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">))</span>
+<span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="p">(</span><span class="s">&#39;date&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">h_sum</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">),</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="p">,</span> <span class="n">order_by</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
 </li>
 <li><strong>desc</strong> (<em>boolean</em>) &#8211; affects sort order of the <em>order_by clause</em> to descending (default ascending)</li>
 <li><strong>distinct</strong> (<em>boolean</em>) &#8211; indicates whether to remove duplicates in results</li>
 <li><strong>limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; limits the total number of records in the output</li>
-<li><strong>nest</strong> (<em>boolean (default = False)</em>) &#8211; <p>specify that the return value is a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">hustle.Table</span></tt></a> to be used in another query</p>
+<li><strong>nest</strong> (<em>boolean (default = False)</em>) &#8211; <p>specify that the return value is a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> to be used in another query</p>
 <p>This allows us to build nested queries.  You may want to do this to join more than two tables, or to reuse
 the results of a query in more than one subsequent query.  For example:</p>
 <div class="highlight-python"><div class="highlight"><pre>``active_pix = select(*star(pix), where=pix.isActive &gt; 0, nest=True)``
@@ -340,7 +355,7 @@ This is used in <a class="reference internal" href="#hustle.select" title="hustl
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt></a>) &#8211; the column to aggregate</td>
 </tr>
 </tbody>
 </table>
@@ -368,7 +383,7 @@ This is used in <a class="reference internal" href="#hustle.select" title="hustl
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt></a>) &#8211; the column to aggregate</td>
 </tr>
 </tbody>
 </table>
@@ -386,7 +401,7 @@ This is used in <a class="reference internal" href="#hustle.select" title="hustl
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt></a>) &#8211; the column to aggregate</td>
 </tr>
 </tbody>
 </table>
@@ -404,7 +419,7 @@ This is used in <a class="reference internal" href="#hustle.select" title="hustl
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt>) &#8211; the column to aggregate</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>col</strong> (<a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">hustle.core.marble.Column</span></tt></a>) &#8211; the column to aggregate</td>
 </tr>
 </tbody>
 </table>
@@ -529,9 +544,22 @@ for DDFS tags that have a <em>hustle:</em> prefix.</p>
         <li><a href="../index.html">Hustle 0.1 documentation</a> &raquo;</li> 
       </ul>
     </div>
+
     <div class="footer">
         &copy; Copyright 2014, Tim Spurway.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
     </div>
+<div class="footer">
+<script type="text/javascript">
+  (function() {
+    var ga = document.createElement('script');
+    ga.src = ('https:' == document.location.protocol ?
+              'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    ga.setAttribute('async', 'true');
+    document.documentElement.firstChild.appendChild(ga);
+  })();
+</script>
+</div>
+
   </body>
 </html>

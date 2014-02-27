@@ -24,7 +24,14 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="top" title="Hustle 0.1 documentation" href="../index.html" />
-    <link rel="prev" title="hustle – Hustle Distributed OLAP Database" href="hustle.html" /> 
+    <link rel="prev" title="hustle – Hustle Distributed OLAP Database" href="hustle.html" />
+ 
+<script type="text/javascript">
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-48426035-1']);
+  _gaq.push(['_trackPageview']);
+</script>
+
   </head>
   <body>
     <div class="related">
@@ -91,7 +98,7 @@ which is a relatively inexpensive operation.  This is Hustle&#8217;s <a class="r
 <p>In addition each Marble contains several LMDB meta DBs for meta-data for prefix Tries, schema, and table statistics
 used by the query optimizer.</p>
 <p>The column DB is a key/value store that stores data for a particular column.  It has a locally unique row identifier (RID) as
-the key, and the actual value for that column&#8217;s data as it&#8217;s value, encoded depending on the schema data type of
+the key, and the actual value for that column&#8217;s data as its value, encoded depending on the schema data type of
 the column.  All integer types are directly encoded in LMDB as integers, whereas the Trie compression types are encoded
 as integers (called VIDs), which actually are keys in the two dedicated Trie meta DBs (one for 32 and one for 16
 bit Tries).  Uncompressed strings, as well as lz4 and binary style data is simply encoded as byte string values.</p>
@@ -118,6 +125,132 @@ a very efficient and compact way to store the index in an append-only database l
 <dd><p>Instantiate a <a class="reference internal" href="#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">Marble</span></tt></a> from an <em>LMDB</em></p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="hustle.core.marble.Column">
+<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Column</tt><big>(</big><em>name</em>, <em>table</em>, <em>index_indicator=0</em>, <em>partition=False</em>, <em>type_indicator=0</em>, <em>compression_indicator=0</em>, <em>rtrie_indicator=2</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Column" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <em>Column</em> is the named, typed field of a <a class="reference internal" href="#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">Marble</span></tt></a>.   <em>Columns</em> are typically
+created automatically by parsing the <em>fields</em> of a the <em>Marble</em> instantiation.</p>
+<p>The <em>Column</em> overrides Python&#8217;s relational operators <tt class="code docutils literal"><span class="pre">&gt;</span> <span class="pre">&lt;</span> <span class="pre">&lt;=</span> <span class="pre">&gt;=</span> <span class="pre">==</span></tt> which forms the basis for
+the <a class="reference internal" href="../howto/query.html#queryguide"><em>Query DSL</em></a>.  All of these operators expect a <em>Python literal</em> as their second
+(right hand side) argument which should be the same type as the <em>Column</em>.  These <em>Column Expressions</em> are
+represented by the <a class="reference internal" href="#hustle.core.marble.Expr" title="hustle.core.marble.Expr"><tt class="xref py py-class docutils literal"><span class="pre">Expr</span></tt></a> class.</p>
+<p>Note that the <em>Marble</em> and <em>Table</em> classes expose their <em>Columns</em> as Python <em>attributes</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># instantiate a table</span>
+<span class="n">imps</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_tag</span><span class="p">(</span><span class="s">&#39;impressions&#39;</span><span class="p">)</span>
+
+<span class="c"># access a the date column</span>
+<span class="n">date_column</span> <span class="o">=</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span>
+
+<span class="c"># create a Column Expression</span>
+<span class="n">date_column_expression</span> <span class="o">=</span> <span class="n">imps</span><span class="o">.</span><span class="n">site_id</span> <span class="o">==</span> <span class="s">&#39;google.com&#39;</span>
+
+<span class="c"># query</span>
+<span class="n">select</span><span class="p">(</span><span class="n">date_column</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">date_column_expression</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="hustle.core.marble.Column.description">
+<tt class="descname">description</tt><big>(</big><big>)</big><a class="headerlink" href="#hustle.core.marble.Column.description" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a human-readable type description for this column.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="hustle.core.marble.Aggregation">
+<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Aggregation</tt><big>(</big><em>name=None</em>, <em>column=None</em>, <em>f=None</em>, <em>g=&lt;function &lt;lambda&gt; at 0x10477e9b0&gt;</em>, <em>h=&lt;function &lt;lambda&gt; at 0x10477ea28&gt;</em>, <em>default=&lt;function &lt;lambda&gt; at 0x10477eaa0&gt;</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Aggregation" title="Permalink to this definition">¶</a></dt>
+<dd><p>An <em>Aggregation</em> is a Column Function that represents some aggregating computation over the values of that
+column.  It is exclusively used in the <em>project</em> section of the <a class="reference internal" href="hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">select()</span></tt></a> function.</p>
+<p>An <em>Aggregation</em> object holds onto four distinct function references which are called at specific times
+during the <em>group_by stage</em> of the query pipeline.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>f</strong> (<em>func(accumulator, value)</em>) &#8211; the function called for every value of the <em>column</em>, returns a new accumulator (the MAP aggregator)</li>
+<li><strong>g</strong> (<em>func(accumulator)</em>) &#8211; the function called to produce the final value (the REDUCE aggregator)</li>
+<li><strong>h</strong> (<em>func(accumulator)</em>) &#8211; the function called to produce intermediate values (the COMBINE aggregator)</li>
+<li><strong>default</strong> (<em>func()</em>) &#8211; the function called to produce the initial aggregation accumulator</li>
+<li><strong>column</strong> (<a class="reference internal" href="#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a>) &#8211; the column to aggregate</li>
+<li><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#basestring" title="(in Python v2.7)"><em>basestring</em></a>) &#8211; the unique name of the aggregator.  Used to assign a column name to the result</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>Here is the actual implementation of the h_avg() <em>Aggregation</em> which will give us the average value
+for a numeric column in a <a class="reference internal" href="hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">select()</span></tt></a> statement:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">h_avg</span><span class="p">(</span><span class="n">col</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">Aggregation</span><span class="p">(</span><span class="s">&quot;avg&quot;</span><span class="p">,</span>
+                       <span class="n">col</span><span class="p">,</span>
+                       <span class="n">f</span><span class="o">=</span><span class="k">lambda</span> <span class="p">(</span><span class="n">accum</span><span class="p">,</span> <span class="n">count</span><span class="p">),</span> <span class="n">val</span><span class="p">:</span> <span class="p">(</span><span class="n">accum</span> <span class="o">+</span> <span class="n">val</span><span class="p">,</span> <span class="n">count</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                       <span class="n">g</span><span class="o">=</span><span class="k">lambda</span> <span class="p">(</span><span class="n">accum</span><span class="p">,</span> <span class="n">count</span><span class="p">):</span> <span class="nb">float</span><span class="p">(</span><span class="n">accum</span><span class="p">)</span> <span class="o">/</span> <span class="n">count</span><span class="p">,</span>
+                       <span class="n">h</span><span class="o">=</span><span class="k">lambda</span> <span class="p">(</span><span class="n">accum</span><span class="p">,</span> <span class="n">count</span><span class="p">):</span> <span class="p">(</span><span class="n">accum</span><span class="p">,</span> <span class="n">count</span><span class="p">),</span>
+                       <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+</pre></div>
+</div>
+<p class="last">First look at the <em>default()</em> function which returns the tuple (0, 0).  This sets the <em>accum</em> and <em>count</em> values
+that we will be tracking both to zero.  Next, let&#8217;s see what&#8217;s happening in the <em>f()</em> function.  Note that it
+performs two computations, one <tt class="code docutils literal"><span class="pre">accum</span> <span class="pre">+</span> <span class="pre">val</span></tt> builds a sum of the values, and the <tt class="code docutils literal"><span class="pre">count</span> <span class="pre">+</span> <span class="pre">1</span></tt> will
+count the total number of values.  The difference between the <em>g()</em> and <em>h()</em> functions is when they take place.
+The <em>h()</em> function is used to summarize results.  It should always return an <em>accum</em> that can be further
+inputted into the <em>f()</em> function.  The <em>g()</em> function is used at the very end of the computation to compute the
+final value to return the client.</p>
+</div>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<dl class="last docutils">
+<dt><a class="reference internal" href="hustle.html#hustle.h_sum" title="hustle.h_sum"><tt class="xref py py-func docutils literal"><span class="pre">h_sum()</span></tt></a>, <a class="reference internal" href="hustle.html#hustle.h_count" title="hustle.h_count"><tt class="xref py py-func docutils literal"><span class="pre">h_count()</span></tt></a>, <a class="reference internal" href="hustle.html#hustle.h_avg" title="hustle.h_avg"><tt class="xref py py-func docutils literal"><span class="pre">h_avg()</span></tt></a></dt>
+<dd>Some of Hustle&#8217;s aggregation functions</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="class">
+<dt id="hustle.core.marble.Expr">
+<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Expr</tt><big>(</big><em>table</em>, <em>f=None</em>, <em>part_f=None</em>, <em>is_partition=False</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Expr" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <em>Expr</em> is returned by the overloaded relational operators of the <a class="reference internal" href="#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a>
+class.</p>
+<p>The <em>Expr</em> is a recursive class, that can be composed of other <em>Exprs</em> all connected with the logical
+<tt class="code docutils literal"><span class="pre">&amp;</span> <span class="pre">|</span> <span class="pre">~</span></tt> operators (<em>and, or, not</em>).</p>
+<p>Each <em>Expr</em> instance must be aware if its sub-expressions <em>have</em> partitions or <em>are</em> partitions.  This is to
+because the <em>&amp;</em> and <em>|</em> operators will optimize expressions over patitioned columns differently.  Consider the
+following query:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">date</span> <span class="o">==</span> <span class="s">&#39;2014-02-20&#39;</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">amount</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Let&#8217;s assume that the <em>impressions.date</em> column is a partition column.  It should be clear that we can optimize
+this query by only executing the query on the &#8216;2014-02-20&#8217; partition, which if we had many dates would vastly
+improve our query execution.</p>
+<p>On the other hand consider the following, almost identical query:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">date</span> <span class="o">==</span> <span class="s">&#39;2014-02-20&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">amount</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>In this case, we cannot optimize according to our partition.  We need to visit <em>all</em> partitions in <em>impressions</em>
+and execute the <em>OR</em> operation across those rows for the <em>amount</em> expression.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">It is important to realize that all Column Expressions in an Expr must refer to the same <em>Table</em></p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>table</strong> (<a class="reference internal" href="hustle.html#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a>) &#8211; the <em>Table</em> this <em>Expr</em> queries</li>
+<li><strong>f</strong> (<em>func(MarbleStream)</em>) &#8211; the function to execute to actually perform the expression on data in the <em>Marble</em></li>
+<li><strong>part_f</strong> (<em>func(list of strings)</em>) &#8211; the function to execute to perform the expresson on data in the <em>partition</em></li>
+<li><strong>is_partition</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; indicates if this Expr only has partition columns</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -149,9 +282,22 @@ a very efficient and compact way to store the index in an append-only database l
         <li><a href="../index.html">Hustle 0.1 documentation</a> &raquo;</li> 
       </ul>
     </div>
+
     <div class="footer">
         &copy; Copyright 2014, Tim Spurway.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.1.
     </div>
+<div class="footer">
+<script type="text/javascript">
+  (function() {
+    var ga = document.createElement('script');
+    ga.src = ('https:' == document.location.protocol ?
+              'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    ga.setAttribute('async', 'true');
+    document.documentElement.firstChild.appendChild(ga);
+  })();
+</script>
+</div>
+
   </body>
 </html>

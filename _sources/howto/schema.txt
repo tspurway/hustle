@@ -5,7 +5,7 @@ Hustle Schema Design Guide
 
 Fields
 ------
-The fields of a Table are it's columns.  Each field has a type, an optional width and an optional index indicator
+The fields of a Table are its columns.  Each field has a type, an optional width and an optional index indicator
 as detailed in the following table:
 
 ======  ============    ====================================
