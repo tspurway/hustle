@@ -5,7 +5,7 @@ Installing Hustle
 
 Hustle is hosted on `GitHub <https://github.com/changoinc/hustle>`_ and should be cloned from that repo::
 
-    git clone git@github.com:changoinc/hustle.git
+    git clone https://github.com/chango/hustle.git
 
 Dependencies
 ------------
@@ -14,6 +14,7 @@ Hustle has the following dependencies:
 
 * you will need `Python 2.7 <http://www.python.org/downloads/>`_
 * you will need `Disco 0.5 <http://disco.readthedocs.org/en/latest/start/install.html>`_
+* you will need `ultrajson <https://github.com/esnme/ultrajson>`_
 
 Installing the Hustle Client
 ----------------------------
