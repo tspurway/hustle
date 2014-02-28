@@ -321,7 +321,7 @@ def select(*project, **kwargs):
         This allows us to build nested queries.  You may want to do this to join more than two tables, or to reuse
         the results of a query in more than one subsequent query.  For example::
 
-            ``active_pix = select(*star(pix), where=pix.isActive > 0, nest=True)``
+            active_pix = select(*star(pix), where=pix.isActive > 0, nest=True)
             select(h_sum(active_pix.amount), where=active_pix)
 
     :type kwargs: dict
