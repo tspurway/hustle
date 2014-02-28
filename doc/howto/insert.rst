@@ -19,6 +19,32 @@ Here is an example insert::
     impressions = Table.from_tag('impressions')
     insert(impressions, './imprsions-june-8.json', server='disco://hustle')
 
+Hustle provides a command-line tool for inserting data located at :code:`bin/insert`.  Here is the *--help* for
+it::
+
+    ➜ hustle/bin > ./insert --help
+    usage: insert [-h] [-s SERVER] [-f INFILE] [-m MAXSIZE] [-t TMPDIR]
+              [-p PROCESSOR] [--disco-chunk]
+              TABLE FILES [FILES ...]
+
+    Hustle bulk load
+
+    positional arguments:
+      TABLE                 The Hustle table to insert to
+      FILES                 The JSON formated files to insert
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -s SERVER, --server SERVER
+                            DDFS server destination
+      -f INFILE             A file containing a list of all files to be inserted
+      -m MAXSIZE, --maxsize MAXSIZE
+                            Initial size of Hustle marble
+      -t TMPDIR, --tmpdir TMPDIR
+                            Temporary directory for Hustle marble creation
+      -p PROCESSOR          a module.function for the Hustle import preprocessor
+      --disco-chunk         Indicated if the input files are in Disco CHUNK format
+
 .. seealso::
 
     Page :ref:`integrationtests`
