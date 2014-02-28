@@ -205,10 +205,8 @@ if __name__ == '__main__':
         print """
 Type `help(<command>)` for more help:
   select()    - selects rows and columns from a Table
-  intersect() - prints cardinality estimation intersections
-  union()     - prints cardinality estimation unions
   ---
-  create()    - create a new Table
+  Table.create() - create a new Table
   insert()    - insert data into a Table
   ---
   tables()    - prints currently available Hustle Tables
