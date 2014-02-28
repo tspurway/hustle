@@ -83,7 +83,7 @@ Getting started
    :titlesonly:
 
    start/install
-   start/tutorial
+..   start/tutorial
 
 Hustle In Depth
 ---------------

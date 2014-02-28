@@ -1,6 +1,6 @@
 ![Hustle](doc/_static/hustle.png)
 
-A column oriented, embarrassingly distributed relational NoSQL database.
+A column oriented, embarrassingly distributed, relational OLAP database.
 
 Features
 --------
@@ -8,14 +8,24 @@ Features
 * column oriented - super fast queries
 * distributed insert - Hustle is designed for petabyte scale datasets in a distributed environment with massive write loads
 * compressed - bitmap indexes, lz4, and prefix trie compression
-* relational - join gigantic datasets
+* relational - join gigantic data sets
 * partitioned - smart shards
-* embarrassingly distributed (Disco: http://discoproject.org/)
-* embarrassingly fast (LMDB:  http://symas.com/mdb/)
+* embarrassingly distributed (`based on Disco <http://discoproject.org/>`_)
+* embarrassingly fast (`uses LMDB <http://symas.com/mdb/>`_)
 * NoSQL - Python DSL
-* bulk append only
-* definitely consistent
+* bulk append only semantics
+* highly available, horizontally scalable
 * REPL/CLI query interface
+
+Example Query
+-------------
+
+```
+select(impressions.ad_id, impressions.date, h_sum(pix.amount), h_count(),
+       where=((impressions.date < '2014-01-13') & (impressions.ad_id == 30010), pix.date < '2014-01-13'),
+       join=(impressions.site_id, pix.site_id),
+       order_by=impressions.date)
+```
 
 
 BETA / EAP
