@@ -10,8 +10,8 @@ Features
 * compressed - bitmap indexes, lz4, and prefix trie compression
 * relational - join gigantic data sets
 * partitioned - smart shards
-* embarrassingly distributed (`based on Disco <http://discoproject.org/>`_)
-* embarrassingly fast (`uses LMDB <http://symas.com/mdb/>`_)
+* embarrassingly distributed ([based on Disco](http://discoproject.org/))
+* embarrassingly fast ([uses LMDB](http://symas.com/mdb/))
 * NoSQL - Python DSL
 * bulk append only semantics
 * highly available, horizontally scalable
