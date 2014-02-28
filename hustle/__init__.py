@@ -17,7 +17,7 @@ __version__ = '0.1.1'
 
 import os
 import ujson
-from hustle.core.marble import Aggregation, Marble, json_decoder, Column, check_query
+from hustle.core.marble import Aggregation, Marble, json_decoder, Column, Expr, check_query
 
 
 _TAG_PREFIX = 'hustle:'
@@ -594,6 +594,63 @@ def partitions(table, **kwargs):
     _print_line(sorted(uniqs), width=132)
 
 
+def _get_tags(table_or_expr, ddfs):
+    # assume a table is being passed in
+    table = table_or_expr
+    where = None
+    if hasattr(table_or_expr, 'table'):
+        # nope, its a where clause (ie. and expr)
+        table = table_or_expr.table
+        where = table_or_expr
+
+    basetag = table.base_tag(table._name) + ':'
+    if where and table._partition:
+        tags = [tag[len(basetag):] for tag in ddfs.list(basetag)]
+        seltags = [table.base_tag(table._name, part) for part in where.partition(tags)]
+    else:
+        seltags = ddfs.list(basetag)
+    return seltags
+
+
+def delete(table_or_expr, **kwargs):
+    """
+    Delete all data and partitions for a given table, keep the table definition.
+
+    :type kwargs: dict
+    :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
+    """
+    from hustle.core.settings import Settings
+    settings = Settings(**kwargs)
+    ddfs = settings["ddfs"]
+
+    if isinstance(table_or_expr, Expr) and not table_or_expr.is_partition:
+        raise ValueError("Non-partition column is not allowed.")
+
+    tags = _get_tags(table_or_expr)
+    if not tags:
+        raise KeyError("Table not found.")
+    for tag in tags:
+        ddfs.delete(tag)
+
+
+def drop(table, **kwargs):
+    """
+    Drop all data, partitions, and table definition for a given table
+
+    :type kwargs: dict
+    :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
+    """
+    from hustle.core.settings import Settings
+    settings = Settings(**kwargs)
+    ddfs = settings["ddfs"]
+
+    if isinstance(table, Table):
+        raise ValueError("Table is only allowed here.")
+
+    delete(table, **kwargs)
+    ddfs.delete(Table.base_tag(table._name))
+
+
 def _print_separator(width=80):
     print "- - " * (width / 4)
 
@@ -636,6 +693,7 @@ def _print_line(items, width=80, cols=3, alignments=None):
             print line
             i, line = 1, item
     print line
+
 
 def _get_blobs(table_or_expr, ddfs):
     # assume a table is being passed in
