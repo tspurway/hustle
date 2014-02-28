@@ -250,6 +250,8 @@ class SelectPipe(Job):
                                                                label_fn=partial(_tuple_hash,
                                                                                 cols=group_by_range,
                                                                                 p=partition)))),
+                # A Hack here that overrides disco stage's default option 'combine'.
+                # Hustle needs all inputs with the same label to be combined.
                 (GROUP_LABEL, HustleStage('group-reduce',
                                           input_sorted=True,
                                           combine=True,
