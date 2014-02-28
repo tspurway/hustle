@@ -112,9 +112,9 @@
 as detailed in the following table:</p>
 <table border="1" class="docutils">
 <colgroup>
-<col width="11%" />
-<col width="22%" />
-<col width="67%" />
+<col width="10%" />
+<col width="21%" />
+<col width="69%" />
 </colgroup>
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">Prefix</th>
@@ -123,10 +123,7 @@ as detailed in the following table:</p>
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><ul class="first last simple">
-<li></li>
-</ul>
-</td>
+<tr class="row-even"><td><tt class="docutils literal"><span class="pre">+</span></tt></td>
 <td>index</td>
 <td>create a normal index on this column</td>
 </tr>
@@ -164,6 +161,8 @@ as detailed in the following table:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;+$name&quot;</span><span class="p">,</span> <span class="s">&quot;+</span><span class="si">%2d</span><span class="s">epartment&quot;</span><span class="p">,</span> <span class="s">&quot;@2salary&quot;</span><span class="p">,</span> <span class="s">&quot;*bio&quot;</span><span class="p">]</span>
 </pre></div>
 </div>
+<p>creates an indexed string column called <em>name</em>, a 16 bit compressed Trie column called <em>department</em>,
+a 16 bit unsigned int column called <em>salary</em>, and an lz4 compressed string called <em>bio</em>.</p>
 </div>
 <div class="section" id="accessing-fields">
 <h2>Accessing Fields<a class="headerlink" href="#accessing-fields" title="Permalink to this headline">¶</a></h2>
@@ -172,7 +171,7 @@ as detailed in the following table:</p>
 <div>imps = Table.from_tag(&#8216;impressions&#8217;)
 select(imps.date, imps.site_id, where=imps)</div></blockquote>
 <p>This is a simple Hustle query written in Python.  Note that the column names <em>date</em> and <em>site_id</em> are accessed
-using the Python <em>dot</em> notation.  All columns are accessed as though they were members of the Table class.</p>
+using standard Python <em>dot</em> notation.  All columns are accessed as though they were members of the Table class.</p>
 </div>
 <div class="section" id="indexes">
 <h2>Indexes<a class="headerlink" href="#indexes" title="Permalink to this headline">¶</a></h2>

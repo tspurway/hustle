@@ -11,7 +11,7 @@ as detailed in the following table:
 ======  ============    ====================================
 Prefix  Type            Notes
 ======  ============    ====================================
-+       index           create a normal index on this column
+``+``       index           create a normal index on this column
 =       index           create a wide index on this column
 @N      unsigned int    ``N = 1 | 2 | *4 | 8``
 #N      signed int      ``N = 1 | 2 | *4 | 8``
@@ -25,6 +25,9 @@ fields are specified using the following convention:  *[+|=][type[width]]name*, 
 
     fields=["+$name", "+%2department", "@2salary", "*bio"]
 
+creates an indexed string column called *name*, a 16 bit compressed Trie column called *department*,
+a 16 bit unsigned int column called *salary*, and an lz4 compressed string called *bio*.
+
 Accessing Fields
 ----------------
 
@@ -34,7 +37,7 @@ Consider the following code:
     select(imps.date, imps.site_id, where=imps)
 
 This is a simple Hustle query written in Python.  Note that the column names *date* and *site_id* are accessed
-using the Python *dot* notation.  All columns are accessed as though they were members of the Table class.
+using standard Python *dot* notation.  All columns are accessed as though they were members of the Table class.
 
 Indexes
 -------

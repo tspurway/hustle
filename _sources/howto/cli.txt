@@ -3,21 +3,21 @@
 Hustle Command Line Interface (CLI)
 ===================================
 
-After installing Hustle, you can invoke the Hustle CLI like this::
+After installing Hustle, you can invoke the Hustle CLI from the installation directory like this::
 
-    hustle
+    bin/hustle
 
 Assuming you've installed everything and have a running and correctly configured *Disco* instance, you will get a
 Python prompt looking something like this::
 
     ➜  bin git:(develop) ✗ ./hustle
-    Loading Hustle Tables from disco://hustlemaster
+    Loading Hustle Tables from disco://localhost
        impressions
        pixels
     Welcome to Hustle!  Type `commands()` or `tables()` for some help, `exit()` to leave.
     >>>
 
-We see here that the CLI has loaded the Hustle tables from the *disco://hustlemaster* cluster called *impressions*
+We see here that the CLI has loaded the Hustle tables from the *disco://localhost* cluster called *impressions*
 and *pixels*.  The CLI actually loads these into Python's global variable space, so that these
 :class:`Tables <hustle.Table>` are actually instantiated with their table names in the Python namespace::
 
@@ -42,3 +42,10 @@ gives the *schema* of the *impressions* table.  Doing a query is just as simple:
                                       30,011                                    2,150
                                       30,014                                    4,491
 
+
+The CLI offers the following features over and above being a 'normal' Python REPL::
+
+* configurable command history
+* no *import* statements required to load Hustle functionality
+* auto-completion (with TAB key) of all Hustle functions, Tables, and Columns
+* configurable command history

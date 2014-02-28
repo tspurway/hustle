@@ -92,21 +92,21 @@
             
   <div class="section" id="hustle-command-line-interface-cli">
 <span id="cliguide"></span><h1>Hustle Command Line Interface (CLI)<a class="headerlink" href="#hustle-command-line-interface-cli" title="Permalink to this headline">¶</a></h1>
-<p>After installing Hustle, you can invoke the Hustle CLI like this:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">hustle</span>
+<p>After installing Hustle, you can invoke the Hustle CLI from the installation directory like this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nb">bin</span><span class="o">/</span><span class="n">hustle</span>
 </pre></div>
 </div>
 <p>Assuming you&#8217;ve installed everything and have a running and correctly configured <em>Disco</em> instance, you will get a
 Python prompt looking something like this:</p>
 <div class="highlight-python"><div class="highlight"><pre>➜  bin git:(develop) ✗ ./hustle
-Loading Hustle Tables from disco://hustlemaster
+Loading Hustle Tables from disco://localhost
    impressions
    pixels
 Welcome to Hustle!  Type `commands()` or `tables()` for some help, `exit()` to leave.
 &gt;&gt;&gt;
 </pre></div>
 </div>
-<p>We see here that the CLI has loaded the Hustle tables from the <em>disco://hustlemaster</em> cluster called <em>impressions</em>
+<p>We see here that the CLI has loaded the Hustle tables from the <em>disco://localhost</em> cluster called <em>impressions</em>
 and <em>pixels</em>.  The CLI actually loads these into Python&#8217;s global variable space, so that these
 <a class="reference internal" href="../api/hustle.html#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Tables</span></tt></a> are actually instantiated with their table names in the Python namespace:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">schema</span><span class="p">(</span><span class="n">impressions</span><span class="p">)</span>
@@ -129,6 +129,13 @@ and <em>pixels</em>.  The CLI actually loads these into Python&#8217;s global va
 <span class="go">                                  30,010                                    2,555</span>
 <span class="go">                                  30,011                                    2,150</span>
 <span class="go">                                  30,014                                    4,491</span>
+</pre></div>
+</div>
+<p>The CLI offers the following features over and above being a &#8216;normal&#8217; Python REPL:</p>
+<div class="highlight-python"><div class="highlight"><pre>* configurable command history
+* no *import* statements required to load Hustle functionality
+* auto-completion (with TAB key) of all Hustle functions, Tables, and Columns
+* configurable command history
 </pre></div>
 </div>
 </div>
