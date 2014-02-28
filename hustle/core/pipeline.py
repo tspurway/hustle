@@ -229,14 +229,21 @@ class SelectPipe(Job):
                                          for c in project])
         group_by_stage = []
         if any(efs):
-            group_by_range = [i for i, c in enumerate(project) if isinstance(c, Column)]
+            # If all columns in project are aggregations, use process_skip_group
+            # to skip the internal groupby
+            if all([isinstance(c, Aggregation) for c in project]):
+                process_group_fn = process_skip_group
+                group_by_range = []
+            else:
+                process_group_fn = process_group
+                group_by_range = [i for i, c in enumerate(project) if isinstance(c, Column)]
 
             # build the pipeline
             group_by_stage = [
                 (GROUP_LABEL_NODE, HustleStage('group-combine',
                                                sort=group_by_range,
                                                binaries=binaries,
-                                               process=partial(process_group,
+                                               process=partial(process_group_fn,
                                                                ffuncs=efs,
                                                                ghfuncs=ehches,
                                                                deffuncs=dflts,
@@ -245,8 +252,9 @@ class SelectPipe(Job):
                                                                                 p=partition)))),
                 (GROUP_LABEL, HustleStage('group-reduce',
                                           input_sorted=True,
+                                          combine=True,
                                           sort=group_by_range,
-                                          process=partial(process_group,
+                                          process=partial(process_group_fn,
                                                           ffuncs=efs,
                                                           ghfuncs=gees,
                                                           deffuncs=dflts)))]
@@ -403,6 +411,22 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
         key = tuple(g or a for g, a in zip(group, accum))
         # print "KEY: %s" % repr(key)
         interface.output(label).add(key, empty)
+
+
+def process_skip_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn=None):
+    """Process function of aggregation combine stage without groupby.
+    """
+    empty = ()
+    accums = [default() if default else None for default in deffuncs]
+    for record, _ in inp:
+        try:
+            accums = [f(a, v) if f and a is not None else None
+                      for f, a, v in zip(ffuncs, accums, record)]
+        except Exception as e:
+            raise e
+
+    accum = [h(a) if h else None for h, a in zip(ghfuncs, accums)]
+    interface.output(0).add(tuple(accum), empty)
 
 
 def _get_sort_range(select_offset, select_columns, order_by_columns):

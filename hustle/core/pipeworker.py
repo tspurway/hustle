@@ -240,10 +240,21 @@ class Worker(worker.Worker):
         if callable(stage.process):
             input_map = self.prepare_input_map(task, stage, params)
             for label in stage.input_hook(state, input_map.keys()):
-                for inp in input_map[label]:
-                    stage.process(interface, state, label, inp, task)
+                # for inp in input_map[label]:
+                    # stage.process(interface, state, label, inp, task)
+                if stage.combine:
+                    stage.process(interface, state, label, SerialInput(input_map[label]), task)
+                else:
+                    for inp in input_map[label]:
+                        stage.process(interface, state, label, inp, task)
         if callable(stage.done):
             stage.done(interface, state)
+
+
+def SerialInput(inputs):
+    for inp in inputs:
+        for k, v in inp:
+            yield k, v
 
 
 if __name__ == '__main__':
