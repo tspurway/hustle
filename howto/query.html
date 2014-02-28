@@ -137,11 +137,11 @@ defining differences:</p>
 </ul>
 <div class="section" id="projections">
 <h2>Projections<a class="headerlink" href="#projections" title="Permalink to this headline">¶</a></h2>
-<p>The <em>projections</em> are the first list of columns or aggregations in the <a class="reference internal" href="../api/hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">select</span></tt></a> function.  These
-list the columns or that you want listed in the result.  The valid objects here are
-<a class="reference internal" href="../api/core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Columns</span></tt></a> and <a class="reference internal" href="../api/core.html#hustle.core.marble.Aggregation" title="hustle.core.marble.Aggregation"><tt class="xref py py-class docutils literal"><span class="pre">Aggregations</span></tt></a>.  If a
-column is specified, then the Table that it belongs to <strong>must</strong> appear in the <em>Where Clause</em>.  Similarily, if it is an
-aggregation function, then the Table of the column being aggregated <strong>must</strong> appear in the <em>where</em> parameter.</p>
+<p>The <em>projections</em> are the first list of columns or aggregations in the <a class="reference internal" href="../api/hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">select</span></tt></a> function.  The
+valid objects here are <a class="reference internal" href="../api/core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Columns</span></tt></a> and
+<a class="reference internal" href="../api/core.html#hustle.core.marble.Aggregation" title="hustle.core.marble.Aggregation"><tt class="xref py py-class docutils literal"><span class="pre">Aggregations</span></tt></a>.  If a column is specified, then the Table that it belongs to
+<strong>must</strong> appear in the <em>where</em> parameter.  Similarly, if it is an aggregation function, then the table of the column
+being aggregated <strong>must</strong> appear in the <em>where</em> parameter.</p>
 <p>As a shortcut, Hustle also provides the <a class="reference internal" href="../api/hustle.html#hustle.star" title="hustle.star"><tt class="xref py py-func docutils literal"><span class="pre">star()</span></tt></a> function that returns a list of all of the
 columns of a table.  It is used like:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">star</span><span class="p">(</span><span class="n">impressions</span><span class="p">),</span> <span class="n">where</span><span class="o">=</span><span class="n">impressions</span><span class="o">.</span><span class="n">date</span> <span class="o">==</span> <span class="s">&#39;2014-02-20&#39;</span><span class="p">)</span>

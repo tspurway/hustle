@@ -329,8 +329,8 @@ last case would be used for <em>Aggregations</em>.  Here are a few examples:</p>
 <li><strong>nest</strong> (<em>boolean (default = False)</em>) &#8211; <p>specify that the return value is a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> to be used in another query</p>
 <p>This allows us to build nested queries.  You may want to do this to join more than two tables, or to reuse
 the results of a query in more than one subsequent query.  For example:</p>
-<div class="highlight-python"><div class="highlight"><pre>``active_pix = select(*star(pix), where=pix.isActive &gt; 0, nest=True)``
-select(h_sum(active_pix.amount), where=active_pix)
+<div class="highlight-python"><div class="highlight"><pre><span class="n">active_pix</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">star</span><span class="p">(</span><span class="n">pix</span><span class="p">),</span> <span class="n">where</span><span class="o">=</span><span class="n">pix</span><span class="o">.</span><span class="n">isActive</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nest</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">select</span><span class="p">(</span><span class="n">h_sum</span><span class="p">(</span><span class="n">active_pix</span><span class="o">.</span><span class="n">amount</span><span class="p">),</span> <span class="n">where</span><span class="o">=</span><span class="n">active_pix</span><span class="p">)</span>
 </pre></div>
 </div>
 </li>

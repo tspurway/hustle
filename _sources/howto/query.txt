@@ -32,11 +32,11 @@ defining differences:
 Projections
 -----------
 
-The *projections* are the first list of columns or aggregations in the :func:`select <hustle.select>` function.  These
-list the columns or that you want listed in the result.  The valid objects here are
-:class:`Columns <hustle.core.marble.Column>` and :class:`Aggregations <hustle.core.marble.Aggregation>`.  If a
-column is specified, then the Table that it belongs to **must** appear in the *Where Clause*.  Similarily, if it is an
-aggregation function, then the Table of the column being aggregated **must** appear in the *where* parameter.
+The *projections* are the first list of columns or aggregations in the :func:`select <hustle.select>` function.  The
+valid objects here are :class:`Columns <hustle.core.marble.Column>` and
+:class:`Aggregations <hustle.core.marble.Aggregation>`.  If a column is specified, then the Table that it belongs to
+**must** appear in the *where* parameter.  Similarly, if it is an aggregation function, then the table of the column
+being aggregated **must** appear in the *where* parameter.
 
 As a shortcut, Hustle also provides the :func:`star() <hustle.star>` function that returns a list of all of the
 columns of a table.  It is used like::
@@ -221,7 +221,6 @@ an example of processing the results of a query in Python::
     result = select(imps.date, h_sum(imps.cpm_mills), where=imps)
     for (date, total), _ in result_iterator(result):
         print date, total
-
 
 .. seealso::
 
