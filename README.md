@@ -9,7 +9,6 @@ Features
 * distributed insert - Hustle is designed for petabyte scale datasets in a distributed environment with massive write loads
 * compressed - bitmap indexes, lz4, and prefix trie compression
 * relational - join gigantic data sets
-* relational - join gigantic data sets
 * partitioned - smart shards
 * embarrassingly distributed ([based on Disco](http://discoproject.org/))
 * embarrassingly fast ([uses LMDB](http://symas.com/mdb/))
