@@ -54,6 +54,8 @@ Documentation
 
 http://chango.github.io/hustle/
 
+[Hustle Mailing List](http://groups.google.com/group/hustle-users)
+
 
 Credits
 =======
