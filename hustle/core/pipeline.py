@@ -142,16 +142,21 @@ class SelectPipe(Job):
         ('hustle.core.marble', hustle.core.marble.__file__)]
 
     def get_result_schema(self, project):
+        import random
         from hustle import Table
+
+        if self.output_table:
+            return self.output_table
         fields = []
         for col in project:
             col = col.column
             if col.name not in fields:
                 fields.append(col.schema_string())
-        # print "GEEWHIZ: %s %s %s" % (indicies, fields, blobs)
         name = '-'.join([w._name for w in self.wheres])[:64]
-        return Table(name="sub-%s" % name,
-                     fields=fields)
+        # append a 3-digit random suffix to avoid name collision
+        self.output_table = Table(name="sub-%s-%03d" % (name, random.randint(0, 999)),
+                                  fields=fields)
+        return self.output_table
 
     def _get_table(self, obj):
         """If obj is a table return its name otherwise figure out what it is and return the tablename"""
@@ -203,10 +208,10 @@ class SelectPipe(Job):
         super(SelectPipe, self).__init__(master=master, worker=Worker())
         self.wheres = wheres
         self.order_by = self._resolve(order_by, project)
-        # print "whohah: %s" % repr(self.order_by)
         partition = partition or _NPART
         binaries = [i for i, c in enumerate(project) if isinstance(c, (Column, Aggregation)) and c.is_binary]
-        # print "BINS: %s" % repr(binaries)
+        # if nest is true, use output_schema to store the output table
+        self.output_table = None
 
         # build the pipeline
         select_hash_cols = ()
