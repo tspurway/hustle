@@ -614,28 +614,41 @@ def _get_tags(table_or_expr, ddfs):
 
 def delete(table_or_expr, **kwargs):
     """
-    Delete all data and partitions for a given table, keep the table definition.
+    Delete data and partitions for a given table, keep the table definition.
+
+    :type table_or_expr: :class:`Table <hustle.Table>` | :class:`Expr <hustle.core.marble.Expr>`
+    :param table_or_expr: A table object or an expression with only a partition column
 
     :type kwargs: dict
     :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
+
+    .. warning::
+        Given a table object, all partitions will be deleted. Use a Hustle expression to delete
+        a specific range of partitions, e.g. 'impression.date < 2014-01-01'.
     """
     from hustle.core.settings import Settings
     settings = Settings(**kwargs)
     ddfs = settings["ddfs"]
 
-    if isinstance(table_or_expr, Expr) and not table_or_expr.is_partition:
-        raise ValueError("Non-partition column is not allowed.")
+    if not isinstance(table_or_expr, (Expr, Table)):
+        raise ValueError("The first argument must be a table or an exprssion.")
 
-    tags = _get_tags(table_or_expr)
+    if isinstance(table_or_expr, Expr) and not table_or_expr.is_partition:
+        raise ValueError("Column in the expression must be a partition column.")
+
+    tags = _get_tags(table_or_expr, ddfs)
     if not tags:
-        raise KeyError("Table not found.")
+        raise KeyError("No data or partitions found.")
     for tag in tags:
         ddfs.delete(tag)
 
 
 def drop(table, **kwargs):
     """
-    Drop all data, partitions, and table definition for a given table
+    Drop all data, partitions, and table definition for a given table.
+
+    :type table_or_expr: :class:`Table <hustle.Table>`
+    :param table_or_expr: A table object
 
     :type kwargs: dict
     :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
@@ -644,8 +657,8 @@ def drop(table, **kwargs):
     settings = Settings(**kwargs)
     ddfs = settings["ddfs"]
 
-    if isinstance(table, Table):
-        raise ValueError("Table is only allowed here.")
+    if not isinstance(table, Table):
+        raise ValueError("Only table is allowed here.")
 
     delete(table, **kwargs)
     ddfs.delete(Table.base_tag(table._name))
