@@ -380,7 +380,7 @@ def select(*project, **kwargs):
         cols = [c.name for c in project]
         _print_separator(80)
         _print_line(cols, width=80, cols=len(cols),
-                   alignments=[_ALG_RIGHT if c.is_numeric else _ALG_LEFT for c in project])
+                    alignments=[_ALG_RIGHT if c.is_numeric else _ALG_LEFT for c in project])
         _print_separator(80)
         dump(blobs, 80)
         return
