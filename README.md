@@ -22,7 +22,7 @@ Example Query
 
 ```
 select(impressions.ad_id, impressions.date, h_sum(pix.amount), h_count(),
-       where=((impressions.date < '2014-01-13') & (impressions.ad_id == 30010), 
+       where=((impressions.date < '2014-01-13') & (impressions.ad_id == 30010),
                pix.date < '2014-01-13'),
        join=(impressions.site_id, pix.site_id),
        order_by=impressions.date)
