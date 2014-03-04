@@ -174,7 +174,7 @@ if __name__ == '__main__':
 
     # modules we want in our imported namespace
     from hustle import Table, h_min, h_avg, h_max, h_sum, h_count, select, \
-        dump, insert, star, tables, get_tables, delete, drop, schema, \
+        dump, edump, insert, star, tables, get_tables, delete, drop, schema, \
         partitions
     from hustle.core.settings import Settings, overrides
 
@@ -195,6 +195,7 @@ if __name__ == '__main__':
         "drop": drop,
         "delete": delete,
         "dump": dump,
+        "edump": edump,
         "tables": tables,
         "schema": schema,
         "partitions": partitions,
@@ -206,7 +207,9 @@ if __name__ == '__main__':
     def commands():
         print """
 Type `help(<command>)` for more help:
-  select()    - selects rows and columns from a Table
+  select()    - select rows and columns from a Table
+  dump()      - dump the results of a non-nested select query
+  edump()     - dump the resutls of a nested select query
   ---
   Table.create() - create a new Table
   insert()    - insert data into a Table
@@ -214,9 +217,9 @@ Type `help(<command>)` for more help:
   delete()    - delete data based on partition/table
   drop()      - delete all data including table definition
   ---
-  tables()    - prints currently available Hustle Tables
-  schema()    - prints the schema for a given table
-  partitions()- prints all active partitions for a given table
+  tables()    - print currently available Hustle Tables
+  schema()    - print the schema for a given table
+  partitions()- print all active partitions for a given table
 """
 
     imported_objects['commands'] = commands
