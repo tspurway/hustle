@@ -6,7 +6,7 @@ Features
 --------
 
 * column oriented - super fast queries
-* distributed insert - Hustle is designed for petabyte scale datasets in a distributed environment with massive write loads
+* distributed insert - designed for petabyte scale distributed datasets with massive write loads
 * compressed - bitmap indexes, lz4, and prefix trie compression
 * relational - join gigantic data sets
 * partitioned - smart shards
