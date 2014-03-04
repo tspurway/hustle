@@ -3,9 +3,9 @@
 Installing Hustle
 =================
 
-Hustle is hosted on `GitHub <https://github.com/changoinc/hustle>`_ and should be cloned from that repo::
+Hustle is hosted on `GitHub <https://github.com/chango/hustle>`_ and should be cloned from that repo::
 
-    git clone https://github.com/chango/hustle.git
+    git clone git@github.com:chango/hustle.git
 
 Dependencies
 ------------
