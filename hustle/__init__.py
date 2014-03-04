@@ -270,14 +270,23 @@ def select(*project, **kwargs):
 
         Using multiple columns is typically reserved for when you use a *join clause*
 
-    :type join: sequence of exactly length 2 of :class:`Column <hustle.core.marble.Column>`
+    :type join: string | sequence of exactly length 2 of :class:`Column <hustle.core.marble.Column>`
     :param join: specified the columns to perform a relational join operation on for the query
+
+        The join columns can be specified either as a list of 2 columns, or a list of 2 strings. In particular, if
+        two columns have the same names, a single string is valid as well.
 
         Here's an example of a Hustle join::
 
             select(imps.ad_id, imps.site_id, h_sum(pix.amount), h_count(),
                    where=(imps.date < '2014-01-13', pix.date < '2014-01-13'),
                    join=(imps.site_id, pix.site_id))
+
+        or equivalently,
+
+            select(imps.ad_id, imps.site_id, h_sum(pix.amount), h_count(),
+                   where=(imps.date < '2014-01-13', pix.date < '2014-01-13'),
+                   join='site_id')
 
         which joins the *imps* and *pix* tables on their common *site_id* column, then returns the sum of the
         *pix.amount* columns and a count, grouped by the *ad_id* and the *site_id*.  The equivalent query in SQL
@@ -347,7 +356,11 @@ def select(*project, **kwargs):
     if partition < 0:
         partition = 0
     nest = settings.get('nest', False)
+
     try:
+        # if join is a string, extract the actual join columns.
+        # do it here to make the query checker happy.
+        join = _resolve_join(wheres, join)
         check_query(project, join, order_by, limit, wheres)
     except ValueError as e:
         print "  Invalid query:\n    %s" % e
@@ -749,3 +762,32 @@ def _get_blobs(table_or_expr, ddfs):
             replicas = list(ddfs.blobs(tag))
             blobs.extend(replicas)
         return blobs
+
+
+def _resolve_join(wheres, joins):
+    if not joins:
+        return joins
+    elif isinstance(joins, (basestring, unicode)):
+        # A single string indicates two columns with the same name
+        joins = [joins, joins]
+
+    if len(wheres) != 2 and len(joins) != 2:
+        raise ValueError("Must have exact two items in the where/join clause.")
+
+    join_cols = []
+    for join, where in zip(joins, wheres):
+        if isinstance(join, Column):
+            join_cols.append(join)
+            continue
+        if isinstance(where, Marble):
+            table = where
+        elif isinstance(where, Expr):
+            table = where.table
+        else:
+            raise ValueError("Invalid item in the where clause, expect a table or an expression.")
+        try:
+            col = table._columns[join]
+            join_cols.append(col)
+        except KeyError:
+            raise ValueError("Table %s doesn't have column %s." % (table._name, join))
+    return join_cols
