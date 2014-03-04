@@ -487,7 +487,7 @@ def star(table):
 
 def dump(result_urls, width=80):
     """
-    Dump the results of a query.
+    Dump the results of a non-nested query.
 
     :type result_urls: sequence of strings
     :param result_urls: result of an (unnested) query
@@ -508,6 +508,20 @@ def dump(result_urls, width=80):
                     alignments.append(_ALG_LEFT)
 
         _print_line(columns, width=width, cols=len(alignments), alignments=alignments)
+
+
+def edump(table):
+    """
+    Dump the results of a nested query.
+
+    :type table: a :class:`Table <hustle.Table>` object
+    :param table: it must be a result table from a nested select query
+    """
+    if not isinstance(table, Table):
+        raise ValueError("First argument must be a table.")
+    if not table._blobs:
+        raise Exception("Can not dump a empty table.")
+    return select(*star(table), where=table, dump=True)
 
 
 def get_tables(**kwargs):
