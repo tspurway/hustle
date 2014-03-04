@@ -25,7 +25,7 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="top" title="Hustle 0.1 documentation" href="../index.html" />
     <link rel="next" title="hustle.core.marble – The Hustle Database Core" href="core.html" />
-    <link rel="prev" title="Inserting Data To Hustle" href="../howto/insert.html" />
+    <link rel="prev" title="Deleting Data in Hustle" href="../howto/delete.html" />
  
 <script type="text/javascript">
   var _gaq = _gaq || [];
@@ -48,7 +48,7 @@
           <a href="core.html" title="hustle.core.marble – The Hustle Database Core"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="../howto/insert.html" title="Inserting Data To Hustle"
+          <a href="../howto/delete.html" title="Deleting Data in Hustle"
              accesskey="P">previous</a> |</li>
         <li><a href="../index.html">Hustle 0.1 documentation</a> &raquo;</li> 
       </ul>
@@ -59,8 +59,8 @@
               <img class="logo" src="../_static/hustle.png" alt="Logo"/>
             </a></p>
   <h4>Previous topic</h4>
-  <p class="topless"><a href="../howto/insert.html"
-                        title="previous chapter">Inserting Data To Hustle</a></p>
+  <p class="topless"><a href="../howto/delete.html"
+                        title="previous chapter">Deleting Data in Hustle</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="core.html"
                         title="next chapter"><tt class="docutils literal"><span class="pre">hustle.core.marble</span></tt> &#8211; The Hustle Database Core</a></p>
@@ -446,7 +446,7 @@ This is used in <a class="reference internal" href="#hustle.select" title="hustl
 <dl class="function">
 <dt id="hustle.dump">
 <tt class="descclassname">hustle.</tt><tt class="descname">dump</tt><big>(</big><em>result_urls</em>, <em>width=80</em><big>)</big><a class="headerlink" href="#hustle.dump" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dump the results of a query.</p>
+<dd><p>Dump the results of a non-nested query.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -456,6 +456,20 @@ This is used in <a class="reference internal" href="#hustle.select" title="hustl
 <li><strong>width</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; the number of columns to constrain output to</li>
 </ul>
 </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.edump">
+<tt class="descclassname">hustle.</tt><tt class="descname">edump</tt><big>(</big><em>table</em><big>)</big><a class="headerlink" href="#hustle.edump" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the results of a nested query.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>table</strong> (a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> object) &#8211; it must be a result table from a nested select query</td>
 </tr>
 </tbody>
 </table>
@@ -518,6 +532,47 @@ for DDFS tags that have a <em>hustle:</em> prefix.</p>
 </table>
 </dd></dl>
 
+<dl class="function">
+<dt id="hustle.delete">
+<tt class="descclassname">hustle.</tt><tt class="descname">delete</tt><big>(</big><em>table_or_expr</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete data and partitions for a given table, keep the table definition.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>table_or_expr</strong> (<a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> | <a class="reference internal" href="core.html#hustle.core.marble.Expr" title="hustle.core.marble.Expr"><tt class="xref py py-class docutils literal"><span class="pre">Expr</span></tt></a>) &#8211; A table object or an expression with only a partition column</li>
+<li><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; custom settings for this query see <tt class="xref py py-mod docutils literal"><span class="pre">hustle.core.settings</span></tt></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Given a table object, all partitions will be deleted. Use a Hustle expression to delete
+a specific range of partitions, e.g. &#8216;impression.date &lt; 2014-01-01&#8217;.</p>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.drop">
+<tt class="descclassname">hustle.</tt><tt class="descname">drop</tt><big>(</big><em>table</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.drop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Drop all data, partitions, and table definition for a given table.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>table_or_expr</strong> (<a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a>) &#8211; A table object</li>
+<li><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; custom settings for this query see <tt class="xref py py-mod docutils literal"><span class="pre">hustle.core.settings</span></tt></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 
 
@@ -539,7 +594,7 @@ for DDFS tags that have a <em>hustle:</em> prefix.</p>
           <a href="core.html" title="hustle.core.marble – The Hustle Database Core"
              >next</a> |</li>
         <li class="right" >
-          <a href="../howto/insert.html" title="Inserting Data To Hustle"
+          <a href="../howto/delete.html" title="Deleting Data in Hustle"
              >previous</a> |</li>
         <li><a href="../index.html">Hustle 0.1 documentation</a> &raquo;</li> 
       </ul>
