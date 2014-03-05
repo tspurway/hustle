@@ -64,12 +64,15 @@ class Table(Marble):
         return cls(name=name, fields=fields, partition=partition)
 
     @classmethod
-    def create(cls, name, fields=(), partition=None, force=False, **kwargs):
+    def create(cls, name, columns=(), fields=(), partition=None, force=False, **kwargs):
         """
         Create a new :class:`Table <hustle.Table>`, replace existing table if force=True.
 
         :type  name: string
         :param name: the name of the table to create
+
+        :type  columns: sequence of string
+        :param columns: the list of *columns* and their extended index/type information
 
         :type  fields: sequence of string
         :param fields: the list of *columns* and their encoded index/type information
@@ -80,14 +83,25 @@ class Table(Marble):
         :type  force: bool
         :param force: overwrite the existing DDFS base tag with this schema
 
+        If *columns* is set, the *fields* parameter is ignored.
+
+        Example::
+
+            pixels = Table.create('pixels',
+                  columns=['index string token', 'index uint8 isActive', 'index site_id', 'uint32 amount',
+                           'index int32 account_id', 'index city', 'index trie16 state', 'index int16 metro',
+                           'string ip', 'lz4 keyword', 'index string date'],
+                  partition='date',
+                  force=True)
+
         .. warning::
             This function will not delete or update existing data in any way.  If you use :code:`force=True` to change
             the schema, make sure you either make the change backward compatible (by only adding new columns), or
             by deleting and reloading your data.
 
         .. seealso::
-            For a good example of creating a partitioned Hustle database see
-            :ref:`integrationtests`
+            For a good example of creating a partitioned Hustle database see :ref:`integrationtests`
+            For detailed schema design docs look no further than :ref:`schemadesign`
         """
         from hustle.core.settings import Settings
         settings = Settings(**kwargs)
@@ -100,9 +114,69 @@ class Table(Marble):
             else:
                 return None
 
+        if len(columns):
+            fields = cls.parse_column_specs(columns)
+
         ddfs.setattr(cls.base_tag(name), '_fields_', ujson.dumps(fields))
         ddfs.setattr(cls.base_tag(name), '_partition_', ujson.dumps(partition))
         return cls(name=name, fields=fields, partition=partition)
+
+    @classmethod
+    def parse_column_specs(cls, columns):
+        sizes = {'': '4', '8': '1', '16': '2', '32': '4', '64': '8'}
+        fields = []
+        for column in columns:
+            words = column.split(' ')
+            column_name = words[-1]
+            index = ''
+            typ = ''
+            size = ''
+            for word in words[:-1]:
+                if word == 'wide':
+                    if index:
+                        raise ValueError("Index already specified on: %s" % column)
+                    else:
+                        index = '='
+
+                elif word == 'index':
+                    if not len(index):
+                        index = '+'
+
+                elif len(typ):
+                    raise ValueError("Too many types specified on: %s" % column)
+
+                elif word.startswith('uint'):
+                    typ = '@'
+                    size = word[4:]
+
+                elif word.startswith('int'):
+                    typ = '#'
+                    size = word[3:]
+
+                elif word.startswith('trie'):
+                    typ = '%'
+                    size = word[4:]
+
+                elif word == 'lz4':
+                    typ = '*'
+
+                elif word == 'binary':
+                    typ = '&'
+
+                elif word == 'string':
+                    typ = '$'
+
+                else:
+                    raise ValueError("Illegal type modifier on: %s mod=%s" % (column, word))
+
+                if size not in sizes:
+                    raise ValueError("Illegal size on: %s size=%s" % (column, size))
+                elif len(size):
+                    size = sizes[size]
+
+            newtype = index + typ + size + column_name
+            fields.append(newtype)
+        return fields
 
     @classmethod
     def base_tag(cls, name, partition=None):

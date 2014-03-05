@@ -22,12 +22,14 @@ def ensure_tables():
     ddfs = settings['ddfs']
 
     imps = Table.create(IMPS,
-                        fields=['=$token', '%url', '+%site_id', '@cpm_millis', '+#ad_id', '+$date', '+@time'],
+                        columns=['wide index string token', 'trie url', 'index trie site_id', 'uint cpm_millis',
+                                 'index int ad_id', 'index string date', 'index uint time'],
                         partition='date',
                         force=True)
     pixels = Table.create(PIXELS,
-                          fields=['=$token', '+@1isActive', '+%site_id', '@amount', '+#account_id', '+%city',
-                                  '+%2state', '+#2metro', '$ip', '*keyword', '+$date'],
+                          columns=['wide index string token', 'index uint8 isActive', 'index trie site_id',
+                                   'uint amount', 'index int account_id', 'index trie city', 'index trie16 state',
+                                   'index int16 metro', 'string ip', 'lz4 keyword', 'index string date'],
                           partition='date',
                           force=True)
 
@@ -44,3 +46,4 @@ def ensure_tables():
 
 if __name__ == '__main__':
     ensure_tables()
+

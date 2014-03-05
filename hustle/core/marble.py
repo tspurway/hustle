@@ -586,8 +586,8 @@ class Column(object):
         """
         type_lookup = ['', 'int32', 'uint32', 'int16', 'uint16', 'int8',
                        'uint8', 'int64', 'uint64']
-        dict_lookup = ['', '', '(32)', '', '(16)', '', '']
-        string_lookup = ['dict', 'string', 'lz4', 'binary']
+        dict_lookup = ['', '', '32', '', '16', '', '']
+        string_lookup = ['trie', 'string', 'lz4', 'binary']
         rval = type_lookup[self.type_indicator]
         if not self.type_indicator:
             rval += string_lookup[self.compression_indicator]
