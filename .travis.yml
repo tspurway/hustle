@@ -1,0 +1,28 @@
+language: python
+notification:
+    email: false
+
+python:
+  - "2.7"
+
+virtualenv:
+  system_site_packages: true
+
+before_install:
+  - pushd .
+  - sudo apt-get update -qq
+  - curl -O http://www.cython.org/release/Cython-0.20.zip
+  - unzip Cython-0.20.zip
+  - cd Cython-0.20
+  - sudo pip install .
+  - sudo apt-get install -y curl erlang python-dev
+  - git clone https://github.com/discoproject/disco.git /tmp/disco
+  - cd /tmp/disco && git checkout 0.5 && sudo make install
+  - cd lib && pip install .
+  - popd
+
+install:
+  - "pip install mock"
+  - sudo bash ./bootstrap.sh
+
+script: nosetests test/
