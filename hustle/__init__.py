@@ -608,9 +608,9 @@ def schema(tab, index_only=False, **kwargs):
         _print_separator(100)
 
 
-def partitions(table, **kwargs):
+def get_partitions(table, **kwargs):
     """
-    Print the partitions for a given table.
+    Get partitions for a given table.
 
     :type kwargs: dict
     :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
@@ -631,7 +631,17 @@ def partitions(table, **kwargs):
         r = tag.rfind(':')
         if r != l:
             uniqs.add(tag)
-    _print_line(sorted(uniqs), width=132)
+    return sorted(uniqs)
+
+
+def partitions(table, **kwargs):
+    """
+    Print the partitions for a given table.
+
+    :type kwargs: dict
+    :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
+    """
+    _print_line(get_partitions(table), width=132)
 
 
 def _get_tags(table_or_expr, ddfs):
