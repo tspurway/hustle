@@ -59,6 +59,9 @@ class TestDropTable(unittest.TestCase):
         self.assertEqual(len(tags), 4)
         self.assertIn("hustle:__test_drop_imps", tags)
         drop(self.table)
+        with self.assertRaises(ValueError):
+            delete(self.table.site_id == 'foobar')
+            delete(self.tale.url)
 
     def test_drop(self):
         drop(self.table)
