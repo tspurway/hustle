@@ -120,6 +120,19 @@ class Table(Marble):
             rval += ':' + str(partition)
         return rval
 
+    def __iter__(self):
+        """
+        return a generator of all columns from a nested query
+
+        """
+        from disco.core import result_iterator
+
+        if not self._blobs:
+            return
+        blobs = select(*star(self), where=self, dump=False, nest=False)
+        for columns, _ in result_iterator(blobs):
+            yield columns
+
 
 def insert(table, phile=None, streams=None, preprocess=None,
            maxsize=100 * 1024 * 1024, tmpdir='/tmp', decoder=None,
