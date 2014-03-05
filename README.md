@@ -68,3 +68,5 @@ Special thanks to following open-source projects:
 * [liblmdb](http://symas.com/mdb/)
 * [lz4](https://code.google.com/p/lz4/)
 * [ultrajson](https://github.com/esnme/ultrajson)
+
+Build Status: [Travis-CI](http://travis-ci.org/chango/hustle) :: ![Travis-CI](https://secure.travis-ci.org/chango/hustle.png)
