@@ -52,11 +52,6 @@ http://chango.github.io/hustle/
 
 [Hustle Mailing List](http://groups.google.com/group/hustle-users)
 
-Release Notes
--------------
-
-Version 0.1 - initial release
-
 Credits
 -------
 
