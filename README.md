@@ -29,11 +29,6 @@ select(impressions.ad_id, impressions.date, h_sum(pix.amount), h_count(),
 ```
 
 
-BETA / EAP
-----------
-
-Please note that this software is beta/early access.  We intend that you thoroughly enjoy wrangling unimaginably large datasets with this software, but really have no idea how it will perform in your particular installation.  Be nice and drop us a GitHub 'issue' or just email me at tspurway@gmail.com for help.
-
 Installation
 ------------
 
@@ -51,15 +46,19 @@ sudo ./bootstrap.sh
 Please refer to the [Installation Guide](http://chango.github.io/hustle/start/install.html) for more details
 
 Documentation
-=============
+-------------
 
 http://chango.github.io/hustle/
 
 [Hustle Mailing List](http://groups.google.com/group/hustle-users)
 
+Release Notes
+-------------
+
+Version 0.1 - initial release
 
 Credits
-=======
+-------
 
 Special thanks to following open-source projects:
 
