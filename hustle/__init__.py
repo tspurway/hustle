@@ -369,7 +369,7 @@ def select(*project, **kwargs):
                    where=(imps.date < '2014-01-13', pix.date < '2014-01-13'),
                    join=(imps.site_id, pix.site_id))
 
-        or equivalently,
+        or equivalently::
 
             select(imps.ad_id, imps.site_id, h_sum(pix.amount), h_count(),
                    where=(imps.date < '2014-01-13', pix.date < '2014-01-13'),
