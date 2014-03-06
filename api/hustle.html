@@ -130,7 +130,7 @@ named DDFS tag and attributes.  To instantiate an existing Table (to use in a qu
 
 <dl class="classmethod">
 <dt id="hustle.Table.create">
-<em class="property">classmethod </em><tt class="descname">create</tt><big>(</big><em>name</em>, <em>fields=()</em>, <em>partition=None</em>, <em>force=False</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.Table.create" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><tt class="descname">create</tt><big>(</big><em>name</em>, <em>columns=()</em>, <em>fields=()</em>, <em>partition=None</em>, <em>force=False</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.Table.create" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a new <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a>, replace existing table if force=True.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -138,6 +138,7 @@ named DDFS tag and attributes.  To instantiate an existing Table (to use in a qu
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the name of the table to create</li>
+<li><strong>columns</strong> (<em>sequence of string</em>) &#8211; the list of <em>columns</em> and their extended index/type information</li>
 <li><strong>fields</strong> (<em>sequence of string</em>) &#8211; the list of <em>columns</em> and their encoded index/type information</li>
 <li><strong>partition</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; the name of the column to act as the partition for this table</li>
 <li><strong>force</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; overwrite the existing DDFS base tag with this schema</li>
@@ -146,6 +147,16 @@ named DDFS tag and attributes.  To instantiate an existing Table (to use in a qu
 </tr>
 </tbody>
 </table>
+<p>If <em>columns</em> is set, the <em>fields</em> parameter is ignored.</p>
+<p>Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">pixels</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="s">&#39;pixels&#39;</span><span class="p">,</span>
+      <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;index string token&#39;</span><span class="p">,</span> <span class="s">&#39;index uint8 isActive&#39;</span><span class="p">,</span> <span class="s">&#39;index site_id&#39;</span><span class="p">,</span> <span class="s">&#39;uint32 amount&#39;</span><span class="p">,</span>
+               <span class="s">&#39;index int32 account_id&#39;</span><span class="p">,</span> <span class="s">&#39;index city&#39;</span><span class="p">,</span> <span class="s">&#39;index trie16 state&#39;</span><span class="p">,</span> <span class="s">&#39;index int16 metro&#39;</span><span class="p">,</span>
+               <span class="s">&#39;string ip&#39;</span><span class="p">,</span> <span class="s">&#39;lz4 keyword&#39;</span><span class="p">,</span> <span class="s">&#39;index string date&#39;</span><span class="p">],</span>
+      <span class="n">partition</span><span class="o">=</span><span class="s">&#39;date&#39;</span><span class="p">,</span>
+      <span class="n">force</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+</div>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
 <p class="last">This function will not delete or update existing data in any way.  If you use <tt class="code docutils literal"><span class="pre">force=True</span></tt> to change
@@ -154,8 +165,8 @@ by deleting and reloading your data.</p>
 </div>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>
-<p class="last">For a good example of creating a partitioned Hustle database see
-<a class="reference internal" href="../howto/integration_tests.html#integrationtests"><em>Hustle Integration Test Suite</em></a></p>
+<p class="last">For a good example of creating a partitioned Hustle database see <a class="reference internal" href="../howto/integration_tests.html#integrationtests"><em>Hustle Integration Test Suite</em></a>
+For detailed schema design docs look no further than <a class="reference internal" href="../howto/schema.html#schemadesign"><em>Hustle Schema Design Guide</em></a></p>
 </div>
 </dd></dl>
 
@@ -289,13 +300,23 @@ This query will simply return all of the <em>ad_id</em> values in <em>imps</em> 
 by all of the <em>amount</em> values in the <em>pix</em> table.</p>
 <p>Using multiple columns is typically reserved for when you use a <em>join clause</em></p>
 </li>
-<li><strong>join</strong> (sequence of exactly length 2 of <a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a>) &#8211; <p>specified the columns to perform a relational join operation on for the query</p>
+<li><strong>join</strong> (string | sequence of exactly length 2 of <a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a>) &#8211; <p>specified the columns to perform a relational join operation on for the query</p>
+<p>The join columns can be specified either as a list of 2 columns, or a list of 2 strings. In particular, if
+two columns have the same names, a single string is valid as well.</p>
 <p>Here&#8217;s an example of a Hustle join:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span> <span class="n">h_sum</span><span class="p">(</span><span class="n">pix</span><span class="o">.</span><span class="n">amount</span><span class="p">),</span> <span class="n">h_count</span><span class="p">(),</span>
        <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">,</span> <span class="n">pix</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">),</span>
        <span class="n">join</span><span class="o">=</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span> <span class="n">pix</span><span class="o">.</span><span class="n">site_id</span><span class="p">))</span>
 </pre></div>
 </div>
+<p>or equivalently,</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>select(imps.ad_id, imps.site_id, h_sum(pix.amount), h_count(),</dt>
+<dd>where=(imps.date &lt; &#8216;2014-01-13&#8217;, pix.date &lt; &#8216;2014-01-13&#8217;),
+join=&#8217;site_id&#8217;)</dd>
+</dl>
+</div></blockquote>
 <p>which joins the <em>imps</em> and <em>pix</em> tables on their common <em>site_id</em> column, then returns the sum of the
 <em>pix.amount</em> columns and a count, grouped by the <em>ad_id</em> and the <em>site_id</em>.  The equivalent query in SQL
 is:</p>
@@ -508,6 +529,20 @@ for DDFS tags that have a <em>hustle:</em> prefix.</p>
 <dt id="hustle.schema">
 <tt class="descclassname">hustle.</tt><tt class="descname">schema</tt><big>(</big><em>tab</em>, <em>index_only=False</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.schema" title="Permalink to this definition">¶</a></dt>
 <dd><p>Print the schema for a given table</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>kwargs</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; custom settings for this query see <tt class="xref py py-mod docutils literal"><span class="pre">hustle.core.settings</span></tt></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="hustle.get_partitions">
+<tt class="descclassname">hustle.</tt><tt class="descname">get_partitions</tt><big>(</big><em>table</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.get_partitions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get partitions for a given table.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />

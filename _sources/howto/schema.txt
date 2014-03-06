@@ -3,30 +3,39 @@
 Hustle Schema Design Guide
 ==========================
 
-Fields
-------
-The fields of a Table are its columns.  Each field has a type, an optional width and an optional index indicator
-as detailed in the following table:
+Columns
+-------
+    The syntax for the *columns*  is a sequence of strings, where each string specifies a
+    column using the following syntax::
 
-======  ============    ====================================
-Prefix  Type            Notes
-======  ============    ====================================
-``+``       index           create a normal index on this column
-=       index           create a wide index on this column
-@N      unsigned int    ``N = 1 | 2 | *4 | 8``
-#N      signed int      ``N = 1 | 2 | *4 | 8``
-$       string          uncompressed string data
-%N      string          trie compressed N = 2 | 4
-``*``   string          lz4 compressed
-``&``   binary          uncompressed blob data
-======  ============    ====================================
+        [[wide] index][string | uint[8|16|32|64] | int[8|16|32|64] | trie[16|32] | lz4 | binary] column-name
 
-fields are specified using the following convention:  *[+|=][type[width]]name*, for example::
+    ========        ==========      ========================================
+    Modifier        Sizes           Description
+    ========        ==========      ========================================
+    wide                            Use LRU cache when inserting this index
+    index                           Create index for this column
+    string                          String Type
+    uint            8 16 32 64      Unsigned Integer Type
+    int             8 16 32 64      Signed Integer Type
+    trie            16 32           Prefix Trie Compressed String type
+    lz4                             LZ4 Compressed String type
+    binary                          Unencoded, uncompressed string type
+    ========        ==========      ========================================
 
-    fields=["+$name", "+%2department", "@2salary", "*bio"]
 
-creates an indexed string column called *name*, a 16 bit compressed Trie column called *department*,
-a 16 bit unsigned int column called *salary*, and an lz4 compressed string called *bio*.
+    If modifiers are omitted, the **DEFAULT** type is :code:`trie32` (un-indexed)
+
+    If sizes are omitted for :code:`uint int trie`, the **DEFAULT** is 32 bits
+
+    Example::
+
+        pixels = Table.create('pixels',
+              columns=['wide index string token', 'index uint8 isActive', 'index site_id', 'uint32 amount',
+                       'index int32 account_id', 'index city', 'index trie16 state', 'index int16 metro',
+                       'string ip', 'lz4 keyword', 'index string date'],
+              partition='date',
+              force=True)
 
 Accessing Fields
 ----------------
