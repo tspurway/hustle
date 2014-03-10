@@ -508,14 +508,17 @@ class Column(object):
         date_column = imps.date
 
         # create a Column Expression
-        date_column_expression = imps.site_id == 'google.com'
+        site_column_expression = imps.site_id == 'google.com'
+
+        # create another Column Expression
+        date_column_expression = date_column > '2014-03-07'
 
         # query
-        select(date_column, where=date_column_expression)
+        select(date_column, where=date_column_expression & )
 
     """
     def __init__(self, name, table, index_indicator=0, partition=False, type_indicator=0,
-                 compression_indicator=0, rtrie_indicator=mdb.MDB_UINT_32):
+                 compression_indicator=0, rtrie_indicator=mdb.MDB_UINT_32, alias=None):
         self.name = name
         self.fullname = "%s.%s" % (table._name, name) if hasattr(table, '_name') else name
         self.table = table
@@ -524,6 +527,7 @@ class Column(object):
         self.index_indicator = index_indicator
         self.compression_indicator = compression_indicator
         self.rtrie_indicator = rtrie_indicator
+        self.alias = alias
         self.is_trie = type_indicator == mdb.MDB_STR and compression_indicator == 0
         self.is_lz4 = type_indicator == mdb.MDB_STR and compression_indicator == 2
         self.is_binary = type_indicator == mdb.MDB_STR and compression_indicator == 3
@@ -553,12 +557,26 @@ class Column(object):
             self.fetcher = _fetch_me
             self.default_value = ''
 
+    def named(self, alias):
+        """
+        return a new column that has an alias that will be used in the resulting schema
+        :type alias: str
+        :param alias: the name of the alias
+        """
+        newcol = Column(self.name, self.table, self.index_indicator, self.partition, self.type_indicator,
+                        self.compression_indicator, self.rtrie_indicator, alias)
+        return newcol
+
     @property
     def column(self):
         return self
 
     def schema_string(self):
-        rval = self.name
+        """
+        return the schema for this column.  This is used to build the schema of a query result, so we need to
+        use the alias.
+        """
+        rval = self.alias or self.name
         indexes = ['', '+', '=']
         prefix = indexes[self.index_indicator]
         lookup = ['', '#4', '@4', '#2', '@2', '#1', '@1', '#8', '@8']
@@ -598,7 +616,7 @@ class Column(object):
             inds.append("IX")
         if self.partition:
             inds.append("PT")
-        return "%s (%s)" % (self.name, ','.join(inds))
+        return "%s (%s)" % (self.alias or self.name, ','.join(inds))
 
     def get_effective_inttype(self):
         if self.type_indicator == mdb.MDB_STR and self.compression_indicator == 0:
@@ -692,7 +710,8 @@ class Aggregation(object):
             Some of Hustle's aggregation functions
 
     """
-    def __init__(self, name=None, column=None, f=None, g=lambda a: a, h=lambda a: a, default=lambda: None):
+    def __init__(self, name, column, f=None, g=lambda a: a, h=lambda a: a, default=lambda: None):
+
         self.column = column
         self.f = f
         self.g = g
@@ -707,6 +726,9 @@ class Aggregation(object):
     def table(self):
         return self.column.table
 
+    def named(self, alias):
+        newag = Aggregation(self.name, self.column.named(alias), self.f, self.g, self.h, self.default)
+        return newag
 
 class Expr(object):
     """
