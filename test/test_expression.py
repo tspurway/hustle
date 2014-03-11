@@ -3,6 +3,10 @@ from hustle.core.marble import Column
 from pyebset import BitSet
 
 
+ZERO_BS = BitSet()
+ZERO_BS.set(0)
+
+
 class Tablet(object):
     def __init__(self, l=()):
         self.l = BitSet()
@@ -54,6 +58,20 @@ class Tablet(object):
                 b.set(i)
         return b
 
+    def bit_eq_ex(self, col, keys):
+        rval = BitSet()
+        for i in self.l:
+            if i in keys:
+                rval.set(i)
+        return rval
+
+    def bit_ne_ex(self, col, keys):
+        rval = BitSet()
+        for i in self.l:
+            if i not in keys:
+                rval.set(i)
+        return rval
+
 
 class TestExpr(unittest.TestCase):
     def test_expr_without_partitions(self):
@@ -102,6 +120,30 @@ class TestExpr(unittest.TestCase):
         ex = ~((cee < 7) | (cee == 19))
         x = sorted(ex(cee_vals))
         self.assertEqual(x, [7, 9, 12, 13, 14, 27, 38])
+
+        # test in
+        ex = (cee << [1, 5])
+        self.assertEqual(list(ex(cee_vals)), [1, 5])
+        ex = (cee << [1, 3, 5, 7])
+        self.assertEqual(list(ex(cee_vals)), [1, 5, 7])
+        ex = (cee << [1, 5, 7]) & (cee > 4)
+        self.assertEqual(list(ex(cee_vals)), [5, 7])
+
+        # test not in
+        ex = (cee >> [1, 5, 7, 9])
+        self.assertEqual(list(ex(cee_vals)), [12, 13, 14, 19, 27, 38])
+        ex = (cee >> [1, 3, 5, 7, 9, 12, 15, 19])
+        self.assertEqual(list(ex(cee_vals)), [13, 14, 27, 38])
+
+        # test in & not in
+        ex = (cee << [1, 5, 7]) & (cee >> [3, 7])
+        self.assertEqual(list(ex(cee_vals)), [1, 5])
+        ex = (cee << [1, 5, 7]) & (cee >> [3, 7]) & (cee >> [1, 5])
+        self.assertEqual(list(ex(cee_vals)), [])
+        ex = (cee << [1, 5, 7]) & (cee >> [3, 7]) | (cee >> [1, 5])
+        self.assertEqual(list(ex(cee_vals)), [1, 5, 7, 9, 12, 13, 14, 19, 27, 38])
+        ex = (cee << [1, 5, 7]) & (cee >> [3, 7]) | (cee == 9)
+        self.assertEqual(list(ex(cee_vals)), [1, 5, 9])
 
     def test_expr_with_partitions(self):
         pee = Column('pee', None, type_indicator=1, index_indicator=1, partition=True)

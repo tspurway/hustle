@@ -454,6 +454,43 @@ class MarbleStream(object):
                 rval.lnot_inplace()
         return rval
 
+    def bit_eq_ex(self, ix, keys):
+        from collections import Iterable
+        _, idb, _, column = self.dbs[ix]
+        rval = BitSet()
+        for key in keys:
+            if isinstance(key, Iterable) and not isinstance(key, (basestring, unicode)):
+                # in case the key is a composite object, just grab the first one
+                key = key[0]
+            zkey = self._vid_for_value(column, key)
+            if zkey is not None:
+                val = idb.get(self.txn, zkey)
+                if val is not None:
+                    bitset = BitSet()
+                    bitset.loads(val)
+                    rval |= bitset
+        return rval
+
+    def bit_ne_ex(self, ix, keys):
+        from collections import Iterable
+        _, idb, _, column = self.dbs[ix]
+        rval = BitSet()
+        for key in keys:
+            if isinstance(key, Iterable) and not isinstance(key, (basestring, unicode)):
+                # in case the key is a composite object, just grab the first one
+                key = key[0]
+            zkey = self._vid_for_value(column, key)
+            if zkey is not None:
+                val = idb.get(self.txn, zkey)
+                if val is not None:
+                    bitset = BitSet()
+                    bitset.loads(val)
+                    rval |= bitset
+        rval |= ZERO_BS
+        rval.set(self.number_rows)
+        rval.lnot_inplace()
+        return rval
+
     def _bit_op(self, val, op):
         rval = BitSet()
         it = op(self.txn, val)
@@ -636,6 +673,12 @@ class Column(object):
                     part_expr,
                     self.partition)
 
+    def __lshift__(self, other):
+        return self._get_expr(in_in, part_in, other=other)
+
+    def __rshift__(self, other):
+        return self._get_expr(in_not_in, part_not_in, other=other)
+
     def __eq__(self, other):
         return self._get_expr(in_eq, part_eq, other=other)
 
@@ -729,6 +772,7 @@ class Aggregation(object):
     def named(self, alias):
         newag = Aggregation(self.name, self.column.named(alias), self.f, self.g, self.h, self.default)
         return newag
+
 
 class Expr(object):
     """
@@ -998,6 +1042,50 @@ def in_conditional(tablet, invert, op, l_expr, r_expr):
         return l_expr(tablet, invert) | r_expr(tablet, invert)
 
 
+def in_in(tablet, invert, col, other):
+    from collections import Iterable
+    if isinstance(other, Iterable) and not isinstance(other, (basestring, unicode)):
+        other = set(other)
+        if invert:
+            return tablet.bit_ne_ex(col, other)
+        return tablet.bit_eq_ex(col, other)
+    else:
+        raise ValueError("Item in contains must be an iterable.")
+
+
+def part_in(tags, invert, other):
+    from collections import Iterable
+    if isinstance(other, Iterable) and not isinstance(other, (basestring, unicode)):
+        other = set(other)
+        if invert:
+            return part_not_in(tags, False, other)
+        return (t for t in tags if t in other)
+    else:
+        raise ValueError("Item in contains must be an iterable.")
+
+
+def in_not_in(tablet, invert, col, other):
+    from collections import Iterable
+    if isinstance(other, Iterable) and not isinstance(other, (basestring, unicode)):
+        other = set(other)
+        if invert:
+            return tablet.bit_eq_ex(col, other)
+        return tablet.bit_ne_ex(col, other)
+    else:
+        raise ValueError("Item in contains must be an iterable.")
+
+
+def part_not_in(tags, invert, other):
+    from collections import Iterable
+    if isinstance(other, Iterable) and not isinstance(other, (basestring, unicode)):
+        other = set(other)
+        if invert:
+            return part_in(tags, False, other)
+        return (t for t in tags if t not in other)
+    else:
+        raise ValueError("Item in contains must be an iterable.")
+
+
 def in_eq(tablet, invert, col, other):
     if invert:
         return tablet.bit_ne(col, other)
@@ -1150,6 +1238,7 @@ def mdb_fetch(key, txn=None, ixdb=None):
 def mdb_evict(key, bitset, txn=None, ixdb=None):
     ixdb.put(txn, key, bitset.dumps())
 
+
 class DUMMY(object):
     tobj = None
 
@@ -1200,5 +1289,3 @@ def _insert_row(data, txn, dbs, row_id, vid_trie, vid16_trie):
             bitmap_dict[val].set(row_id)
     except Exception as e:
         print "Can't INSERT: %s %s: %s" % (repr(data), column, e)
-
-
