@@ -858,10 +858,17 @@ class Expr(object):
             raise Exception("Error in partitions (or)")
 
     def __invert__(self):
-        return Expr(self.table,
-                    partial(in_not, expr=self.f),
-                    partial(in_not, expr=self.part_f),
-                    self.is_partition)
+        # invert partition function only if it's not part_all
+        if self.has_partition:
+            return Expr(self.table,
+                        partial(in_not, expr=self.f),
+                        partial(in_not, expr=self.part_f),
+                        self.is_partition)
+        else:
+            return Expr(self.table,
+                        partial(in_not, expr=self.f),
+                        self.part_f,
+                        self.is_partition)
 
     def __call__(self, tablet, invert=False):
         return self.f(tablet, invert)
