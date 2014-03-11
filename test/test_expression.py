@@ -159,7 +159,42 @@ class TestExpr(unittest.TestCase):
         p_and_p = (pee > 5) & (cee <= 14)
         self.assertEqual(list(p_and_p.partition(pee_tags)), [7, 9, 12, 13, 14, 19, 27, 38])
 
+        # test combined partition/index combinations
+        # p & ~c == p
+        p_and_p = (pee > 5) & ~(cee <= 14)
+        self.assertEqual(list(p_and_p.partition(pee_tags)), [7, 9, 12, 13, 14, 19, 27, 38])
+        p_and_p = (pee > 5) & ~~(cee <= 14)
+        self.assertEqual(list(p_and_p.partition(pee_tags)), [7, 9, 12, 13, 14, 19, 27, 38])
+
+        # p & ~c & ~c == p
+        p_and_p = (pee > 5) & ~(cee <= 14) & ~(cee >= 5)
+        self.assertEqual(list(p_and_p.partition(pee_tags)), [7, 9, 12, 13, 14, 19, 27, 38])
+        p_and_p = (cee > 5) & ~((pee > 5) & ~(cee <= 14))
+        self.assertEqual(list(p_and_p.partition(pee_tags)), [1, 5])
+        p_and_p = (cee > 5) & (~(pee > 5) & ~(cee <= 14))
+        self.assertEqual(list(p_and_p.partition(pee_tags)), [1, 5])
+        p_and_p = (cee > 5) & ~(~(pee > 5) & ~(cee <= 14))
+        self.assertEqual(list(p_and_p.partition(pee_tags)), [7, 9, 12, 13, 14, 19, 27, 38])
+        p_and_p = (cee > 5) & ~~((pee > 5) & ~(cee <= 14))
+        self.assertEqual(list(p_and_p.partition(pee_tags)), [7, 9, 12, 13, 14, 19, 27, 38])
+        p_and_p = (cee > 5) & ~((pee > 5) | ~(cee <= 14))
+        self.assertEqual(list(p_and_p.partition(pee_tags)), pee_tags)
+        p_and_p = (cee > 5) & ~~((pee > 5) | ~(cee <= 14))
+        self.assertEqual(list(p_and_p.partition(pee_tags)), pee_tags)
+
+        # p & ~c | ~c == all
+        p_and_p = (pee > 5) & ~(cee <= 14) | ~(cee >= 5)
+        self.assertEqual(list(p_and_p.partition(pee_tags)), pee_tags)
+
+        # ~c & ~c & p == p
+        p_and_p = ~(cee <= 14) & ~(cee >= 5) & (pee > 5)
+        self.assertEqual(list(p_and_p.partition(pee_tags)), [7, 9, 12, 13, 14, 19, 27, 38])
+
         # p | c == universe
+        p_and_p = (pee == 5) | (pee == 8) | (cee == 99)
+        x = list(p_and_p.partition(pee_tags))
+        self.assertEqual(x, pee_tags)
+
         p_and_p = (pee == 5) | (pee == 8) | (cee == 99)
         x = list(p_and_p.partition(pee_tags))
         self.assertEqual(x, pee_tags)
