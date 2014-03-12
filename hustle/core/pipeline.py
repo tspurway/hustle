@@ -148,8 +148,8 @@ class SelectPipe(Job):
         if self.output_table:
             return self.output_table
         fields = []
-        for col in project:
-            col = col.column
+        for col_spec in project:
+            col = col_spec.column
             if col.name not in fields:
                 fields.append(col.schema_string())
         name = '-'.join([w._name for w in self.wheres])[:64]

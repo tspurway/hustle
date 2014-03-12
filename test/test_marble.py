@@ -193,6 +193,38 @@ class TestMarble(unittest.TestCase):
         for i in bitset:
             self.assertTrue(i in bs)
 
+        # test "rating" index
+        # test for eq_ex and not_eq_ex
+        bitset = stream.bit_eq_ex("rating", [3, 4])
+        bs = BitSet()
+        bs.set(4)
+        bs.set(6)
+        for i in bitset:
+            self.assertTrue(i in bs)
+
+        bitset = stream.bit_eq_ex("rating", [5])
+        bs = BitSet()
+        for i in range(1, 4):
+            bs.set(i)
+        bs.set(5)
+        for i in bitset:
+            self.assertTrue(i in bs)
+
+        bitset = stream.bit_ne_ex("rating", [5])
+        bs = BitSet()
+        bs.set(4)
+        bs.set(6)
+        for i in bitset:
+            self.assertTrue(i in bs)
+
+        bitset = stream.bit_ne_ex("rating", [3, 4])
+        bs = BitSet()
+        for i in range(1, 4):
+            bs.set(i)
+        bs.set(5)
+        for i in bitset:
+            self.assertTrue(i in bs)
+
         # test for less_than and less_eq
         bitset = stream.bit_ge("rating", 3)
         bs = BitSet()

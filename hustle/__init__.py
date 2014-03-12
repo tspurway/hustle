@@ -347,6 +347,14 @@ def select(*project, **kwargs):
 
             select(imps.ad_id, imps.date, imps.cpm_millis, where='2014-01-27' == imps.date)
 
+        Where clause also supports *in* and *not in* statements by using special operators "<<" and ">>" respectively::
+
+            select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.ad_id << [1000, 1005])
+            select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.ad_id >> [1000, 1005])
+
+        Note that the right value "<<" and ">>" could be any type of iterable with each element must be
+        a valid single right value.
+
         In addition, multiple tables can be specified in the where clause like this::
 
             select(imps.ad_id, pix.amount, where=(imps.date < '2014-01-13', pix))

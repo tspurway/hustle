@@ -35,7 +35,7 @@ class TestJoin(unittest.TestCase):
                      join=(imps.site_id, pix.site_id),
                      order_by='amount')
         results = [(ad_id, amount) for (ad_id, amount), _ in result_iterator(res)]
-        self.assertTrue(len(results), len(join))
+        self.assertEqual(len(results), len(join))
 
         for jtup in join:
             self.assertIn(jtup, results)
@@ -69,10 +69,50 @@ class TestJoin(unittest.TestCase):
                      where=(imps.date < '2014-01-13', sub_pix.date < '2014-01-13'),
                      join=(imps.site_id, sub_pix.site_id))
         results = [(ad_id, amount) for (ad_id, amount), _ in result_iterator(res)]
-        self.assertTrue(len(results), len(join))
+        self.assertEqual(len(results), len(join))
 
         for jtup in join:
             self.assertIn(jtup, results)
+
+    def test_nested_self_join(self):
+        """
+        A self join is joining the table against itself.  This requires the use of aliases.
+        """
+        imps = Table.from_tag(IMPS)
+
+        early = [(a,c) for (a,c),_ in result_iterator(select(imps.ad_id, imps.cpm_millis,
+                                                 where=imps.date < '2014-01-20'))]
+        late = [(a,c) for (a,c),_ in result_iterator(select(imps.ad_id, imps.cpm_millis,
+                                                where=imps.date >= '2014-01-20'))]
+
+        join = {}
+        for eid, ecpm in early:
+            for lid, lcpm in late:
+                if eid == lid:
+                    if eid not in join:
+                        join[eid] = [0, 0, 0]
+                    join[eid][0] += ecpm
+                    join[eid][1] += lcpm
+                    join[eid][2] += 1
+
+        early = select(imps.ad_id, imps.cpm_millis, where=imps.date < '2014-01-20', nest=True)
+        late = select(imps.ad_id, imps.cpm_millis, where=imps.date >= '2014-01-20', nest=True)
+        jimmy = select(early.ad_id.named('adididid'),
+                       h_sum(early.cpm_millis).named('emillis'),
+                       h_sum(late.cpm_millis).named('lmillis'),
+                       h_count(),
+                       where=(early, late),
+                       join='ad_id')
+
+        james = [(a, e, l, c) for (a, e, l, c), _ in result_iterator(jimmy)]
+        self.assertEqual(len(join), len(james))
+
+        for (ad_id, emillis, lmillis, cnt) in james:
+            ecpm, lcpm, ocnt = join[ad_id]
+            self.assertEqual(emillis, ecpm)
+            self.assertEqual(lmillis, lcpm)
+            self.assertEqual(cnt, ocnt)
+
 
     def test_aggregate_join(self):
         imps = Table.from_tag(IMPS)
@@ -96,7 +136,7 @@ class TestJoin(unittest.TestCase):
                      where=(imps.date < '2014-01-13', pix.date < '2014-01-13'),
                      join=(imps.site_id, pix.site_id))
         results = [(ad_id, amount, count) for (ad_id, amount, count), _ in result_iterator(res)]
-        self.assertTrue(len(results), len(join))
+        self.assertEqual(len(results), len(join))
 
         for (ad_id, amount, count) in results:
             ramount, rcount = join[ad_id]
