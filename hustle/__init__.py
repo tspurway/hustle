@@ -17,6 +17,8 @@ __version__ = '0.1.1'
 
 import os
 import ujson
+from disco.core import Job, Disco
+from disco.error import CommError
 from hustle.core.marble import Aggregation, Marble, json_decoder, Column, Expr, check_query
 
 
@@ -292,6 +294,52 @@ def insert(table, phile=None, streams=None, preprocess=None,
     return table._name, lines
 
 
+def _create_job(*project, **kwargs):
+    from hustle import _get_blobs
+    from hustle.core.settings import Settings
+    from hustle.core.pipeline import SelectPipe
+    from hustle.core.util import ensure_list
+
+    settings = Settings(**kwargs)
+    wheres = ensure_list(settings.pop('where', ()))
+    order_by = ensure_list(settings.pop('order_by', ()))
+    join = settings.pop('join', ())
+    distinct = settings.pop('distinct', False)
+    desc = settings.pop('desc', False)
+    limit = settings.pop('limit', None)
+    ddfs = settings['ddfs']
+    partition = settings.get('partition', 0)
+    if partition < 0:
+        partition = 0
+    nest = settings.get('nest', False)
+
+    try:
+        # if join is a string, extract the actual join columns.
+        # do it here to make the query checker happy.
+        join = _resolve_join(wheres, join)
+        check_query(project, join, order_by, limit, wheres)
+    except ValueError as e:
+        print "  Invalid query:\n    %s" % e
+        return None
+
+    name = '-'.join([where._name for where in wheres])[:64]
+    job_blobs = set()
+    for where in wheres:
+        job_blobs.update(tuple(sorted(w)) for w in _get_blobs(where, ddfs))
+
+    job = SelectPipe(settings['server'],
+                     wheres=wheres,
+                     project=project,
+                     order_by=order_by,
+                     join=join,
+                     distinct=distinct,
+                     desc=desc,
+                     limit=limit,
+                     partition=partition,
+                     nest=nest)
+    return job, job_blobs, name
+
+
 def select(*project, **kwargs):
     """
     Perform a relational query, by selecting rows and columns from one or more tables.
@@ -433,50 +481,13 @@ def select(*project, **kwargs):
 
     """
 
-    from hustle import _get_blobs
     from hustle.core.settings import Settings
-    from hustle.core.pipeline import SelectPipe
-    from hustle.core.util import ensure_list
 
     settings = Settings(**kwargs)
-    wheres = ensure_list(settings.pop('where', ()))
-    order_by = ensure_list(settings.pop('order_by', ()))
-    join = settings.pop('join', ())
-    distinct = settings.pop('distinct', False)
-    desc = settings.pop('desc', False)
-    limit = settings.pop('limit', None)
-    ddfs = settings['ddfs']
     autodump = settings['dump']
-    partition = settings.get('partition', 0)
-    if partition < 0:
-        partition = 0
     nest = settings.get('nest', False)
 
-    try:
-        # if join is a string, extract the actual join columns.
-        # do it here to make the query checker happy.
-        join = _resolve_join(wheres, join)
-        check_query(project, join, order_by, limit, wheres)
-    except ValueError as e:
-        print "  Invalid query:\n    %s" % e
-        return None
-
-    name = '-'.join([where._name for where in wheres])[:64]
-    job_blobs = set()
-    for where in wheres:
-        job_blobs.update(tuple(sorted(w)) for w in _get_blobs(where, ddfs))
-
-    job = SelectPipe(settings['server'],
-                     wheres=wheres,
-                     project=project,
-                     order_by=order_by,
-                     join=join,
-                     distinct=distinct,
-                     desc=desc,
-                     limit=limit,
-                     partition=partition,
-                     nest=nest)
-
+    job, job_blobs, name = _create_job(*project, **kwargs)
     job.run(name='select_from_%s' % name, input=job_blobs, **settings)
     blobs = job.wait()
     if nest:
@@ -493,6 +504,24 @@ def select(*project, **kwargs):
         dump(blobs, 80)
         return
     return blobs
+
+
+def select_nb(*project, **kwargs):
+    """
+    The non-blocking version of select function.
+
+    All its arguments are the same as :func:`select() <hustle.select>`.
+    It returns a :class:`Future <hustle.Future>` object, which allows user to
+    check the query's status and fetch the results.
+    """
+
+    from hustle.core.settings import Settings
+
+    settings = Settings(**kwargs)
+    job, job_blobs, name = _create_job(*project, **kwargs)
+    job.run(name='select_from_%s' % name, input=job_blobs, **settings)
+
+    return Future(job.name, job, settings['server'], settings['nest'], *project)
 
 
 def h_sum(col):
@@ -896,3 +925,95 @@ def _resolve_join(wheres, joins):
         except KeyError:
             raise ValueError("Table %s doesn't have column %s." % (table._name, join))
     return join_cols
+
+
+class Future(object):
+    """
+    Return value of non-blocking function :func:`select_nb() <hustle.select_nb>`.
+
+    It has a series of functions to check query's status and fetch query's results.
+    """
+    def __init__(self, name, job, disco, nest, *project):
+        if not isinstance(job, Job):
+            raise ValueError("Invalid argument, expect a Disco job.")
+        if not isinstance(disco, Disco):
+            raise ValueError("Invalid argument, expect a Disco server.")
+        self.name = name
+        self._job = job
+        self._disco = disco
+        self._blobs = None
+        self._project = project
+        self._status = None
+        self._table = None
+        self._nest = nest
+
+    def status(self):
+        """
+        Return the status of the attached query.
+
+        The status of a query might be one of following strings:
+            'dead': query is dead
+            'active': query is still being executed
+            'ready': query is finished, all results are available
+            'unknown': status is unknown, e.g. connection to server is busy
+        """
+        if self._status == 'ready':
+            return self._status
+
+        try:
+            status, result = self._disco.results(self._job, 500)
+        except CommError:
+            # to deal with the long time jobs(e.g waiting for shuffling)
+            return 'unknown'
+        else:
+            if status == 'ready':
+                self._status = status
+                self._blobs = result
+            return status
+
+    def wait(self):
+        """
+        Block and wait the query to finish. If the query is already finished,
+        it returns the result at once.
+
+        The return value is the same as :func:`select() <hustle.select>`.
+        If query is nested, it returns a table. Otherwise, a list of urls.
+        """
+        if self.done:
+            if self._nest:
+                return self.table
+            else:
+                return self._blobs
+        else:
+            self._blobs = self._job.wait()
+            self._status = 'ready'
+            if self._nest:
+                return self.table
+            else:
+                return self._blobs
+
+    @property
+    def done(self):
+        """
+        A helper function that shows whether query is done or not
+
+        """
+        return self.status() == 'ready' and self._blobs is not None
+
+    @property
+    def table(self):
+        """
+        A helper function for the nested query to return its table result.
+
+        If query is not nested or query is not finished, an exception will be raised.
+        """
+        if not self.done:
+            raise Exception("Query isn't finished yet. Can not create table now.")
+        if not self._nest:
+            raise TypeError("Query is not a nested query. Did you forgot to specify 'nest = True'?")
+        if self._table is not None:
+            return self._table
+
+        self._table = self._job.get_result_schema(self._project)
+        self._table._blobs = self._blobs
+        return self._table

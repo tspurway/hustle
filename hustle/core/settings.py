@@ -1,5 +1,6 @@
 import os
 from disco.ddfs import DDFS
+from disco.core import Disco
 
 
 def guess_settings():
@@ -41,13 +42,13 @@ class Settings(dict):
         super(Settings, self).update(overrides)
         super(Settings, self).__init__(*args, **kwargs)
 
-
-        # set up ddfs
+        # set up ddfs and disco
         if not self['server'].startswith('disco://'):
             self['server'] = 'disco://' + self['server']
 
         if 'ddfs' not in self:
             self['ddfs'] = DDFS(self['server'])
+        self['server'] = Disco(self['server'])
 
         # set up worker
         if 'worker' not in self:
