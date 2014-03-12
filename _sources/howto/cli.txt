@@ -48,4 +48,3 @@ The CLI offers the following features over and above being a 'normal' Python REP
 * configurable command history
 * no *import* statements required to load Hustle functionality
 * auto-completion (with TAB key) of all Hustle functions, Tables, and Columns
-* configurable command history

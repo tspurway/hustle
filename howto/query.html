@@ -209,6 +209,12 @@ Consider the following queries:</p>
 isn&#8217;t a join, it is simply fetching all <em>dates</em> from <em>impressions</em> for <em>google.com</em> <strong>PLUS</strong> all <em>site_ids</em> from
 the <em>pixels</em> table.  The results are simply concatenated, and <em>None</em> values are used where the column doesn&#8217;t exist for
 that table.</p>
+<p>Where clause also supports <em>in</em> and <em>not in</em> statements by using special operators &#8220;&lt;&lt;&#8221; and &#8220;&gt;&gt;&#8221; respectively:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span> <span class="o">&lt;&lt;</span> <span class="p">[</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1005</span><span class="p">])</span>
+<span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span> <span class="o">&gt;&gt;</span> <span class="p">[</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1005</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Note that the right value of &#8220;&lt;&lt;&#8221; and &#8220;&gt;&gt;&#8221; could be any type of iterable with each element must be a valid single right value.</p>
 </div>
 <div class="section" id="partitions">
 <h2>Partitions<a class="headerlink" href="#partitions" title="Permalink to this headline">¶</a></h2>

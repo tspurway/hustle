@@ -129,7 +129,7 @@ a very efficient and compact way to store the index in an append-only database l
 
 <dl class="class">
 <dt id="hustle.core.marble.Column">
-<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Column</tt><big>(</big><em>name</em>, <em>table</em>, <em>index_indicator=0</em>, <em>partition=False</em>, <em>type_indicator=0</em>, <em>compression_indicator=0</em>, <em>rtrie_indicator=2</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Column" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Column</tt><big>(</big><em>name</em>, <em>table</em>, <em>index_indicator=0</em>, <em>partition=False</em>, <em>type_indicator=0</em>, <em>compression_indicator=0</em>, <em>rtrie_indicator=2</em>, <em>alias=None</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Column" title="Permalink to this definition">¶</a></dt>
 <dd><p>A <em>Column</em> is the named, typed field of a <a class="reference internal" href="#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">Marble</span></tt></a>.   <em>Columns</em> are typically
 created automatically by parsing the <em>fields</em> of a the <em>Marble</em> instantiation.</p>
 <p>The <em>Column</em> overrides Python&#8217;s relational operators <tt class="code docutils literal"><span class="pre">&gt;</span> <span class="pre">&lt;</span> <span class="pre">&lt;=</span> <span class="pre">&gt;=</span> <span class="pre">==</span></tt> which forms the basis for
@@ -137,19 +137,37 @@ the <a class="reference internal" href="../howto/query.html#queryguide"><em>Quer
 (right hand side) argument which should be the same type as the <em>Column</em>.  These <em>Column Expressions</em> are
 represented by the <a class="reference internal" href="#hustle.core.marble.Expr" title="hustle.core.marble.Expr"><tt class="xref py py-class docutils literal"><span class="pre">Expr</span></tt></a> class.</p>
 <p>Note that the <em>Marble</em> and <em>Table</em> classes expose their <em>Columns</em> as Python <em>attributes</em>:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c"># instantiate a table</span>
-<span class="n">imps</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_tag</span><span class="p">(</span><span class="s">&#39;impressions&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre># instantiate a table
+imps = Table.from_tag(&#39;impressions&#39;)
 
-<span class="c"># access a the date column</span>
-<span class="n">date_column</span> <span class="o">=</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span>
+# access a the date column
+date_column = imps.date
 
-<span class="c"># create a Column Expression</span>
-<span class="n">date_column_expression</span> <span class="o">=</span> <span class="n">imps</span><span class="o">.</span><span class="n">site_id</span> <span class="o">==</span> <span class="s">&#39;google.com&#39;</span>
+# create a Column Expression
+site_column_expression = imps.site_id == &#39;google.com&#39;
 
-<span class="c"># query</span>
-<span class="n">select</span><span class="p">(</span><span class="n">date_column</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">date_column_expression</span><span class="p">)</span>
+# create another Column Expression
+date_column_expression = date_column &gt; &#39;2014-03-07&#39;
+
+# query
+select(date_column, where=date_column_expression &amp; )
 </pre></div>
 </div>
+<dl class="method">
+<dt id="hustle.core.marble.Column.named">
+<tt class="descname">named</tt><big>(</big><em>alias</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Column.named" title="Permalink to this definition">¶</a></dt>
+<dd><p>return a new column that has an alias that will be used in the resulting schema
+:type alias: str
+:param alias: the name of the alias</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="hustle.core.marble.Column.schema_string">
+<tt class="descname">schema_string</tt><big>(</big><big>)</big><a class="headerlink" href="#hustle.core.marble.Column.schema_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the schema for this column.  This is used to build the schema of a query result, so we need to
+use the alias.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="hustle.core.marble.Column.description">
 <tt class="descname">description</tt><big>(</big><big>)</big><a class="headerlink" href="#hustle.core.marble.Column.description" title="Permalink to this definition">¶</a></dt>
@@ -160,7 +178,7 @@ represented by the <a class="reference internal" href="#hustle.core.marble.Expr"
 
 <dl class="class">
 <dt id="hustle.core.marble.Aggregation">
-<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Aggregation</tt><big>(</big><em>name=None</em>, <em>column=None</em>, <em>f=None</em>, <em>g=&lt;function &lt;lambda&gt; at 0x10b687aa0&gt;</em>, <em>h=&lt;function &lt;lambda&gt; at 0x10b687b18&gt;</em>, <em>default=&lt;function &lt;lambda&gt; at 0x10b687b90&gt;</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Aggregation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Aggregation</tt><big>(</big><em>name</em>, <em>column</em>, <em>f=None</em>, <em>g=&lt;function &lt;lambda&gt; at 0x109568d70&gt;</em>, <em>h=&lt;function &lt;lambda&gt; at 0x109568de8&gt;</em>, <em>default=&lt;function &lt;lambda&gt; at 0x109568e60&gt;</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Aggregation" title="Permalink to this definition">¶</a></dt>
 <dd><p>An <em>Aggregation</em> is a Column Function that represents some aggregating computation over the values of that
 column.  It is exclusively used in the <em>project</em> section of the <a class="reference internal" href="hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">select()</span></tt></a> function.</p>
 <p>An <em>Aggregation</em> object holds onto four distinct function references which are called at specific times

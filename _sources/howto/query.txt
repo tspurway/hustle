@@ -108,6 +108,14 @@ isn't a join, it is simply fetching all *dates* from *impressions* for *google.c
 the *pixels* table.  The results are simply concatenated, and *None* values are used where the column doesn't exist for
 that table.
 
+Where clause also supports *in* and *not in* statements by using special operators "<<" and ">>" respectively::
+
+    select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.ad_id << [1000, 1005])
+    select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.ad_id >> [1000, 1005])
+
+Note that the right value of "<<" and ">>" could be any type of iterable with each element must be a valid single right value.
+
+
 Partitions
 ----------
 

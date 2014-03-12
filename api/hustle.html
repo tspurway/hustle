@@ -291,6 +291,13 @@ operators allows you to build arbitrarily complex column selection expressions l
 <div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s">&#39;2014-01-27&#39;</span> <span class="o">==</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Where clause also supports <em>in</em> and <em>not in</em> statements by using special operators &#8220;&lt;&lt;&#8221; and &#8220;&gt;&gt;&#8221; respectively:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span> <span class="o">&lt;&lt;</span> <span class="p">[</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1005</span><span class="p">])</span>
+<span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span> <span class="o">&gt;&gt;</span> <span class="p">[</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1005</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Note that the right value &#8220;&lt;&lt;&#8221; and &#8220;&gt;&gt;&#8221; could be any type of iterable with each element must be
+a valid single right value.</p>
 <p>In addition, multiple tables can be specified in the where clause like this:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">pix</span><span class="o">.</span><span class="n">amount</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">,</span> <span class="n">pix</span><span class="p">))</span>
 </pre></div>
@@ -309,14 +316,12 @@ two columns have the same names, a single string is valid as well.</p>
        <span class="n">join</span><span class="o">=</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span> <span class="n">pix</span><span class="o">.</span><span class="n">site_id</span><span class="p">))</span>
 </pre></div>
 </div>
-<p>or equivalently,</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>select(imps.ad_id, imps.site_id, h_sum(pix.amount), h_count(),</dt>
-<dd>where=(imps.date &lt; &#8216;2014-01-13&#8217;, pix.date &lt; &#8216;2014-01-13&#8217;),
-join=&#8217;site_id&#8217;)</dd>
-</dl>
-</div></blockquote>
+<p>or equivalently:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span> <span class="n">h_sum</span><span class="p">(</span><span class="n">pix</span><span class="o">.</span><span class="n">amount</span><span class="p">),</span> <span class="n">h_count</span><span class="p">(),</span>
+       <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">,</span> <span class="n">pix</span><span class="o">.</span><span class="n">date</span> <span class="o">&lt;</span> <span class="s">&#39;2014-01-13&#39;</span><span class="p">),</span>
+       <span class="n">join</span><span class="o">=</span><span class="s">&#39;site_id&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>which joins the <em>imps</em> and <em>pix</em> tables on their common <em>site_id</em> column, then returns the sum of the
 <em>pix.amount</em> columns and a count, grouped by the <em>ad_id</em> and the <em>site_id</em>.  The equivalent query in SQL
 is:</p>
