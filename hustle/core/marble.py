@@ -762,7 +762,7 @@ class Aggregation(object):
         self.default = default
         self.name = "%s(%s)" % (name, column.name if column else '')
         self.fullname = "%s(%s)" % (name, column.fullname if column else '')
-        self.is_numeric = True
+        self.is_numeric = column.is_numeric if column else False
         self.is_binary = column.is_binary if column else False
 
     @property

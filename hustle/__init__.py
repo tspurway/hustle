@@ -567,27 +567,39 @@ def h_max(col):
     :type col: :class:`hustle.core.marble.Column`
     :param col: the column to aggregate
     """
-    return Aggregation("max",
-                       col,
-                       f=lambda a, v: a if a > v else v,
-                       default=lambda: -9223372036854775808)
+    if col.is_numeric:
+        return Aggregation("max",
+                           col,
+                           f=lambda a, v: a if a > v else v,
+                           default=lambda: -9223372036854775808)
+    else:
+        return Aggregation("max",
+                           col,
+                           f=lambda a, v: a if a > v else v,
+                           default=lambda: unichr(0x00))
 
 
 def h_min(col):
     """
     Return an aggregation for the minimum of the given column.  Like the SQL min() function::
 
-        select(h_min(employee.salar), employee.department, where=employee)
+        select(h_min(employee.salary), employee.department, where=employee)
 
     returns the lowest salary in each department.
 
     :type col: :class:`hustle.core.marble.Column`
     :param col: the column to aggregate
     """
-    return Aggregation("min",
-                       col,
-                       f=lambda a, v: a if a < v else v,
-                       default=lambda: 9223372036854775807)
+    if col.is_numeric:
+        return Aggregation("min",
+                           col,
+                           f=lambda a, v: a if a < v else v,
+                           default=lambda: 9223372036854775807)
+    else:
+        return Aggregation("min",
+                           col,
+                           f=lambda a, v: a if a < v else v,
+                           default=lambda: unichr(0xFFFF))
 
 
 def h_avg(col):
