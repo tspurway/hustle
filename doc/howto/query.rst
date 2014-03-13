@@ -206,6 +206,7 @@ Consider the following queries::
 Note how we can query once into a temporary table, then query multiple times from this table.  This supports an
 exploratory style, where (possibly) expensive queries can be saved and then arbitrarily queried again.
 
+
 select() Return Values
 ----------------------
 
@@ -234,3 +235,30 @@ an example of processing the results of a query in Python::
 
     :func:`hustle.select`
         Hustle's select statement
+
+
+Non-blocking select()
+---------------------
+If you want to run multiple queries at the same time, consider using non-blocking select - :func:`select_nb <hustle.select_nb>`. It's exactly the same as :func:`select <hustle.select>` except that it returns immediately after submitting query to the cluster. The user can use the return value - a :class:`Future <hustle.Future>` object to check the query's status and fetch its resutls.
+
+For example::
+
+    >>> future = select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.date > '2014-01-15', nest=True)
+    >>> future.status()
+    >>> 'active'
+    ... run more queries here ...
+    >>> future.done
+    >>> False
+    ... do some other things ...
+    >>> future.status()
+    >>> 'ready'
+    >>> future.done
+    >>> True
+    ... wait() function gives your results like the select() does ...
+    >>> dump(future.wait())
+    ... Note that if you call wait() on a ongoing query, it'll block until it's done ...
+
+.. seealso::
+
+    :func:`hustle.select_nb`
+    :class:`hustle.Future`
