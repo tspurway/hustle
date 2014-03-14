@@ -810,8 +810,6 @@ def delete(table_or_expr, **kwargs):
         raise ValueError("Column in the expression must be a partition column.")
 
     tags = _get_tags(table_or_expr, ddfs)
-    if not tags:
-        raise KeyError("No data or partitions found.")
     for tag in tags:
         ddfs.delete(tag)
 
