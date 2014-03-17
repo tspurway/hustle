@@ -706,7 +706,7 @@ def tables(**kwargs):
     :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
     """
     uniqs = get_tables(**kwargs)
-    _print_line(uniqs)
+    _print_line(uniqs, alignments=[_ALG_LEFT] * len(uniqs))
 
 
 def schema(tab, index_only=False, **kwargs):
@@ -764,7 +764,10 @@ def partitions(table, **kwargs):
     :type kwargs: dict
     :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
     """
-    _print_line(get_partitions(table), width=132)
+    partitions = get_partitions(table)
+    _print_line(partitions,
+                width=132,
+                alignments=[_ALG_LEFT] * len(partitions))
 
 
 def _get_tags(table_or_expr, ddfs):
