@@ -94,7 +94,7 @@ cdef class Cardunion(object):
             if n >> SPARSE_FLAG_BIT:
                 n &= ~(1 << SPARSE_FLAG_BIT)
                 if n > self.m:
-                    raise ValueError("Invalid HLL byte arrays.")
+                    raise ValueError("Invalid HLL byte arrays (SPARSE)")
                 key, value = <uint16_t*>data, <uint8_t*>(data + n * sizeof(uint16_t))
                 for i in range(n):
                     (self.counters + key[i])[0] = max((self.counters + key[i])[0], value[i])

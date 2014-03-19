@@ -19,6 +19,9 @@ _NPART = 16
 
 
 def hustle_output_stream(stream, partition, url, params, result_table):
+    """
+    A disco output stream for creating a Hustle :class:`hustle.Table` output from a stage.
+    """
     class HustleOutputStream(object):
         def __init__(self, stream, url, params, **kwargs):
             import tempfile
@@ -29,7 +32,10 @@ def hustle_output_stream(stream, partition, url, params, result_table):
             tmpdir = getattr(params, 'tmpdir', '/tmp')
             self.filename = tempfile.mktemp(prefix="hustle", dir=tmpdir)
             maxsize = getattr(params, 'maxsize', 100 * 1024 * 1024)
-            self.env, self.txn, self.dbs, self.meta = self.result_table._open(self.filename, maxsize, write=True, lru_size=10000)
+            self.env, self.txn, self.dbs, self.meta = self.result_table._open(self.filename,
+                                                                              maxsize,
+                                                                              write=True,
+                                                                              lru_size=10000)
             self.autoinc = 1
             self.url = url
             self.vid_trie = Trie()
@@ -137,6 +143,10 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
             otab.close()
 
 
+def hustle_combine_input_stream(fd, size, url, params):
+    pass
+
+
 class SelectPipe(Job):
     # profile = True
     required_modules = [
@@ -237,25 +247,26 @@ class SelectPipe(Job):
                                          if isinstance(c, Aggregation) else (None, None, None, None)
                                          for c in project])
         group_by_stage = []
+        if all([isinstance(c, Aggregation) for c in project]):
+            process_group_fn = _skip
+            group_by_range = []
+        else:
+            process_group_fn = _group
+            group_by_range = [i for i, c in enumerate(project) if isinstance(c, Column)]
         if any(efs):
             # If all columns in project are aggregations, use process_skip_group
             # to skip the internal groupby
-            if all([isinstance(c, Aggregation) for c in project]):
-                process_group_fn = process_skip_group
-                group_by_range = []
-            else:
-                process_group_fn = process_group
-                group_by_range = [i for i, c in enumerate(project) if isinstance(c, Column)]
 
             # build the pipeline
             group_by_stage = [
                 (GROUP_LABEL_NODE, HustleStage('group-combine',
                                                sort=group_by_range,
                                                binaries=binaries,
-                                               process=partial(process_group_fn,
+                                               process=partial(process_group,
                                                                ffuncs=efs,
                                                                ghfuncs=ehches,
                                                                deffuncs=dflts,
+                                                               group_fn=process_group_fn,
                                                                label_fn=partial(_tuple_hash,
                                                                                 cols=group_by_range,
                                                                                 p=partition)))),
@@ -265,10 +276,11 @@ class SelectPipe(Job):
                                           input_sorted=True,
                                           combine=True,
                                           sort=group_by_range,
-                                          process=partial(process_group_fn,
+                                          process=partial(process_group,
                                                           ffuncs=efs,
                                                           ghfuncs=gees,
-                                                          deffuncs=dflts)))]
+                                                          deffuncs=dflts,
+                                                          group_fn=process_group_fn)))]
 
         # process the order_by/distinct stage
         order_stage = []
@@ -341,7 +353,8 @@ def process_restrict(interface, state, label, inp, task, label_fn):
 
 
 def process_join(interface, state, label, inp, task, label_fn):
-    '''Processor function for the join stage.
+    """
+    Processor function for the join stage.
 
     Note that each key in the 'inp' is orgnized as:
         key = (where_index, join_column, other_columns)
@@ -349,7 +362,7 @@ def process_join(interface, state, label, inp, task, label_fn):
     Firstly, all keys are divided into different groups based on the join_column.
     Then the where_index is used to separate keys from different where clauses.
     Finally, merging columns together.
-    '''
+    """
     from itertools import groupby
 
     def _merge_record(offset, r1, r2):
@@ -388,14 +401,17 @@ def process_order(interface, state, label, inp, task, distinct, limit):
             interface.output(label).add(key, value)
 
 
-def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn=None):
-    """Process function of aggregation combine stage.
+def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, group_fn, label_fn=None):
+    empty = ()
+    for lab, key in group_fn(inp, label, ffuncs, ghfuncs, deffuncs, label_fn):
+        interface.output(lab).add(key, empty)
 
+def _group(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
+    """
+    Process function of aggregation combine stage.
     """
     from itertools import groupby
     import copy
-
-    empty = ()
 
     # import sys
     # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
@@ -423,11 +439,12 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
             label = label_fn(group)
         key = tuple(g or a for g, a in zip(group, accum))
         # print "KEY: %s" % repr(key)
-        interface.output(label).add(key, empty)
+        yield label, key
 
 
-def process_skip_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn=None):
-    """Process function of aggregation combine stage without groupby.
+def _skip(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
+    """
+    Process function of aggregation combine stage without groupby.
     """
     empty = ()
     accums = [default() if default else None for default in deffuncs]
@@ -439,7 +456,7 @@ def process_skip_group(interface, state, label, inp, task, ffuncs, ghfuncs, deff
             raise e
 
     accum = [h(a) if h else None for h, a in zip(ghfuncs, accums)]
-    interface.output(0).add(tuple(accum), empty)
+    yield 0, tuple(accum)
 
 
 def _get_sort_range(select_offset, select_columns, order_by_columns):
