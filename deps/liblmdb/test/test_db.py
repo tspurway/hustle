@@ -87,6 +87,20 @@ class TestDB(TestCase):
         txn.commit()
         db.close()
 
+    def test_mget(self):
+        txn = self.env.begin_txn()
+        db = self.env.open_db(txn, 'test_db')
+        db.put(txn, 'foo', '1')
+        db.put(txn, 'bar', '2')
+        db.put(txn, 'egg', '3')
+        db.put(txn, 'spam', '4')
+        txn.commit()
+        txn = self.env.begin_txn()
+        self.assertEqual(list(db.mget(txn, ['foo', 'spam', 'egg'])),
+                         ['1', '4', '3'])
+        txn.commit()
+        db.close()
+
     def test_put_excetion(self):
         import random
         txn = self.env.begin_txn()

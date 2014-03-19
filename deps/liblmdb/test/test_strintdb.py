@@ -88,6 +88,24 @@ class TestDB(TestCase):
                          [1, 2])
         db.close()
 
+    def test_mget(self):
+        txn = self.env.begin_txn()
+        db = self.env.open_db(txn, 'test_db', mdb.MDB_DUPSORT|mdb.MDB_INTEGERDUP|mdb.MDB_CREATE,
+                              value_inttype=mdb.MDB_UINT_8)
+        db.drop(txn)
+        db.put(txn, 'bar1', 1)
+        db.put(txn, 'bar1', 2)
+        db.put(txn, 'bar2', 3)
+        db.put(txn, 'bar3', 4)
+        db.put(txn, 'bar4', 5)
+        db.put(txn, 'bar5', 6)
+        txn.commit()
+        txn = self.env.begin_txn()
+        self.assertListEqual(list(db.mget(txn, ['bar1', 'bar2', 'bar5'])),
+                             [1, 3, 6])
+        self.assertListEqual(list(db.mget(txn, ['bar5', 'bar1', 'bar3', 'bar4'])),
+                             [6, 1, 4, 5])
+
     def test_get_all_items(self):
         txn = self.env.begin_txn()
         db = self.env.open_db(txn, 'test_db', mdb.MDB_DUPSORT|mdb.MDB_INTEGERDUP|mdb.MDB_CREATE,
