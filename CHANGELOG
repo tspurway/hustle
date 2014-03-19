@@ -12,8 +12,8 @@
 0.1.1 (March 12 2014)
 	Added feature #8. 'delete' and 'drop' table
 	Added feature #9. Query supports 'in' and 'not in'
-	Simplied 'join' clause #10
+	Simplified 'join' clause #10
 	Fixed #19
 
 0.1.0 (March 6 2014)
-	Init release
+	Initial release
