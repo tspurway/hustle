@@ -62,6 +62,7 @@ def intersect(*project, **kwargs):
 
 
 def _process_intersect(interface, state, label, inp, task):
+    pass
 #
 # def insert_hll(table, file=None, streams=None, preprocess=None,
 #                maxsize=100 * 1024 * 1024, tmpdir='/tmp', decoder=json_decoder,
