@@ -116,14 +116,14 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
             # do not process where clauses that have nothing to do with this marble
             if where._name == otab.marble._name:
                 if type(where) is Expr and not where.is_partition:
-                    bitmaps[index] = where(otab)
+                    bm = where(otab)
+                    bitmaps[index] = (bm, len(bm))
                 else:
                     # it is either the table itself, or a partition expression.  either way,
                     # return the entire table
-                    bitmaps[index] = otab.iter_all()
+                    bitmaps[index] = (otab.iter_all(), otab.number_rows)
 
-        blen = otab.number_rows
-        for index, bitmap in bitmaps.iteritems():
+        for index, (bitmap, blen) in bitmaps.iteritems():
             prefix_gen = [repeat(index, blen)] if gen_where_index else []
 
             row_iter = prefix_gen + [otab.mget(col, bitmap) if col is not None else repeat(None, blen)
