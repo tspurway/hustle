@@ -92,6 +92,7 @@ def hustle_output_stream(stream, partition, url, params, result_table):
 def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_names):
     from disco import util
     from hustle.core.marble import Expr, MarbleStream
+    from itertools import izip, repeat
     empty = ()
 
     try:
@@ -121,13 +122,16 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
                     # return the entire table
                     bitmaps[index] = otab.iter_all()
 
+        blen = otab.number_rows
         for index, bitmap in bitmaps.iteritems():
-            prefix = [index] if gen_where_index else []
-            for row_id in bitmap:
-                record = [otab.get(col, row_id) if col else None for col in key_names[index]]
-                # print "Gibbled: %s" % repr(record)
-                record[0:0] = prefix  # this looks odd, but is faster than 'prefix + record'
-                yield tuple(record), empty
+            prefix_gen = [repeat(index, blen)] if gen_where_index else []
+
+            row_iter = prefix_gen + [otab.mget(col, bitmap) if col is not None else repeat(None, blen)
+                                     for col in key_names[index]]
+
+            for row in izip(*row_iter):
+                yield row, empty
+
     finally:
         if otab:
             otab.close()
