@@ -54,6 +54,26 @@ class TestDB(TestCase):
         txn.commit()
         db.close()
 
+    def test_mget(self):
+        self.drop_mdb()
+        txn = self.env.begin_txn()
+        db = self.env.open_db(txn, 'test_db',
+                              flags=mdb.MDB_CREATE|mdb.MDB_DUPSORT|mdb.MDB_INTEGERKEY|mdb.MDB_INTEGERDUP)
+        db.put(txn, 1, 1)
+        db.put(txn, 1, 11)
+        db.put(txn, 2, 2)
+        db.put(txn, 2, 21)
+        db.put(txn, 2, 22)
+        db.put(txn, 3, 3)
+        db.put(txn, 4, 4)
+        db.put(txn, 5, 5)
+        txn.commit()
+        txn = self.env.begin_txn()
+        self.assertEqual(list(db.mget(txn, [1, 2, 3, 5])),
+                         [1, 2, 3, 5])
+        self.assertEqual(list(db.mget(txn, [3, 1, 2, 5])),
+                         [3, 1, 2, 5])
+
     def test_contains(self):
         # all keys must be sorted
         txn = self.env.begin_txn()

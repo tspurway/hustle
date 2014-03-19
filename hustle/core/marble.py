@@ -403,8 +403,12 @@ class MarbleStream(object):
         #     print "splink: %s" % col
 
     def iter_all(self):
-        db = self.dbs.values()[0][0]  # any db will do
-        return (k for k, _ in db.items(self.txn))
+        return xrange(1, self.number_rows)
+
+    def mget(self, column_name, keys):
+        db, _, _, column = self.dbs[column_name]
+        for data in db.mget(self.txn, keys):
+            yield column.fetcher(data, self.vid16_nodes, self.vid16_kids, self.vid_nodes, self.vid_kids)
 
     def get(self, column_name, key):
         db, _, _, column = self.dbs[column_name]

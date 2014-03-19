@@ -14,15 +14,12 @@ cdef extern from "<sstream>" namespace "std":
         string str()
         ostream write(char *, size_t)
 
-cdef extern from "<algorithm>" namespace "std":
-    cdef bint binary_search(vector[size_t].iterator,
-                            vector[size_t].iterator,
-                            uint64_t&)
 
 cdef extern from "ewah.h":
     cdef cppclass EWAHBoolArray[T]:
         EWAHBoolArray() nogil except +
         bint set(size_t i) nogil
+        bint get(size_t i) nogil
         void logicaland(EWAHBoolArray&, EWAHBoolArray&) nogil
         void logicalor(EWAHBoolArray&, EWAHBoolArray&) nogil
         void logicalnot(EWAHBoolArray&) nogil
@@ -36,6 +33,13 @@ cdef extern from "ewah.h":
         size_t sizeInBits() nogil
         void reset() nogil
         void inplace_logicalnot() nogil
+
+cdef size_t _round_up(size_t s):
+    '''
+    Round s up to the next multiple of 64.
+    Note s must be greater than 0
+    '''
+    return <size_t>((s - 1 | 0x3F) + 1)
 
 
 cdef class BitSet:
@@ -51,8 +55,14 @@ cdef class BitSet:
         if value:
             self.thisptr.set(key)
 
+    def __getitem__(self, key):
+        return self.thisptr.get(key)
+
     def set(self, size_t i):
         return self.thisptr.set(i)
+
+    def get(self, size_t i):
+        return self.thisptr.get(i)
 
     def dumps(self):
         cdef stringstream s
@@ -137,12 +147,31 @@ cdef class BitSet:
             return (i for i in <list>v if i < l)
 
     def __len__(self):
-        return self.thisptr.numberOfOnes()
+        cdef vector[size_t] v = self.thisptr.toArray()
+        cdef size_t l = self.thisptr.sizeInBits()
+        cdef size_t i
+        cdef long n = 0
+
+        IF UNAME_SYSNAME == "Linux":
+            cdef vector[uint64_t].iterator it = v.begin()
+            while it != v.end():
+                i = deref(it)
+                if i < l:
+                    n += 1
+                else:
+                    break
+                inc(it)
+        ELSE:
+            # clang compiler on Mac Os x will report error for the code above
+            for i in <list>v:
+                if i < l:
+                    n += 1
+                else:
+                    break
+        return n
 
     def __str__(self):
         return self.dumps()
 
     def __contains__(self, size_t v):
-        cdef vector[size_t] a = self.thisptr.toArray()
-
-        return binary_search(a.begin(), a.end(), v)
+        return self.thisptr.get(v)

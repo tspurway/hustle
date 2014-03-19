@@ -74,16 +74,16 @@ MDB_INT_64 = 7
 MDB_UINT_64 = 8
 
 # comparison functions for small integers (1 or 2) bytes.
-cdef int int16_compare(const cmdb.MDB_val *a, const cmdb.MDB_val *b):
+cdef inline int int16_compare(const cmdb.MDB_val *a, const cmdb.MDB_val *b):
     return (<int16_t*>a.mv_data)[0] - (<int16_t*>b.mv_data)[0]
 
-cdef int uint16_compare(const cmdb.MDB_val *a, const cmdb.MDB_val *b):
+cdef inline int uint16_compare(const cmdb.MDB_val *a, const cmdb.MDB_val *b):
     return (<uint16_t*>a.mv_data)[0] - (<uint16_t*>b.mv_data)[0]
 
-cdef int int8_compare(const cmdb.MDB_val *a, const cmdb.MDB_val *b):
+cdef inline int int8_compare(const cmdb.MDB_val *a, const cmdb.MDB_val *b):
     return (<int8_t*>a.mv_data)[0] - (<int8_t*>b.mv_data)[0]
 
-cdef int uint8_compare(const cmdb.MDB_val *a, const cmdb.MDB_val *b):
+cdef inline int uint8_compare(const cmdb.MDB_val *a, const cmdb.MDB_val *b):
     return (<uint8_t*>a.mv_data)[0] - (<uint8_t*>b.mv_data)[0]
 
 # set key comparison function for small integers (1 or 2) bytes.
@@ -412,6 +412,31 @@ cdef class DB:
         cdef char *rval = <char*>api_value.mv_data
         return rval[:api_value.mv_size-1]
 
+    def mget(self, Txn txn, keys, default=None):
+        cdef cmdb.MDB_cursor *cursor
+        cdef cmdb.MDB_val api_key
+        cdef cmdb.MDB_val api_value
+        cdef char *rval
+
+        api_value.mv_size =  0
+        api_value.mv_data =  NULL
+        err = cmdb.mdb_cursor_open(txn.txn, self.dbi, &cursor)
+        if err:
+            raise Exception("Error creating Cursor: %s"
+                            % cmdb.mdb_strerror(err))
+        try:
+            for key in keys:
+                api_key.mv_size = len(key) + 1
+                api_key.mv_data = <char*>key
+                if cmdb.MDB_SUCCESS == cmdb.mdb_cursor_get(cursor, &api_key,
+                                                           &api_value, MDB_SET):
+                    rval = <char*>api_value.mv_data
+                    yield rval[:api_value.mv_size-1]
+                else:
+                    yield default
+        finally:
+            cmdb.mdb_cursor_close(cursor)
+
     def get_raw(self, Txn txn, key, default=None):
         """return the pointer and length of the data"""
         cdef cmdb.MDB_val api_key
@@ -691,6 +716,29 @@ cdef class StrIntDB(DB):
         elif err:
             raise Exception("Error getting data: %s" % cmdb.mdb_strerror(err))
         return self.caster(api_value.mv_data)
+
+    def mget(self, Txn txn, keys, default=None):
+        cdef cmdb.MDB_cursor *cursor
+        cdef cmdb.MDB_val api_key
+        cdef cmdb.MDB_val api_value
+
+        api_value.mv_size =  0
+        api_value.mv_data =  NULL
+        err = cmdb.mdb_cursor_open(txn.txn, self.dbi, &cursor)
+        if err:
+            raise Exception("Error creating Cursor: %s"
+                            % cmdb.mdb_strerror(err))
+        try:
+            for key in keys:
+                api_key.mv_size = len(key) + 1
+                api_key.mv_data = <char*>key
+                if cmdb.MDB_SUCCESS == cmdb.mdb_cursor_get(cursor, &api_key,
+                                                           &api_value, MDB_SET):
+                    yield self.caster(api_value.mv_data)
+                else:
+                    yield default
+        finally:
+            cmdb.mdb_cursor_close(cursor)
 
     def put(self, Txn txn, key, value, uint32_t flags=0):
         cdef cmdb.MDB_val api_key
@@ -985,6 +1033,40 @@ cdef class IntStrDB(DB):
             raise Exception("Error getting data: %s" % cmdb.mdb_strerror(err))
         cdef char *rval = <char*>api_value.mv_data
         return rval[:api_value.mv_size-1]
+
+    def mget(self, Txn txn, keys, default=None):
+        cdef cmdb.MDB_cursor *cursor
+        cdef cmdb.MDB_val api_key
+        cdef cmdb.MDB_val api_value
+        cdef char *value_
+        cdef void *data
+        cdef int64_t skey
+        cdef uint64_t ukey
+
+        api_key.mv_size = self.keysize
+        api_value.mv_size =  0
+        api_value.mv_data =  NULL
+        err = cmdb.mdb_cursor_open(txn.txn, self.dbi, &cursor)
+        if err:
+            raise Exception("Error creating Cursor: %s"
+                            % cmdb.mdb_strerror(err))
+        try:
+            for key in keys:
+                if self.signed:
+                    skey = key
+                    data = &skey
+                else:
+                    ukey = key
+                    data = &ukey
+                api_key.mv_data = <void *>data
+                if cmdb.MDB_SUCCESS == cmdb.mdb_cursor_get(cursor, &api_key,
+                                                           &api_value, MDB_SET):
+                    value_ = <char*>api_value.mv_data
+                    yield value_[:api_value.mv_size-1]
+                else:
+                    yield default
+        finally:
+            cmdb.mdb_cursor_close(cursor)
 
     def put(self, Txn txn, key, value, uint32_t flags=0):
         cdef cmdb.MDB_val api_key
@@ -1320,6 +1402,38 @@ cdef class IntIntDB(DB):
         elif err:
             raise Exception("Error getting data: %s" % cmdb.mdb_strerror(err))
         return self.value_caster(api_value.mv_data)
+
+    def mget(self, Txn txn, keys, default=None):
+        cdef cmdb.MDB_cursor *cursor
+        cdef cmdb.MDB_val api_key
+        cdef cmdb.MDB_val api_value
+        cdef void *data
+        cdef int64_t skey
+        cdef uint64_t ukey
+
+        api_key.mv_size = self.keysize
+        api_value.mv_size =  0
+        api_value.mv_data =  NULL
+        err = cmdb.mdb_cursor_open(txn.txn, self.dbi, &cursor)
+        if err:
+            raise Exception("Error creating Cursor: %s"
+                            % cmdb.mdb_strerror(err))
+        try:
+            for key in keys:
+                if self.key_signed:
+                    skey = key
+                    data = &skey
+                else:
+                    ukey = key
+                    data = &ukey
+                api_key.mv_data = <void *>data
+                if cmdb.MDB_SUCCESS == cmdb.mdb_cursor_get(cursor, &api_key,
+                                                           &api_value, MDB_SET):
+                    yield self.value_caster(api_value.mv_data)
+                else:
+                    yield default
+        finally:
+            cmdb.mdb_cursor_close(cursor)
 
     def put(self, Txn txn, key, value, uint32_t flags=0):
         cdef cmdb.MDB_val api_key

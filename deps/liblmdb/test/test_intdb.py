@@ -121,6 +121,42 @@ class TestDB(TestCase):
         txn.commit()
         db.close()
 
+    def test_mget(self):
+        self.drop_mdb()
+        txn = self.env.begin_txn()
+        db = self.env.open_db(txn, 'test_db',
+                              flags=mdb.MDB_CREATE|mdb.MDB_DUPSORT|mdb.MDB_INTEGERKEY)
+        db.put(txn, 1, 'bar')
+        db.put(txn, 1, 'bar1')
+        db.put(txn, 2, 'bar2')
+        db.put(txn, 2, 'bar2-1')
+        db.put(txn, 2, 'bar2-2')
+        db.put(txn, 3, 'bar3')
+        db.put(txn, 4, 'bar4')
+        db.put(txn, 5, 'bar5')
+        txn.commit()
+        txn = self.env.begin_txn()
+        self.assertEqual(list(db.mget(txn, [1, 2, 3, 5])),
+                         ['bar', 'bar2', 'bar3', 'bar5'])
+
+    def test_mget_1(self):
+        self.drop_mdb()
+        txn = self.env.begin_txn()
+        db = self.env.open_db(txn, 'test_db',
+                              flags=mdb.MDB_CREATE|mdb.MDB_DUPSORT|mdb.MDB_INTEGERKEY)
+        db.put(txn, 1, 'bar')
+        db.put(txn, 1, 'bar1')
+        db.put(txn, 2, 'bar2')
+        db.put(txn, 2, 'bar2-1')
+        db.put(txn, 2, 'bar2-2')
+        db.put(txn, 3, 'bar3')
+        db.put(txn, 4, 'bar4')
+        db.put(txn, 5, 'bar5')
+        txn.commit()
+        txn = self.env.begin_txn()
+        self.assertEqual(list(db.mget(txn, [2, 5])),
+                         ['bar2', 'bar5'])
+
     def test_get_less_than(self):
         self.drop_mdb()
         txn = self.env.begin_txn()

@@ -13,7 +13,7 @@ Queries are run using a :ref:`Python DSL <queryguide>` which is translated dynam
 
 Hustle is ideal for low latency OLAP queries over massive data sets.
 """
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 import os
 import ujson
@@ -706,7 +706,7 @@ def tables(**kwargs):
     :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
     """
     uniqs = get_tables(**kwargs)
-    _print_line(uniqs)
+    _print_line(uniqs, alignments=[_ALG_LEFT] * len(uniqs))
 
 
 def schema(tab, index_only=False, **kwargs):
@@ -764,7 +764,10 @@ def partitions(table, **kwargs):
     :type kwargs: dict
     :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
     """
-    _print_line(get_partitions(table), width=132)
+    partitions = get_partitions(table)
+    _print_line(partitions,
+                width=132,
+                alignments=[_ALG_LEFT] * len(partitions))
 
 
 def _get_tags(table_or_expr, ddfs):
@@ -810,8 +813,6 @@ def delete(table_or_expr, **kwargs):
         raise ValueError("Column in the expression must be a partition column.")
 
     tags = _get_tags(table_or_expr, ddfs)
-    if not tags:
-        raise KeyError("No data or partitions found.")
     for tag in tags:
         ddfs.delete(tag)
 

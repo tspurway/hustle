@@ -54,9 +54,19 @@ class BitSetTest(unittest.TestCase):
         la = b & bb
         lo = b | bb
         ln = ~ dd
+        ll = ~ ln
         self.assertEqual(lo, cc)
         self.assertNotEqual(la, dd)
         self.assertEqual(list(ln), list(ee))
+        self.assertEqual(len(b), 5)
+        self.assertEqual(len(bb), 4)
+        self.assertEqual(len(cc), 6)
+        self.assertEqual(len(dd), 3)
+        self.assertEqual(len(ee), 2)
+        self.assertEqual(len(la), 3)
+        self.assertEqual(len(lo), 6)
+        self.assertEqual(len(ln), 2)
+        self.assertEqual(len(ll), 3)
 
     def test_logical_not(self):
         b = BitSet()

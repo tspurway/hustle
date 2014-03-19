@@ -1,0 +1,19 @@
+0.1.3 (March 19 2014)
+	Added mget() for lmdb Python client
+	Improved the hustle_input_stream by using mget()
+	Upgraded EWAHBoolArray from upstream
+	Fixed a bug in libebset. len() is inaccuracte on inverted bitsets
+
+0.1.2 (March 13 2014)
+	Added feature #16. Alias column or aggregate functions
+	Added feature #18. Non-blocking select()
+	Fixed #17
+
+0.1.1 (March 12 2014)
+	Added feature #8. 'delete' and 'drop' table
+	Added feature #9. Query supports 'in' and 'not in'
+	Simplied 'join' clause #10
+	Fixed #19
+
+0.1.0 (March 6 2014)
+	Init release

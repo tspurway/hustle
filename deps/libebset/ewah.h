@@ -205,7 +205,7 @@ public:
      *
      * returns the number of words added (storage cost increase)
      */
-    inline size_t add(const uword newdata,
+    inline size_t addWord(const uword newdata,
             const uint32_t bitsthatmatter = 8 * sizeof(uword));
 
     inline void printout(ostream &o = cout) {
@@ -792,7 +792,7 @@ void EWAHBoolArray<uword>::inplace_logicalnot() {
             rlw.setRunningBit(true);
         ++pointer;
         for (size_t k = 0; k < rlw.getNumberOfLiteralWords(); ++k) {
-            buffer[pointer] = ~buffer[pointer];
+            buffer[pointer] = static_cast<uword>(~buffer[pointer]);
             ++pointer;
         }
     }
@@ -829,17 +829,17 @@ vector<size_t> EWAHBoolArray<uword>::toArray() const {
                 ans.push_back(pos);
             }
         } else {
-            pos += rlw.getRunningLength() * wordinbits;
+            pos += static_cast<size_t>(rlw.getRunningLength() * wordinbits);
         }
         ++pointer;
         const bool usetrailing = true; //optimization
         for (size_t k = 0; k < rlw.getNumberOfLiteralWords(); ++k) {
             if (usetrailing) {
-                const uword myword = buffer[pointer];
-                for(uint32_t offset = 0; offset<wordinbits;++offset) {
-                    if((myword >> offset) == 0) break;
-                    offset+=static_cast<uint32_t>(numberOfTrailingZeros((myword >> offset)));
-                    ans.push_back(pos + offset);
+                uword myword = buffer[pointer];
+                while (myword != 0) {
+                  uint32_t ntz =  numberOfTrailingZeros (myword);
+                  ans.push_back(pos + ntz);
+                  myword ^= (static_cast<uword>(1) << ntz);
                 }
                 pos += wordinbits;
             } else {
@@ -873,7 +873,7 @@ void EWAHBoolArray<uword>::logicalnot(EWAHBoolArray & x) const {
 }
 
 template<class uword>
-size_t EWAHBoolArray<uword>::add(const uword newdata,
+size_t EWAHBoolArray<uword>::addWord(const uword newdata,
         const uint32_t bitsthatmatter) {
     sizeinbits += bitsthatmatter;
     if (newdata == 0) {
@@ -1468,7 +1468,7 @@ void EWAHBoolArray<uword>::logicalor(EWAHBoolArray &a, EWAHBoolArray &container)
             const uword * idirty = i.dirtyWords();
             const uword * jdirty = j.dirtyWords();
             for (uword k = 0; k < nbre_dirty_prey; ++k) {
-                container.add(static_cast<uword>(idirty[k] | jdirty[k]));
+                container.addWord(static_cast<uword>(idirty[k] | jdirty[k]));
             }
             predator.discardFirstWords(nbre_dirty_prey);
         }
@@ -1529,7 +1529,7 @@ void EWAHBoolArray<uword>::logicalxor(EWAHBoolArray &a, EWAHBoolArray &container
 							static_cast<size_t> (preyrl - tobediscarded));
 				} else {
 					for(size_t x = 0; x<static_cast<size_t> (preyrl - tobediscarded);++x)
-								container.add(~dw_predator[x]);
+								container.addWord(static_cast<uword>(~dw_predator[x]));
 				}
 			}
 		}
@@ -1547,18 +1547,11 @@ void EWAHBoolArray<uword>::logicalxor(EWAHBoolArray &a, EWAHBoolArray &container
 				const uword * dw_prey(
 						i_is_prey ? i.dirtyWords() : j.dirtyWords());
 				if (predator.getRunningBit() == 0) {
-			//		cout<<">>> outputing dirty "<<(tobediscarded)<<endl;
-
 					container.addStreamOfDirtyWords(dw_prey,
 							static_cast<size_t> (tobediscarded));
 				} else {
-				//	cout<<">>> outputing negated dirty "<<(tobediscarded)<<endl;
 					for(size_t x = 0; x<tobediscarded;++x)
-						container.add(~dw_prey[x]);
-
-					//container.addStreamOfNegatedDirtyWords(dw_prey,
-						//	static_cast<size_t> (tobediscarded));
-
+						container.addWord(static_cast<uword>(~dw_prey[x]));
 				}
 				predator.discardFirstWords(tobediscarded);
 				prey.discardFirstWords(tobediscarded);
@@ -1571,10 +1564,9 @@ void EWAHBoolArray<uword>::logicalxor(EWAHBoolArray &a, EWAHBoolArray &container
             assert(predator.getRunningLength() == 0);
             const uword * idirty = i.dirtyWords();
             const uword * jdirty = j.dirtyWords();
-			cout<<">>> outputing computed "<<(nbre_dirty_prey)<<endl;
 
             for (uword k = 0; k < nbre_dirty_prey; ++k) {
-                container.add(idirty[k] ^ jdirty[k]);
+                container.addWord(idirty[k] ^ jdirty[k]);
             }
             predator.discardFirstWords(nbre_dirty_prey);
         }
@@ -1672,7 +1664,7 @@ void EWAHBoolArray<uword>::logicaland(EWAHBoolArray &a,
             const uword * idirty = i.dirtyWords();
             const uword * jdirty = j.dirtyWords();
             for (uword k = 0; k < nbre_dirty_prey; ++k) {
-                container.add(static_cast<uword>(idirty[k] & jdirty[k]));
+                container.addWord(static_cast<uword>(idirty[k] & jdirty[k]));
             }
             predator.discardFirstWords(nbre_dirty_prey);
         }
