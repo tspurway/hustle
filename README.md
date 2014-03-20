@@ -1,6 +1,6 @@
 ![Hustle](doc/_static/hustle.png)
 
-A column oriented, embarrassingly distributed, relational OLAP database.
+A column oriented, embarrassingly distributed, relational event database.
 
 Features
 --------
