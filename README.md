@@ -6,6 +6,7 @@ Features
 --------
 
 * column oriented - super fast queries
+* events - write only semantics
 * distributed insert - designed for petabyte scale distributed datasets with massive write loads
 * compressed - bitmap indexes, lz4, and prefix trie compression
 * relational - join gigantic data sets
