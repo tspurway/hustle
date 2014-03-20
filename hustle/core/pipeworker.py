@@ -87,8 +87,12 @@ def disk_sort(input, filename, sort_keys, binaries=(), sort_buffer_size='10%', d
         for i, key in enumerate(k):
             if key == b'\x00':
                 rkey = None
-            elif i in binaries:
-                rkey = base64.b64decode(key)
+            elif i in binaries and key_types[i] != 'n':
+                try:
+                    rkey = base64.b64decode(key)
+                except Exception as e:
+                    print "DECODE Error: %s" % key
+                    raise e
             else:
                 rkey = ujson.loads(key)
             rval.append(rkey)

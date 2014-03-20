@@ -1,6 +1,8 @@
 from hustle import select, Table, _create_job
 from hustle.core.marble import Aggregation, Column, json_decoder
 from hustle.core.pipeline import HustleStage, GROUP_ALL
+from functools import partial
+import itertools
 
 
 def h_cardinality(col):
@@ -11,6 +13,7 @@ def h_cardinality(col):
         return Cardunion(12)
 
     def _inner_hll_accumulate(a, v):
+        # print "ACC: %s %s" % (a, v)
         a.bunion([v])
         return a
 
@@ -19,7 +22,8 @@ def h_cardinality(col):
                        f=_inner_hll_accumulate,
                        g=lambda a: a.count(),
                        h=lambda a: a.dumps(),
-                       default=_inner_deault)
+                       default=_inner_deault,
+                       is_numeric=True)
 
 
 def h_union(col):
@@ -57,12 +61,19 @@ def h_minhash_merge(col):
                        default=_inner_deault)
 
 
-def intersect(*project, **kwargs):
-    intersect_stage = (GROUP_ALL, HustleStage('intersect', process=_process_intersect))
+def intersect(*wheres):
+    unions = [(h_union(t.table.hll), h_minhash_merge(t.table.maxhash)) for t in wheres]
+    project = list(itertools.chain.from_iterable(unions))
+    intersect_stage = (GROUP_ALL, HustleStage('intersect',
+                                              process=partial(_process_intersect,
+                                                              )))
+    return select(*project, where=wheres, pre_order_stage=intersect_stage)
 
 
 def _process_intersect(interface, state, label, inp, task):
-    pass
+    """
+
+    """
 #
 # def insert_hll(table, file=None, streams=None, preprocess=None,
 #                maxsize=100 * 1024 * 1024, tmpdir='/tmp', decoder=json_decoder,

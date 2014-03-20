@@ -751,7 +751,8 @@ class Aggregation(object):
             Some of Hustle's aggregation functions
 
     """
-    def __init__(self, name, column, f=None, g=lambda a: a, h=lambda a: a, default=lambda: None):
+    def __init__(self, name, column, f=None, g=lambda a: a, h=lambda a: a, default=lambda: None,
+                 is_numeric=None, is_binary=None):
 
         self.column = column
         self.f = f
@@ -760,6 +761,7 @@ class Aggregation(object):
         self.default = default
         self.name = "%s(%s)" % (name, column.name if column else '')
         self.fullname = "%s(%s)" % (name, column.fullname if column else '')
+
         self.is_numeric = column.is_numeric if column else False
         self.is_binary = column.is_binary if column else False
 
