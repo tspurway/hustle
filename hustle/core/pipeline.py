@@ -406,6 +406,7 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
     for lab, key in group_fn(inp, label, ffuncs, ghfuncs, deffuncs, label_fn):
         interface.output(lab).add(key, empty)
 
+
 def _group(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
     """
     Process function of aggregation combine stage.
@@ -427,18 +428,20 @@ def _group(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
         for record, _ in tups:
             # print "REC: %s" % repr(record)
             try:
-                accums = [f(a, v) if f and a is not None else None
+                accums = [f(a, v) if None not in (f, a, v) else None
                           for f, a, v in zip(ffuncs, accums, record)]
             except Exception as e:
                 print e
                 print "YOLO: f=%s a=%s r=%s g=%s" % (ffuncs, accums, record, group)
+                import traceback
+                print traceback.format_exc(15)
                 raise e
 
-        accum = [h(a) if h else None for h, a in zip(ghfuncs, accums)]
+        accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
         if label_fn:
             label = label_fn(group)
-        key = tuple(g or a for g, a in zip(group, accum))
-        # print "KEY: %s" % repr(key)
+        key = tuple(g if g is not None else a for g, a in zip(group, accum))
+        # print "GROUP: %s \nKEY: %s" % (repr(group), repr(key))
         yield label, key
 
 
@@ -446,16 +449,15 @@ def _skip(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
     """
     Process function of aggregation combine stage without groupby.
     """
-    empty = ()
     accums = [default() if default else None for default in deffuncs]
     for record, _ in inp:
         try:
-            accums = [f(a, v) if f and a is not None else None
+            accums = [f(a, v) if None not in (f, a, v) else None
                       for f, a, v in zip(ffuncs, accums, record)]
         except Exception as e:
             raise e
 
-    accum = [h(a) if h else None for h, a in zip(ghfuncs, accums)]
+    accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
     yield 0, tuple(accum)
 
 
