@@ -206,7 +206,16 @@ class Marble(object):
 
     def _open(self, filename, maxsize=100 * 1024 * 1024, write=False, lru_size=10000):
         env = self._open_env(filename, maxsize, write)
-        return self._open_dbs(env, write, lru_size)
+        env, txn, dbs, meta = self._open_dbs(env, write, lru_size)
+        if not write:
+            partition = ujson.loads(meta.get(txn, 'partition', 'null'))
+            if partition:
+                pdata = ujson.loads(meta.get(txn, '_pdata', 'null'))
+                if not pdata:
+                    raise ValueError("Can't load partition information from meta table.")
+                db, _, _, _ = dbs[partition]
+                db.echome = pdata
+        return env, txn, dbs, meta
 
     def _open_dbs(self, env, write, lru_size):
         from pylru import LRUDict
@@ -331,6 +340,9 @@ class Marble(object):
                 subdb = BooleanDB(subindexdb, txn)
             else:
                 flags = mdb.MDB_CREATE | mdb.MDB_INTEGERKEY
+            if column.partition:
+                subdb = PartitionDB(column.name)
+            else:
                 if column.is_int:
                     flags |= mdb.MDB_INTEGERDUP
                 subdb = env.open_db(txn,
@@ -439,6 +451,7 @@ class Marble(object):
                     meta.put(txn, 'name', ujson.dumps(self._name))
                     meta.put(txn, 'fields', ujson.dumps(self._fields))
                     meta.put(txn, 'partition', ujson.dumps(self._partition))
+                    meta.put(txn, '_pdata', ujson.dumps(pdata))
                     for index, (subdb, subindexdb, bitmap_dict, column) in dbs.iteritems():
                         if subindexdb:
                             # process all values for this bitmap index
@@ -488,9 +501,9 @@ class MarbleStream(object):
         self.vid_kids, _ = self.meta.get_raw(self.txn, '_vid_kids')
         self.vid16_nodes, _ = self.meta.get_raw(self.txn, '_vid16_nodes', (None, 0))
         self.vid16_kids, _ = self.meta.get_raw(self.txn, '_vid16_kids', (None, 0))
+        self.partition = ujson.loads(self.meta.get(self.txn, 'partition', 'null'))
+        self.pdata = ujson.loads(self.meta.get(self.txn, '_pdata', 'null'))
         self.host = socket.gethostname()
-        # for col in table._columns:
-        #     print "splink: %s" % col
 
     def iter_all(self):
         return xrange(1, self.number_rows)
@@ -1398,3 +1411,26 @@ def _insert_row(data, txn, dbs, row_id, vid_trie, vid16_trie):
             bitmap_dict[val].set(row_id)
     except Exception as e:
         print "Can't INSERT: %s %s: %s" % (repr(data), column, e)
+
+
+class PartitionDB(object):
+    '''
+    A fake mdb-like class just for partition columns.
+    '''
+    def __init__(self, partition):
+        self.echome = partition
+
+    def put(self, txn, row_id, val):
+        return
+
+    def mget(self, txn, keys, default=None):
+        '''keys should be a bitmap
+        '''
+        for i in range(len(keys)):
+            yield self.echome
+
+    def get(self, txn, key, default=None):
+        return self.echome
+
+    def close(self):
+        return
