@@ -240,7 +240,7 @@ class SelectPipe(Job):
         select_hash_cols = ()
         sort_range = _get_sort_range(0, project, self.order_by)
         join_stage = []
-        if join:
+        if join or full_join:
             joinbins = [i + 2 for i in binaries]
             join_stage = [
                 (GROUP_LABEL, HustleStage('join',
@@ -320,13 +320,17 @@ class SelectPipe(Job):
 
         pipeline = [(SPLIT, HustleStage('restrict-select',
                                         process=partial(process_restrict,
+                                                        ffuncs=efs,
+                                                        ghfuncs=ehches,
+                                                        deffuncs=dflts,
+                                                        group_fn=process_group_fn,
                                                         label_fn=partial(_tuple_hash,
                                                                          cols=select_hash_cols,
                                                                          p=partition)),
                                         input_chain=[task_input_stream,
                                                      partial(hustle_input_stream,
                                                              wheres=wheres,
-                                                             gen_where_index=join,
+                                                             gen_where_index=join or full_join,
                                                              key_names=key_names,
                                                              default_values=default_values)]))
                     ] + join_stage + group_by_stage + list(pre_order_stage) + order_stage
@@ -344,8 +348,9 @@ def _tuple_hash(key, cols, p):
     return r % p
 
 
-def process_restrict(interface, state, label, inp, task, label_fn):
+def process_restrict(interface, state, label, inp, task, label_fn, ffuncs, ghfuncs, deffuncs, group_fn):
     from disco import util
+    empty = ()
 
     # import sys
     # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
@@ -365,10 +370,30 @@ def process_restrict(interface, state, label, inp, task, label_fn):
     if not input_processed:
         raise Exception("Input %s not processed, no LOCAL resource found." % str(inp.input))
 
-    for key, value in inp:
-        out_label = label_fn(key)
-        # print "RESTRICT: %s %s" % (key, value)
-        interface.output(out_label).add(key, value)
+    if any(ffuncs):
+        import copy
+        vals = {}
+        baseaccums = [default() if default else None for default in deffuncs]
+        for rec, value in inp:
+            key = tuple([e if ef is None else None for e, ef in zip(rec, ffuncs)])
+            if key not in vals:
+                vals[key] = copy.copy(baseaccums)
+                accums = vals[key]
+            else:
+                accums = vals[key]
+
+            vals[key] = [f(a, v) if None not in (f, a, v) else None
+                      for f, a, v in zip(ffuncs, accums, rec)]
+
+        for key, accums in vals.iteritems():
+            accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
+            yield tuple(g if g is not None else a for g, a in zip(key, accum)), empty
+
+    else:
+        for key, value in inp:
+            out_label = label_fn(key)
+            # print "RESTRICT: %s %s" % (key, value)
+            interface.output(out_label).add(key, value)
 
 
 def process_join(interface, state, label, inp, task, full_join, label_fn):
@@ -442,7 +467,7 @@ def _group(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
     # print "Base: %s" % repr(baseaccums)
 
     # pull the key apart
-    for group, tups in groupby(inp, lambda (k, _): tuple([e if ef is None else None for e, ef in zip(k, ffuncs)])):
+    for group, tups in groupby(inp, lambda (k, _): tuple(e if ef is None else None for e, ef in zip(k, ffuncs))):
         accums = copy.copy(baseaccums)
         for record, _ in tups:
             # print "REC: %s" % repr(record)
