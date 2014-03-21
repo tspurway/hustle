@@ -304,6 +304,7 @@ def _create_job(*project, **kwargs):
     wheres = ensure_list(settings.pop('where', ()))
     order_by = ensure_list(settings.pop('order_by', ()))
     join = settings.pop('join', ())
+    full_join = settings.pop('full_join', False)
     distinct = settings.pop('distinct', False)
     desc = settings.pop('desc', False)
     limit = settings.pop('limit', None)
@@ -333,6 +334,7 @@ def _create_job(*project, **kwargs):
                      project=project,
                      order_by=order_by,
                      join=join,
+                     full_join=full_join,
                      distinct=distinct,
                      desc=desc,
                      limit=limit,
@@ -442,6 +444,13 @@ def select(*project, **kwargs):
             join pix p on p.site_id = p.site_id
             where i.date < '2014-01-13' and i.date < '2014-01-13'
             group by i.ad_id, i.site_id
+
+    :type full_join: bool
+    :param full_join:
+
+        if True, specifies that a full join between the specified tables in the *where clause* should
+        be joined in a full cross-product.  Note that if both *full_join* and *join* are specified, *join* will
+        be ignored.
 
     :type order_by: string | :class:`Column <hustle.core.marble.Column>` | int |
         (sequence of string | :class:`Column <hustle.core.marble.Column>` | int)
