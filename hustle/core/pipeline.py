@@ -64,7 +64,6 @@ def hustle_output_stream(stream, partition, url, params, result_table):
             self.meta.put_raw(self.txn, '_vid16_kids', vk16_ptr, vk16_len)
             self.meta.put(self.txn, 'name', ujson.dumps(self.result_table._name))
             self.meta.put(self.txn, 'fields', ujson.dumps(self.result_table._fields))
-            self.meta.put(self.txn, 'partition', ujson.dumps(self.result_table._partition))
             for index, (subdb, subindexdb, bitmap_dict, column) in self.dbs.iteritems():
                 if subindexdb:
                     # process all values for this bitmap index
