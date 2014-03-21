@@ -94,7 +94,7 @@ def hustle_output_stream(stream, partition, url, params, result_table):
     return HustleOutputStream(stream, url, params)
 
 
-def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_names):
+def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_names, default_values=None):
     from disco import util
     from hustle.core.marble import Expr, MarbleStream
     from itertools import izip, repeat
@@ -117,6 +117,9 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
         otab = MarbleStream(fle)
         bitmaps = {}
+
+        if default_values is None:
+            default_values = tuple(repeat(None, ))
         for index, where in enumerate(wheres):
             # do not process where clauses that have nothing to do with this marble
             if where._name == otab.marble._name:
@@ -131,8 +134,8 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         for index, (bitmap, blen) in bitmaps.iteritems():
             prefix_gen = [repeat(index, blen)] if gen_where_index else []
 
-            row_iter = prefix_gen + [otab.mget(col, bitmap) if col is not None else repeat(None, blen)
-                                     for col in key_names[index]]
+            row_iter = prefix_gen + [otab.mget(col, bitmap) if col is not None else repeat(def_val, blen)
+                                     for def_val, col in zip(default_values[index], key_names[index])]
 
             for row in izip(*row_iter):
                 yield row, empty
@@ -193,16 +196,21 @@ class SelectPipe(Job):
         return rval
 
     def _get_key_names(self, project, join):
-        result = []
+        key_names = []
+        default_values = []
         for where in self.wheres:
             table_name = self._get_table(where)._name
-            rval = []
+            keys = []
+            defs = []
             if join:
                 join_column = next(c.name for c in join if c.table._name == table_name)
-                rval.append(join_column)
-            rval += tuple(c.column.name if c.table and c.table._name == table_name else None for c in project)
-            result.append(rval)
-        return result
+                keys.append(join_column)
+                defs.append(None)
+            keys += tuple(c.column.name if c.table and c.table._name == table_name else None for c in project)
+            defs += tuple(c.default() if type(c) is Aggregation and c.table is None else None for c in project)
+            key_names.append(keys)
+            default_values.append(defs)
+        return key_names, default_values
 
     def __init__(self,
                  master,
@@ -210,6 +218,7 @@ class SelectPipe(Job):
                  project=(),
                  order_by=(),
                  join=(),
+                 full_join=False,
                  distinct=False,
                  desc=False,
                  limit=0,
@@ -237,6 +246,7 @@ class SelectPipe(Job):
                                           sort=(1, 0),
                                           binaries=joinbins,
                                           process=partial(process_join,
+                                                          full_join=full_join,
                                                           label_fn=partial(_tuple_hash,
                                                                            cols=sort_range,
                                                                            p=partition))))]
@@ -305,6 +315,8 @@ class SelectPipe(Job):
         if not select_hash_cols:
             select_hash_cols = sort_range
 
+        key_names, default_values = self._get_key_names(project, join)
+
         pipeline = [(SPLIT, HustleStage('restrict-select',
                                         process=partial(process_restrict,
                                                         label_fn=partial(_tuple_hash,
@@ -314,7 +326,8 @@ class SelectPipe(Job):
                                                      partial(hustle_input_stream,
                                                              wheres=wheres,
                                                              gen_where_index=join,
-                                                             key_names=self._get_key_names(project, join))]))
+                                                             key_names=key_names,
+                                                             default_values=default_values)]))
                     ] + join_stage + group_by_stage + list(pre_order_stage) + order_stage
 
         # determine the style of output (ie. if it is a Hustle Table), and modify the last stage accordingly
@@ -332,6 +345,12 @@ def _tuple_hash(key, cols, p):
 
 def process_restrict(interface, state, label, inp, task, label_fn):
     from disco import util
+
+    # import sys
+    # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
+    # import pydevd
+    # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
+    #
 
     # inp contains a set of replicas, let's force local #HACK
     input_processed = False
@@ -351,7 +370,7 @@ def process_restrict(interface, state, label, inp, task, label_fn):
         interface.output(out_label).add(key, value)
 
 
-def process_join(interface, state, label, inp, task, label_fn):
+def process_join(interface, state, label, inp, task, full_join, label_fn):
     """
     Processor function for the join stage.
 
@@ -417,7 +436,7 @@ def _group(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
     # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
     # import pydevd
     # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
-
+    #
     baseaccums = [default() if default else None for default in deffuncs]
     # print "Base: %s" % repr(baseaccums)
 

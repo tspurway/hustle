@@ -18,18 +18,18 @@ class TestPipeline(unittest.TestCase):
         project = [self.emp.name, self.emp.salary, self.dept.building]
 
         pipe = SelectPipe('server', wheres=wheres, project=project)
-        self.assertTupleEqual(('name', 'salary', None), tuple(pipe._get_key_names(project, ())[0]))
-        self.assertTupleEqual((None, None, 'building'), tuple(pipe._get_key_names(project, ())[1]))
+        self.assertTupleEqual(('name', 'salary', None), tuple(pipe._get_key_names(project, ())[0][0]))
+        self.assertTupleEqual((None, None, 'building'), tuple(pipe._get_key_names(project, ())[0][1]))
 
         join = [self.dept.id, self.emp.department_id]
         pipe = SelectPipe('server', wheres=wheres, project=project, join=join)
-        self.assertTupleEqual(('department_id', 'name', 'salary', None), tuple(pipe._get_key_names(project, join)[0]))
-        self.assertTupleEqual(('id', None, None, 'building'), tuple(pipe._get_key_names(project, join)[1]))
+        self.assertTupleEqual(('department_id', 'name', 'salary', None), tuple(pipe._get_key_names(project, join)[0][0]))
+        self.assertTupleEqual(('id', None, None, 'building'), tuple(pipe._get_key_names(project, join)[0][1]))
 
         project = [self.dept.building, self.emp.name, self.emp.salary]
         pipe = SelectPipe('server', wheres=wheres, project=project, join=join)
-        self.assertTupleEqual(('department_id', None, 'name', 'salary'), tuple(pipe._get_key_names(project, join)[0]))
-        self.assertTupleEqual(('id', 'building', None, None), tuple(pipe._get_key_names(project, join)[1]))
+        self.assertTupleEqual(('department_id', None, 'name', 'salary'), tuple(pipe._get_key_names(project, join)[0][0]))
+        self.assertTupleEqual(('id', 'building', None, None), tuple(pipe._get_key_names(project, join)[0][1]))
 
     def test_get_sort_range(self):
         project = [self.emp.name, self.emp.salary, self.dept.building]
