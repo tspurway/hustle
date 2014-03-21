@@ -338,11 +338,10 @@ class Marble(object):
 
             if column.is_boolean:
                 subdb = BooleanDB(subindexdb, txn)
-            else:
-                flags = mdb.MDB_CREATE | mdb.MDB_INTEGERKEY
-            if column.partition:
+            elif column.partition:
                 subdb = PartitionDB(column.name)
             else:
+                flags = mdb.MDB_CREATE | mdb.MDB_INTEGERKEY
                 if column.is_int:
                     flags |= mdb.MDB_INTEGERDUP
                 subdb = env.open_db(txn,
