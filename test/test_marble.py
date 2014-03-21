@@ -56,6 +56,7 @@ class TestMarble(unittest.TestCase):
             self.assertEqual(meta.get(txn, "name"), ujson.dumps("Collections"))
             self.assertEqual(meta.get(txn, "partition"), ujson.dumps("date"))
             self.assertEqual(meta.get(txn, "fields"), ujson.dumps(_FIELDS))
+            self.assertEqual(meta.get(txn, "_pdata"), ujson.dumps(date))
             vid_nodes, _ = meta.get_raw(txn, '_vid_nodes')
             vid_kids, _ = meta.get_raw(txn, '_vid_kids')
             vid16_nodes, _ = meta.get_raw(txn, '_vid16_nodes', (None, 0))
