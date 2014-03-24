@@ -107,7 +107,7 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         raise e
 
     fle = util.localize(rest, disco_data=params._task.disco_data, ddfs_data=params._task.ddfs_data)
-    # print "FLOGLE: %s %s" % (url, fle)
+    print "FLOGLE: %s %s" % (url, fle)
 
     otab = None
     try:
@@ -318,11 +318,11 @@ class SelectPipe(Job):
         key_names, default_values = self._get_key_names(project, join)
 
         pipeline = [(SPLIT, HustleStage('restrict-select',
+                                        combine=True,
                                         process=partial(process_restrict,
-                                                        ffuncs=efs,
-                                                        ghfuncs=ehches,
-                                                        deffuncs=dflts,
-                                                        group_fn=process_group_fn,
+                                                        # ffuncs=efs,
+                                                        # ghfuncs=ehches,
+                                                        # deffuncs=dflts,
                                                         label_fn=partial(_tuple_hash,
                                                                          cols=select_hash_cols,
                                                                          p=partition)),
@@ -347,16 +347,17 @@ def _tuple_hash(key, cols, p):
     return r % p
 
 
-def process_restrict(interface, state, label, inp, task, label_fn, ffuncs, ghfuncs, deffuncs, group_fn):
+def process_restrict(interface, state, label, inp, task, label_fn=None, ffuncs=None, ghfuncs=None, deffuncs=None):
     from disco import util
     empty = ()
+
+    print "GOLLY GEE!"
 
     # import sys
     # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
     # import pydevd
     # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
     #
-
     # inp contains a set of replicas, let's force local #HACK
     input_processed = False
     for i, inp_url in inp.input.replicas:
@@ -370,6 +371,7 @@ def process_restrict(interface, state, label, inp, task, label_fn, ffuncs, ghfun
         raise Exception("Input %s not processed, no LOCAL resource found." % str(inp.input))
 
     if any(ffuncs):
+
         import copy
         vals = {}
         baseaccums = [default() if default else None for default in deffuncs]

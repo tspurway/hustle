@@ -242,13 +242,21 @@ class Worker(worker.Worker):
         interface = self.make_interface(task, stage, params)
         state = stage.init(interface, params) if callable(stage.init) else None
         if callable(stage.process):
+            import sys
+            sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
+            import pydevd
+            pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
             input_map = self.prepare_input_map(task, stage, params)
-            for label in stage.input_hook(state, input_map.keys()):
-                if stage.combine:
-                    stage.process(interface, state, label, worker.SerialInput(input_map[label]), task)
-                else:
-                    for inp in input_map[label]:
-                        stage.process(interface, state, label, inp, task)
+            try:
+                for label in stage.input_hook(state, input_map.keys()):
+                    if stage.combine:
+                        stage.process(interface, state, label, worker.SerialInput(input_map[label]), task)
+                    else:
+                        for inp in input_map[label]:
+                            stage.process(interface, state, label, inp, task)
+            except Exception as e:
+                print "GLEE!!", e
+                raise e
         if callable(stage.done):
             stage.done(interface, state)
 
