@@ -1873,7 +1873,7 @@ class DupReader(object):
             return default
         finally:
             txn.commit()
-        return self.decode_fn(value)
+        return self.decode_fn(value) if value is not default else value
 
     def iteritems(self):
         txn = self.env.begin_txn(flags=MDB_RDONLY)
@@ -1933,7 +1933,7 @@ class Reader(object):
             return default
         finally:
             txn.commit()
-        return self.decode_fn(value)
+        return self.decode_fn(value) if value is not default else value
 
     def iteritems(self):
         txn = self.env.begin_txn(flags=MDB_RDONLY)
