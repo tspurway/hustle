@@ -34,13 +34,6 @@ cdef extern from "ewah.h":
         void reset() nogil
         void inplace_logicalnot() nogil
 
-cdef size_t _round_up(size_t s):
-    '''
-    Round s up to the next multiple of 64.
-    Note s must be greater than 0
-    '''
-    return <size_t>((s - 1 | 0x3F) + 1)
-
 
 cdef class BitSet:
     cdef EWAHBoolArray[uint64_t] *thisptr
