@@ -78,6 +78,21 @@ class BitSetTest(unittest.TestCase):
         # test the logical not doesn't generate any numbers that are greater
         # than 9 in this case
         self.assertEqual(list(c), [2, 3, 4, 5, 6, 7])
+        d = ~c
+        self.assertListEqual(list(d), [0, 1, 8, 9])
+
+    def test_logical_not_1(self):
+        b = BitSet()
+        b.set(0)
+        b.set(1)
+        b.set(7)
+        b.set(8)
+        c = ~b
+        # test the logical not doesn't generate any numbers that are greater
+        # than 9 in this case
+        self.assertEqual(list(c), [2, 3, 4, 5, 6])
+        d = ~c
+        self.assertListEqual(list(d), [0, 1, 7, 8])
 
     def test_generator(self):
         b = BitSet()
