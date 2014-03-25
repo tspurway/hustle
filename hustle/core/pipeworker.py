@@ -87,12 +87,8 @@ def disk_sort(input, filename, sort_keys, binaries=(), sort_buffer_size='10%', d
         for i, key in enumerate(k):
             if key == b'\x00':
                 rkey = None
-            elif i in binaries and key_types[i] != 'n':
-                try:
-                    rkey = base64.b64decode(key)
-                except Exception as e:
-                    print "DECODE Error: %s" % key
-                    raise e
+            elif i in binaries:
+                rkey = base64.b64decode(key)
             else:
                 rkey = ujson.loads(key)
             rval.append(rkey)
@@ -242,21 +238,13 @@ class Worker(worker.Worker):
         interface = self.make_interface(task, stage, params)
         state = stage.init(interface, params) if callable(stage.init) else None
         if callable(stage.process):
-            import sys
-            sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
-            import pydevd
-            pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
             input_map = self.prepare_input_map(task, stage, params)
-            try:
-                for label in stage.input_hook(state, input_map.keys()):
-                    if stage.combine:
-                        stage.process(interface, state, label, worker.SerialInput(input_map[label]), task)
-                    else:
-                        for inp in input_map[label]:
-                            stage.process(interface, state, label, inp, task)
-            except Exception as e:
-                print "GLEE!!", e
-                raise e
+            for label in stage.input_hook(state, input_map.keys()):
+                if stage.combine:
+                    stage.process(interface, state, label, worker.SerialInput(input_map[label]), task)
+                else:
+                    for inp in input_map[label]:
+                        stage.process(interface, state, label, inp, task)
         if callable(stage.done):
             stage.done(interface, state)
 

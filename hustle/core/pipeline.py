@@ -108,7 +108,7 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         raise e
 
     fle = util.localize(rest, disco_data=params._task.disco_data, ddfs_data=params._task.ddfs_data)
-    print "FLOGLE: %s %s" % (url, fle)
+    # print "FLOGLE: %s %s" % (url, fle)
 
     otab = None
     try:
@@ -144,10 +144,6 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
     finally:
         if otab:
             otab.close()
-
-
-def hustle_combine_input_stream(fd, size, url, params):
-    pass
 
 
 class SelectPipe(Job):
@@ -257,26 +253,25 @@ class SelectPipe(Job):
                                          if isinstance(c, Aggregation) else (None, None, None, None)
                                          for c in project])
         group_by_stage = []
-        if all([isinstance(c, Aggregation) for c in project]):
-            process_group_fn = _skip
-            group_by_range = []
-        else:
-            process_group_fn = _group
-            group_by_range = [i for i, c in enumerate(project) if isinstance(c, Column)]
         if any(efs):
             # If all columns in project are aggregations, use process_skip_group
             # to skip the internal groupby
+            if all([isinstance(c, Aggregation) for c in project]):
+                process_group_fn = process_skip_group
+                group_by_range = []
+            else:
+                process_group_fn = process_group
+                group_by_range = [i for i, c in enumerate(project) if isinstance(c, Column)]
 
             # build the pipeline
             group_by_stage = [
                 (GROUP_LABEL_NODE, HustleStage('group-combine',
                                                sort=group_by_range,
                                                binaries=binaries,
-                                               process=partial(process_group,
+                                               process=partial(process_group_fn,
                                                                ffuncs=efs,
                                                                ghfuncs=ehches,
                                                                deffuncs=dflts,
-                                                               group_fn=process_group_fn,
                                                                label_fn=partial(_tuple_hash,
                                                                                 cols=group_by_range,
                                                                                 p=partition)))),
@@ -286,11 +281,10 @@ class SelectPipe(Job):
                                           input_sorted=True,
                                           combine=True,
                                           sort=group_by_range,
-                                          process=partial(process_group,
+                                          process=partial(process_group_fn,
                                                           ffuncs=efs,
                                                           ghfuncs=gees,
-                                                          deffuncs=dflts,
-                                                          group_fn=process_group_fn)))]
+                                                          deffuncs=dflts)))]
 
         # process the order_by/distinct stage
         order_stage = []
@@ -321,9 +315,6 @@ class SelectPipe(Job):
         pipeline = [(SPLIT, HustleStage('restrict-select',
                                         combine=True,
                                         process=partial(process_restrict,
-                                                        # ffuncs=efs,
-                                                        # ghfuncs=ehches,
-                                                        # deffuncs=dflts,
                                                         label_fn=partial(_tuple_hash,
                                                                          cols=select_hash_cols,
                                                                          p=partition)),
@@ -348,54 +339,11 @@ def _tuple_hash(key, cols, p):
     return r % p
 
 
-def process_restrict(interface, state, label, inp, task, label_fn=None, ffuncs=None, ghfuncs=None, deffuncs=None):
-    from disco import util
-    empty = ()
-
-    print "GOLLY GEE!"
-
-    # import sys
-    # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
-    # import pydevd
-    # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
-    #
-    # inp contains a set of replicas, let's force local #HACK
-    input_processed = False
-    for i, inp_url in inp.input.replicas:
-        scheme, (netloc, port), rest = util.urlsplit(inp_url)
-        if netloc == task.host:
-            input_processed = True
-            inp.input = inp_url
-            break
-
-    if not input_processed:
-        raise Exception("Input %s not processed, no LOCAL resource found." % str(inp.input))
-
-    if any(ffuncs):
-
-        import copy
-        vals = {}
-        baseaccums = [default() if default else None for default in deffuncs]
-        for rec, value in inp:
-            key = tuple([e if ef is None else None for e, ef in zip(rec, ffuncs)])
-            if key not in vals:
-                vals[key] = copy.copy(baseaccums)
-                accums = vals[key]
-            else:
-                accums = vals[key]
-
-            vals[key] = [f(a, v) if None not in (f, a, v) else None
-                      for f, a, v in zip(ffuncs, accums, rec)]
-
-        for key, accums in vals.iteritems():
-            accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
-            yield tuple(g if g is not None else a for g, a in zip(key, accum)), empty
-
-    else:
-        for key, value in inp:
-            out_label = label_fn(key)
-            # print "RESTRICT: %s %s" % (key, value)
-            interface.output(out_label).add(key, value)
+def process_restrict(interface, state, label, inp, task, label_fn):
+    for key, value in inp:
+        out_label = label_fn(key)
+        # print "RESTRICT: %s %s" % (key, value)
+        interface.output(out_label).add(key, value)
 
 
 def process_join(interface, state, label, inp, task, full_join, label_fn):
@@ -447,24 +395,20 @@ def process_order(interface, state, label, inp, task, distinct, limit):
             interface.output(label).add(key, value)
 
 
-def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, group_fn, label_fn=None):
-    empty = ()
-    for lab, key in group_fn(inp, label, ffuncs, ghfuncs, deffuncs, label_fn):
-        interface.output(lab).add(key, empty)
+def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn=None):
+    """Process function of aggregation combine stage.
 
-
-def _group(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
-    """
-    Process function of aggregation combine stage.
     """
     from itertools import groupby
     import copy
+
+    empty = ()
 
     # import sys
     # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
     # import pydevd
     # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
-    #
+
     baseaccums = [default() if default else None for default in deffuncs]
     # print "Base: %s" % repr(baseaccums)
 
@@ -488,13 +432,13 @@ def _group(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
             label = label_fn(group)
         key = tuple(g if g is not None else a for g, a in zip(group, accum))
         # print "GROUP: %s \nKEY: %s" % (repr(group), repr(key))
-        yield label, key
+        interface.output(label).add(key, empty)
 
 
-def _skip(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
+def process_skip_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn=None):
+    """Process function of aggregation combine stage without groupby.
     """
-    Process function of aggregation combine stage without groupby.
-    """
+    empty = ()
     accums = [default() if default else None for default in deffuncs]
     for record, _ in inp:
         try:
@@ -504,7 +448,7 @@ def _skip(inp, label, ffuncs, ghfuncs, deffuncs, label_fn=None):
             raise e
 
     accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
-    yield 0, tuple(accum)
+    interface.output(0).add(tuple(accum), empty)
 
 
 def _get_sort_range(select_offset, select_columns, order_by_columns):
