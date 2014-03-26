@@ -1838,7 +1838,7 @@ class DupReader(object):
                  int_key=MDB_STR, int_val=MDB_STR, decode_fn=None):
         self.path = path
         self.db_name = db_name
-        self.env = Env(path, flags=MDB_RDONLY)
+        self.env = Env(path, flags=MDB_RDONLY|MDB_NOTLS)
         txn = self.env.begin_txn(flags=MDB_RDONLY)
         flags = MDB_DUPSORT
         flags |= MDB_INTEGERKEY if int_key else 0
@@ -1848,40 +1848,53 @@ class DupReader(object):
         txn.commit()
 
     def get(self, key):
-        txn = self.env.begin_txn(flags=MDB_RDONLY)
-        values = self.db.get_dup(txn, key)
         try:
-            for value in values:
-                yield self.decode_fn(value)
-        finally:
-            txn.commit()
+            txn = self.env.begin_txn(flags=MDB_RDONLY)
+        except Exception as e:
+            print "MDB Error: %s" % e
+            yield None
+        else:
+            values = self.db.get_dup(txn, key)
+            try:
+                for value in values:
+                    yield self.decode_fn(value)
+            finally:
+                txn.commit()
 
     def contains(self, key):
-        txn = self.env.begin_txn(flags=MDB_RDONLY)
-        ret = False
         try:
+            txn = self.env.begin_txn(flags=MDB_RDONLY)
+        except Exception as e:
+            print "MDB Error: %s" % e
+            return False
+        else:
             ret = self.db.contains(txn, key)
-        finally:
             txn.commit()
-        return ret
+            return ret
 
     def get_first(self, key, default=None):
-        txn = self.env.begin_txn(flags=MDB_RDONLY)
         try:
-            value = self.db.get(txn, key)
-        except Exception:
+            txn = self.env.begin_txn(flags=MDB_RDONLY)
+        except Exception as e:
+            print "MDB Error: %s" % e
             return default
-        finally:
+        else:
+            value = self.db.get(txn, key)
             txn.commit()
-        return self.decode_fn(value) if value is not default else value
+            return self.decode_fn(value) if value is not default else value
 
     def iteritems(self):
-        txn = self.env.begin_txn(flags=MDB_RDONLY)
         try:
-            for key, value in self.db.dup_items(txn):
-                yield key, self.decode_fn(value)
-        finally:
-            txn.commit()
+            txn = self.env.begin_txn(flags=MDB_RDONLY)
+        except Exception as e:
+            print "MDB Error: %s" % e
+            yield None, None
+        else:
+            try:
+                for key, value in self.db.dup_items(txn):
+                    yield key, self.decode_fn(value)
+            finally:
+                txn.commit()
 
     def close(self):
         self.db.close()
@@ -1907,7 +1920,7 @@ class Reader(object):
                  int_key=MDB_STR, int_val=MDB_STR, decode_fn=None):
         self.path = path
         self.db_name = db_name
-        self.env = Env(path, flags=MDB_RDONLY)
+        self.env = Env(path, flags=MDB_RDONLY|MDB_NOTLS)
         txn = self.env.begin_txn(flags=MDB_RDONLY)
         flags= 0
         flags |= MDB_INTEGERKEY if int_key else 0
@@ -1917,31 +1930,39 @@ class Reader(object):
         txn.commit()
 
     def contains(self, key):
-        txn = self.env.begin_txn(flags=MDB_RDONLY)
-        ret = False
         try:
+            txn = self.env.begin_txn(flags=MDB_RDONLY)
+        except Exception as e:
+            print "MDB Error: %s" % e
+            return False
+        else:
             ret = self.db.contains(txn, key)
-        finally:
             txn.commit()
-        return ret
+            return ret
 
     def get(self, key, default=None):
-        txn = self.env.begin_txn(flags=MDB_RDONLY)
         try:
-            value = self.db.get(txn, key, default)
-        except Exception:
+            txn = self.env.begin_txn(flags=MDB_RDONLY)
+        except Exception as e:
+            print "MDB Error: %s" % e
             return default
-        finally:
+        else:
+            value = self.db.get(txn, key, default)
             txn.commit()
-        return self.decode_fn(value) if value is not default else value
+            return self.decode_fn(value) if value is not default else value
 
     def iteritems(self):
-        txn = self.env.begin_txn(flags=MDB_RDONLY)
         try:
-            for key, value in self.db.items(txn):
-                yield key, self.decode_fn(value)
-        finally:
-            txn.commit()
+            txn = self.env.begin_txn(flags=MDB_RDONLY)
+        except Exception as e:
+            print "MDB Error: %s" % e
+            yield None, None
+        else:
+            try:
+                for key, value in self.db.items(txn):
+                    yield key, self.decode_fn(value)
+            finally:
+                txn.commit()
 
     def close(self):
         self.db.close()
