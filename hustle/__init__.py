@@ -308,6 +308,7 @@ def _create_job(*project, **kwargs):
     distinct = settings.pop('distinct', False)
     desc = settings.pop('desc', False)
     limit = settings.pop('limit', None)
+    wide = settings.pop('wide', False)
     pre_order_stage = settings.pop('pre_order_stage', ())
     ddfs = settings['ddfs']
     partition = settings.get('partition', 0)
@@ -340,6 +341,7 @@ def _create_job(*project, **kwargs):
                      limit=limit,
                      partition=partition,
                      nest=nest,
+                     wide=wide,
                      pre_order_stage=pre_order_stage)
     return job, job_blobs, name
 

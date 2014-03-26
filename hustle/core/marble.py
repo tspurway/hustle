@@ -569,6 +569,7 @@ class Column(object):
         self.is_int = self.type_indicator != mdb.MDB_STR or self.compression_indicator == 0
         self.is_numeric = self.type_indicator > 0
         self.is_index = self.index_indicator > 0
+        self.is_wide = self.index_indicator == 2
 
         # use dictionary (trie) compression if required
         if self.is_trie:
