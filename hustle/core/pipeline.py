@@ -221,6 +221,7 @@ class SelectPipe(Job):
                  limit=0,
                  partition=0,
                  nest=False,
+                 wide=False,
                  pre_order_stage=()):
         from hustle.core.pipeworker import Worker
 
@@ -264,27 +265,28 @@ class SelectPipe(Job):
                 group_by_range = [i for i, c in enumerate(project) if isinstance(c, Column)]
 
             # build the pipeline
-            group_by_stage = [
-                (GROUP_LABEL_NODE, HustleStage('group-combine',
-                                               sort=group_by_range,
-                                               binaries=binaries,
-                                               process=partial(process_group_fn,
-                                                               ffuncs=efs,
-                                                               ghfuncs=ehches,
-                                                               deffuncs=dflts,
-                                                               label_fn=partial(_tuple_hash,
-                                                                                cols=group_by_range,
-                                                                                p=partition)))),
-                # A Hack here that overrides disco stage's default option 'combine'.
-                # Hustle needs all inputs with the same label to be combined.
-                (GROUP_LABEL, HustleStage('group-reduce',
-                                          input_sorted=True,
-                                          combine=True,
-                                          sort=group_by_range,
-                                          process=partial(process_group_fn,
-                                                          ffuncs=efs,
-                                                          ghfuncs=gees,
-                                                          deffuncs=dflts)))]
+            group_by_stage = []
+            if wide or join:
+                group_by_stage = [
+                    (GROUP_LABEL_NODE, HustleStage('group-combine',
+                                                   sort=group_by_range,
+                                                   binaries=binaries,
+                                                   process=partial(process_group_fn,
+                                                                   ffuncs=efs,
+                                                                   ghfuncs=ehches,
+                                                                   deffuncs=dflts,
+                                                                   label_fn=partial(_tuple_hash,
+                                                                                    cols=group_by_range,
+                                                                                    p=partition))))]
+            # A Hack here that overrides disco stage's default option 'combine'.
+            # Hustle needs all inputs with the same label to be combined.
+            group_by_stage.append((GROUP_LABEL, HustleStage('group-reduce',
+                                                             combine=True,
+                                                             sort=group_by_range,
+                                                             process=partial(process_group_fn,
+                                                                             ffuncs=efs,
+                                                                             ghfuncs=gees,
+                                                                             deffuncs=dflts))))
 
         # process the order_by/distinct stage
         order_stage = []
@@ -315,6 +317,10 @@ class SelectPipe(Job):
         pipeline = [(SPLIT, HustleStage('restrict-select',
                                         combine=True,
                                         process=partial(process_restrict,
+                                                        ffuncs=efs,
+                                                        ghfuncs=ehches,
+                                                        deffuncs=dflts,
+                                                        wide=wide or join,
                                                         label_fn=partial(_tuple_hash,
                                                                          cols=select_hash_cols,
                                                                          p=partition)),
@@ -339,11 +345,49 @@ def _tuple_hash(key, cols, p):
     return r % p
 
 
-def process_restrict(interface, state, label, inp, task, label_fn):
-    for key, value in inp:
-        out_label = label_fn(key)
-        # print "RESTRICT: %s %s" % (key, value)
-        interface.output(out_label).add(key, value)
+def process_restrict(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn, wide=False):
+    import copy
+
+    empty = ()
+    if any(ffuncs) and not wide:
+        if False: #all(ffuncs):
+            pass
+        else:
+            baseaccums = [default() if default else None for default in deffuncs]
+            vals = {}
+            for record, _ in inp:
+                group = tuple(e if ef is None else None for e, ef in zip(record, ffuncs))
+                if group in vals:
+                    accums = vals[group]
+                else:
+                    accums = copy.copy(baseaccums)
+
+                try:
+                    accums = [f(a, v) if None not in (f, a, v) else None
+                              for f, a, v in zip(ffuncs, accums, record)]
+                except Exception as e:
+                    # import sys
+                    # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
+                    # import pydevd
+                    # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
+                    print e
+                    print "YEEHEQW: f=%s a=%s r=%s g=%s" % (ffuncs, accums, record, group)
+                    import traceback
+                    print traceback.format_exc(15)
+                    raise e
+
+                vals[group] = accums
+
+            for group, accums in vals.iteritems():
+                accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
+                key = tuple(g if g is not None else a for g, a in zip(group, accum))
+                out_label = label_fn(group)
+                interface.output(out_label).add(key, empty)
+    else:
+        for key, value in inp:
+            out_label = label_fn(key)
+            # print "RESTRICT: %s %s" % (key, value)
+            interface.output(out_label).add(key, value)
 
 
 def process_join(interface, state, label, inp, task, full_join, label_fn):
