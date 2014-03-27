@@ -13,6 +13,7 @@ import os
 import tempfile
 import clz4
 import rtrie
+import time
 
 COMMIT_THRESHOLD = 50000
 
@@ -175,24 +176,27 @@ class Marble(object):
 
     @classmethod
     def _open_env(cls, filename, maxsize, write):
-        # make sure we dont create a lock when opening for read
+        # Always open env without locking, since readers and writers never show up
+        # togerther.
         if write:
-            oflags = mdb.MDB_WRITEMAP
+            oflags = mdb.MDB_WRITEMAP | mdb.MDB_NOLOCK
         else:
             oflags = mdb.MDB_RDONLY | mdb.MDB_NOLOCK
 
-        try:
-            env = mdb.Env(filename,
-                          max_dbs=1024,
-                          mapsize=maxsize,
-                          flags=oflags | mdb.MDB_NOSYNC | mdb.MDB_NOSUBDIR)
-        except Exception as e:
-            import os
-            print "Exception: " + str(e)
-            for i in os.walk('/proc/' + str(os.getpid()) + '/fd/'):
-                print "XXX:", i[0], str(os.stat(i[0]))
-            raise e
-        return env
+        retry = 0
+        while retry <= 11:
+            try:
+                env = mdb.Env(filename,
+                              max_dbs=1024,
+                              mapsize=maxsize,
+                              flags=oflags | mdb.MDB_NOSYNC | mdb.MDB_NOSUBDIR)
+            except Exception as e:
+                print "Error: %s" % e
+                retry += 1
+                time.sleep(5)
+            else:
+                return env
+        raise SystemError("Failed to open MDB env.")
 
     def _open(self, filename, maxsize=100 * 1024 * 1024, write=False, lru_size=10000):
         env = self._open_env(filename, maxsize, write)
@@ -317,15 +321,6 @@ class Marble(object):
                             counters[pdata] = 0
 
                         _insert_row(data, txn, dbs, autoincs[pdata], vid_tries[pdata], vid16_tries[pdata])
-                        # vid_trie = vid_tries[pdata]
-                        # vid16_trie = vid16_tries[pdata]
-                        # row_id = autoincs[pdata]
-                        # for subdb, subindexdb, bitmap_dict, column in dbs.itervalues():
-                        #
-                        #     val = column.converter(data.get(column.name, column.default_value) or column.default_value,
-                        #                            vid_trie, vid16_trie)
-                        #     subdb.put(txn, row_id, val)
-                        #     bitmap_dict[val].set(row_id)
                         autoincs[pdata] += 1
                         counters[pdata] += 1
 
@@ -384,7 +379,6 @@ class Marble(object):
         finally:
             for _, (bigfile, _, _, _, _, _) in partitions.iteritems():
                 os.unlink(bigfile)
-                os.unlink(bigfile + '-lock')
 
 
 class MarbleStream(object):
