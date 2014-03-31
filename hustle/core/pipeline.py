@@ -107,7 +107,7 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         raise e
 
     fle = util.localize(rest, disco_data=params._task.disco_data, ddfs_data=params._task.ddfs_data)
-    # print "FLOGLE: %s %s" % (url, fle)
+    print "FLOGLE: %s %s" % (url, fle)
 
     otab = None
     try:
@@ -233,9 +233,15 @@ class SelectPipe(Job):
         # if nest is true, use output_schema to store the output table
         self.output_table = None
 
+        # aggregation functions and their defaults
+        efs, gees, ehches, dflts = zip(*[(c.f, c.g, c.h, c.default)
+                                         if isinstance(c, Aggregation) else (None, None, None, None)
+                                         for c in project])
+
         # build the pipeline
         select_hash_cols = ()
         sort_range = _get_sort_range(0, project, self.order_by)
+
         join_stage = []
         if join or full_join:
             joinbins = [i + 2 for i in binaries]
@@ -250,9 +256,6 @@ class SelectPipe(Job):
                                                                            p=partition))))]
             select_hash_cols = (1,)
 
-        efs, gees, ehches, dflts = zip(*[(c.f, c.g, c.h, c.default)
-                                         if isinstance(c, Aggregation) else (None, None, None, None)
-                                         for c in project])
         group_by_stage = []
         if any(efs):
             # If all columns in project are aggregations, use process_skip_group
@@ -316,7 +319,7 @@ class SelectPipe(Job):
         key_names, default_values = self._get_key_names(project, join)
 
         pipeline = [(SPLIT, HustleStage('restrict-select',
-                                        combine=True,
+                                        # combine=True,  # cannot set combine -- see #hack in restrict-select phase
                                         process=partial(process_restrict,
                                                         ffuncs=efs,
                                                         ghfuncs=ehches,
@@ -348,8 +351,22 @@ def _tuple_hash(key, cols, p):
 
 def process_restrict(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn, wide=False):
     import copy
-
+    from disco import util
     empty = ()
+
+    # inp contains a set of replicas, let's force local #HACK
+    input_processed = False
+    for i, inp_url in inp.input.replicas:
+        scheme, (netloc, port), rest = util.urlsplit(inp_url)
+        if netloc == task.host:
+            input_processed = True
+            inp.input = inp_url
+            break
+
+    if not input_processed:
+        raise Exception("Input %s not processed, no LOCAL resource found." % str(inp.input))
+
+
     if any(ffuncs) and not wide:
         baseaccums = [default() if default else None for default in deffuncs]
         vals = {}
