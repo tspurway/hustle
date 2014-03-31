@@ -167,6 +167,7 @@ class SelectPipe(Job):
                 fields.append(col.schema_string())
         name = '-'.join([w._name for w in self.wheres])[:64]
         # append a 3-digit random suffix to avoid name collision
+        # TODO: random doesn't guarantee uniqueness, 1/1000th chance of getting the same number
         self.output_table = Table(name="sub-%s-%03d" % (name, random.randint(0, 999)),
                                   fields=fields)
         return self.output_table
@@ -266,7 +267,7 @@ class SelectPipe(Job):
 
             # build the pipeline
             group_by_stage = []
-            if wide or join:
+            if wide or join or full_join:
                 group_by_stage = [
                     (GROUP_LABEL_NODE, HustleStage('group-combine',
                                                    sort=group_by_range,
@@ -281,12 +282,13 @@ class SelectPipe(Job):
             # A Hack here that overrides disco stage's default option 'combine'.
             # Hustle needs all inputs with the same label to be combined.
             group_by_stage.append((GROUP_LABEL, HustleStage('group-reduce',
-                                                             combine=True,
-                                                             sort=group_by_range,
-                                                             process=partial(process_group_fn,
-                                                                             ffuncs=efs,
-                                                                             ghfuncs=gees,
-                                                                             deffuncs=dflts))))
+                                                            combine=True,
+                                                            input_sorted=wide or join or full_join,
+                                                            sort=group_by_range,
+                                                            process=partial(process_group_fn,
+                                                                            ffuncs=efs,
+                                                                            ghfuncs=gees,
+                                                                            deffuncs=dflts))))
 
         # process the order_by/distinct stage
         order_stage = []
@@ -320,7 +322,7 @@ class SelectPipe(Job):
                                                         ffuncs=efs,
                                                         ghfuncs=ehches,
                                                         deffuncs=dflts,
-                                                        wide=wide or join,
+                                                        wide=wide or join or full_join,
                                                         label_fn=partial(_tuple_hash,
                                                                          cols=select_hash_cols,
                                                                          p=partition)),
@@ -350,33 +352,30 @@ def process_restrict(interface, state, label, inp, task, ffuncs, ghfuncs, deffun
 
     empty = ()
     if any(ffuncs) and not wide:
-        if False: #all(ffuncs):
-            pass
-        else:
-            baseaccums = [default() if default else None for default in deffuncs]
-            vals = {}
-            for record, _ in inp:
-                group = tuple(e if ef is None else None for e, ef in zip(record, ffuncs))
-                if group in vals:
-                    accums = vals[group]
-                else:
-                    accums = copy.copy(baseaccums)
+        baseaccums = [default() if default else None for default in deffuncs]
+        vals = {}
+        for record, _ in inp:
+            group = tuple(e if ef is None else None for e, ef in zip(record, ffuncs))
+            if group in vals:
+                accums = vals[group]
+            else:
+                accums = copy.copy(baseaccums)
 
-                try:
-                    accums = [f(a, v) if None not in (f, a, v) else None
-                              for f, a, v in zip(ffuncs, accums, record)]
-                except Exception as e:
-                    # import sys
-                    # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
-                    # import pydevd
-                    # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
-                    print e
-                    print "YEEHEQW: f=%s a=%s r=%s g=%s" % (ffuncs, accums, record, group)
-                    import traceback
-                    print traceback.format_exc(15)
-                    raise e
+            try:
+                accums = [f(a, v) if None not in (f, a, v) else None
+                          for f, a, v in zip(ffuncs, accums, record)]
+            except Exception as e:
+                # import sys
+                # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
+                # import pydevd
+                # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
+                print e
+                print "YEEHEQW: f=%s a=%s r=%s g=%s" % (ffuncs, accums, record, group)
+                import traceback
+                print traceback.format_exc(15)
+                raise e
 
-                vals[group] = accums
+            vals[group] = accums
 
             for group, accums in vals.iteritems():
                 accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
