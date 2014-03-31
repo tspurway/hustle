@@ -107,14 +107,10 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         raise e
 
     fle = util.localize(rest, disco_data=params._task.disco_data, ddfs_data=params._task.ddfs_data)
-    print "FLOGLE: %s %s" % (url, fle)
+    # print "FLOGLE: %s %s" % (url, fle)
 
     otab = None
     try:
-        # import sys
-        # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
-        # import pydevd
-        # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
         otab = MarbleStream(fle)
         bitmaps = {}
 
