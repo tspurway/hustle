@@ -377,11 +377,11 @@ def process_restrict(interface, state, label, inp, task, ffuncs, ghfuncs, deffun
 
             vals[group] = accums
 
-            for group, accums in vals.iteritems():
-                accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
-                key = tuple(g if g is not None else a for g, a in zip(group, accum))
-                out_label = label_fn(group)
-                interface.output(out_label).add(key, empty)
+        for group, accums in vals.iteritems():
+            accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
+            key = tuple(g if g is not None else a for g, a in zip(group, accum))
+            out_label = label_fn(group)
+            interface.output(out_label).add(key, empty)
     else:
         for key, value in inp:
             out_label = label_fn(key)
