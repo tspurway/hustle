@@ -42,11 +42,11 @@ class Table(Marble):
 
     see :ref:`schemadesign` for a detailed look at Hustle's schema design language and features.
     """
-    def __init__(self, **kwargs):
+    def __init__(self, name=None, fields=(), partition=None, **kwargs):
         """
         Internal - create a new Hustle table.  Use :meth:`hustle.Table.create` to create Tables.
         """
-        super(Table, self).__init__(**kwargs)
+        super(Table, self).__init__(name, fields, partition)
         self._blobs = None
 
     @classmethod
@@ -294,58 +294,6 @@ def insert(table, phile=None, streams=None, preprocess=None,
     return table._name, lines
 
 
-def _create_job(*project, **kwargs):
-    from hustle import _get_blobs
-    from hustle.core.settings import Settings
-    from hustle.core.pipeline import SelectPipe
-    from hustle.core.util import ensure_list
-
-    settings = Settings(**kwargs)
-    wheres = ensure_list(settings.pop('where', ()))
-    order_by = ensure_list(settings.pop('order_by', ()))
-    join = settings.pop('join', ())
-    full_join = settings.pop('full_join', False)
-    distinct = settings.pop('distinct', False)
-    desc = settings.pop('desc', False)
-    limit = settings.pop('limit', None)
-    wide = settings.pop('wide', False)
-    pre_order_stage = settings.pop('pre_order_stage', ())
-    ddfs = settings['ddfs']
-    partition = settings.get('partition', 0)
-    if partition < 0:
-        partition = 0
-    nest = settings.get('nest', False)
-
-    try:
-        # if join is a string, extract the actual join columns.
-        # do it here to make the query checker happy.
-        join = _resolve_join(wheres, join)
-        check_query(project, join, order_by, limit, wheres)
-    except ValueError as e:
-        print "  Invalid query:\n    %s" % e
-        return None
-
-    name = '-'.join([where._name for where in wheres])[:64]
-    job_blobs = set()
-    for where in wheres:
-        job_blobs.update(tuple(sorted(w)) for w in _get_blobs(where, ddfs))
-
-    job = SelectPipe(settings['server'],
-                     wheres=wheres,
-                     project=project,
-                     order_by=order_by,
-                     join=join,
-                     full_join=full_join,
-                     distinct=distinct,
-                     desc=desc,
-                     limit=limit,
-                     partition=partition,
-                     nest=nest,
-                     wide=wide,
-                     pre_order_stage=pre_order_stage)
-    return job, job_blobs, name
-
-
 def select(*project, **kwargs):
     """
     Perform a relational query, by selecting rows and columns from one or more tables.
@@ -480,6 +428,10 @@ def select(*project, **kwargs):
     :type limit: int
     :param limit: limits the total number of records in the output
 
+    :type block: boolean
+    :param block: make select call either blocking (default) or non-blocking.  If True, causes select() to return
+    a :class:`Future <hustle.Future>` object
+
     :type nest: boolean (default = False)
     :param nest: specify that the return value is a :class:`Table <hustle.Table>` to be used in another query
 
@@ -495,46 +447,74 @@ def select(*project, **kwargs):
     """
 
     from hustle.core.settings import Settings
+    from hustle.core.pipeline import SelectPipe
+    from hustle.core.util import ensure_list
 
     settings = Settings(**kwargs)
-    autodump = settings['dump']
-    nest = settings.get('nest', False)
+    wheres = ensure_list(settings.pop('where', ()))
+    order_by = ensure_list(settings.pop('order_by', ()))
+    join = settings.pop('join', ())
+    full_join = settings.pop('full_join', False)
+    distinct = settings.pop('distinct', False)
+    desc = settings.pop('desc', False)
+    limit = settings.pop('limit', None)
+    wide = settings.pop('wide', False)
+    nest = settings.pop('nest', False)
+    block = settings.pop('block', True)
+    autodump = settings.pop('dump', False)
+    pre_order_stage = settings.pop('pre_order_stage', ())
+    ddfs = settings['ddfs']
+    partition = settings.pop('partition', 0)
+    if partition < 0:
+        partition = 0
 
-    job, job_blobs, name = _create_job(*project, **kwargs)
+    try:
+        # if join is a string, extract the actual join columns.
+        # do it here to make the query checker happy.
+        join = _resolve_join(wheres, join)
+        check_query(project, join, order_by, limit, wheres)
+    except ValueError as e:
+        print "  Invalid query:\n    %s" % e
+        return None
+
+    name = '-'.join([where._name for where in wheres])[:64]
+    job_blobs = set()
+    for where in wheres:
+        job_blobs.update(tuple(sorted(w)) for w in _get_blobs(where, ddfs))
+
+    job = SelectPipe(settings['server'],
+                     wheres=wheres,
+                     project=project,
+                     order_by=order_by,
+                     join=join,
+                     full_join=full_join,
+                     distinct=distinct,
+                     desc=desc,
+                     limit=limit,
+                     partition=partition,
+                     wide=wide,
+                     nest=nest,
+                     pre_order_stage=pre_order_stage)
+
     job.run(name='select_from_%s' % name, input=job_blobs, **settings)
-    blobs = job.wait()
-    if nest:
-        rtab = job.get_result_schema(project)
-        rtab._blobs = blobs
-        return rtab
-    elif autodump:
-        # the result will be just dumped to stdout
-        cols = [c.name for c in project]
-        _print_separator(80)
-        _print_line(cols, width=80, cols=len(cols),
-                    alignments=[_ALG_RIGHT if c.is_numeric else _ALG_LEFT for c in project])
-        _print_separator(80)
-        dump(blobs, 80)
-        return
-    return blobs
-
-
-def select_nb(*project, **kwargs):
-    """
-    The non-blocking version of select function.
-
-    All its arguments are the same as :func:`select() <hustle.select>`.
-    It returns a :class:`Future <hustle.Future>` object, which allows user to
-    check the query's status and fetch the results.
-    """
-
-    from hustle.core.settings import Settings
-
-    settings = Settings(**kwargs)
-    job, job_blobs, name = _create_job(*project, **kwargs)
-    job.run(name='select_from_%s' % name, input=job_blobs, **settings)
-
-    return Future(job.name, job, settings['server'], settings['nest'], *project)
+    if block:
+        blobs = job.wait()
+        if nest:
+            rtab = job.get_result_schema(project)
+            rtab._blobs = blobs
+            return rtab
+        elif autodump:
+            # the result will be just dumped to stdout
+            cols = [c.name for c in project]
+            _print_separator(80)
+            _print_line(cols, width=80, cols=len(cols),
+                        alignments=[_ALG_RIGHT if c.is_numeric else _ALG_LEFT for c in project])
+            _print_separator(80)
+            cat(blobs, 80)
+            return
+        return blobs
+    else:
+        return Future(job.name, job, settings['server'], *project)
 
 
 def h_sum(col):
@@ -647,7 +627,7 @@ def star(table):
     return [table._columns[col] for col in table._field_names]
 
 
-def dump(result_urls, width=80):
+def cat(result_urls, width=80):
     """
     Dump the results of a non-nested query.
 
@@ -670,20 +650,6 @@ def dump(result_urls, width=80):
                     alignments.append(_ALG_LEFT)
 
         _print_line(columns, width=width, cols=len(alignments), alignments=alignments)
-
-
-def edump(table):
-    """
-    Dump the results of a nested query.
-
-    :type table: a :class:`Table <hustle.Table>` object
-    :param table: it must be a result table from a nested select query
-    """
-    if not isinstance(table, Table):
-        raise ValueError("First argument must be a table.")
-    if not table._blobs:
-        raise Exception("Can not dump a empty table.")
-    return select(*star(table), where=table, dump=True)
 
 
 def get_tables(**kwargs):
