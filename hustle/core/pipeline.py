@@ -84,7 +84,6 @@ def hustle_output_stream(stream, partition, url, params, result_table):
                 raise e
             self.env.close()
             os.unlink(self.filename)
-            os.unlink(self.filename + '-lock')
 
     return HustleOutputStream(stream, url, params)
 
