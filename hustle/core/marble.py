@@ -189,7 +189,7 @@ class Marble(object):
                 env = mdb.Env(filename,
                               max_dbs=1024,
                               mapsize=maxsize,
-                              flags=oflags | mdb.MDB_NOSYNC | mdb.MDB_NOSUBDIR)
+                              flags=oflags | mdb.MDB_NORDAHEAD | mdb.MDB_NOSYNC | mdb.MDB_NOSUBDIR)
             except Exception as e:
                 print "Error: %s" % e
                 retry += 1
