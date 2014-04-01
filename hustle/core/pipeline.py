@@ -247,6 +247,10 @@ class SelectPipe(Job):
                                           binaries=joinbins,
                                           process=partial(process_join,
                                                           full_join=full_join,
+                                                          ffuncs=efs,
+                                                          ghfuncs=ehches,
+                                                          deffuncs=dflts,
+                                                          wide=wide,
                                                           label_fn=partial(_tuple_hash,
                                                                            cols=sort_range,
                                                                            p=partition))))]
@@ -321,6 +325,7 @@ class SelectPipe(Job):
                                                         ghfuncs=ehches,
                                                         deffuncs=dflts,
                                                         wide=wide or join or full_join,
+                                                        agg_fn=_aggregate,
                                                         label_fn=partial(_tuple_hash,
                                                                          cols=select_hash_cols,
                                                                          p=partition)),
@@ -345,8 +350,42 @@ def _tuple_hash(key, cols, p):
     return r % p
 
 
-def process_restrict(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn, wide=False):
+def _aggregate(inp, ffuncs, ghfuncs, deffuncs, label_fn):
     import copy
+    baseaccums = [default() if default else None for default in deffuncs]
+    vals = {}
+    for record, _ in inp:
+        group = tuple(e if ef is None else None for e, ef in zip(record, ffuncs))
+        if group in vals:
+            accums = vals[group]
+        else:
+            accums = copy.copy(baseaccums)
+
+        try:
+            accums = [f(a, v) if None not in (f, a, v) else None
+                      for f, a, v in zip(ffuncs, accums, record)]
+        except Exception as e:
+            # import sys
+            # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
+            # import pydevd
+            # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
+            print e
+            print "YEEHEQW: f=%s a=%s r=%s g=%s" % (ffuncs, accums, record, group)
+            import traceback
+            print traceback.format_exc(15)
+            raise e
+
+        vals[group] = accums
+
+    for group, accums in vals.iteritems():
+        accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
+        key = tuple(g if g is not None else a for g, a in zip(group, accum))
+        out_label = label_fn(group)
+        yield out_label, key
+        # interface.output(out_label).add(key, empty)
+
+
+def process_restrict(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn, agg_fn, wide=False):
     from disco import util
     empty = ()
 
@@ -362,37 +401,9 @@ def process_restrict(interface, state, label, inp, task, ffuncs, ghfuncs, deffun
     if not input_processed:
         raise Exception("Input %s not processed, no LOCAL resource found." % str(inp.input))
 
-
+    # opportunistically aggregate in this stage
     if any(ffuncs) and not wide:
-        baseaccums = [default() if default else None for default in deffuncs]
-        vals = {}
-        for record, _ in inp:
-            group = tuple(e if ef is None else None for e, ef in zip(record, ffuncs))
-            if group in vals:
-                accums = vals[group]
-            else:
-                accums = copy.copy(baseaccums)
-
-            try:
-                accums = [f(a, v) if None not in (f, a, v) else None
-                          for f, a, v in zip(ffuncs, accums, record)]
-            except Exception as e:
-                # import sys
-                # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
-                # import pydevd
-                # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
-                print e
-                print "YEEHEQW: f=%s a=%s r=%s g=%s" % (ffuncs, accums, record, group)
-                import traceback
-                print traceback.format_exc(15)
-                raise e
-
-            vals[group] = accums
-
-        for group, accums in vals.iteritems():
-            accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
-            key = tuple(g if g is not None else a for g, a in zip(group, accum))
-            out_label = label_fn(group)
+        for out_label, key in agg_fn(inp, ffuncs, ghfuncs, deffuncs, label_fn):
             interface.output(out_label).add(key, empty)
     else:
         for key, value in inp:
