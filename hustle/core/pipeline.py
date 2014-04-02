@@ -83,7 +83,7 @@ def hustle_output_stream(stream, partition, url, params, result_table):
 
             try:
                 self.env.copy(self.url)
-                print "Dumped result to %s" % self.url
+                # print "Dumped result to %s" % self.url
             except Exception as e:
                 print "Copy error: %s" % e
                 self.txn.abort()
@@ -107,7 +107,7 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         raise e
 
     fle = util.localize(rest, disco_data=params._task.disco_data, ddfs_data=params._task.ddfs_data)
-    print "FLOGLE: %s %s" % (url, fle)
+    # print "FLOGLE: %s %s" % (url, fle)
 
     otab = None
     try:
@@ -255,6 +255,7 @@ class SelectPipe(Job):
                                                           ghfuncs=ehches,
                                                           deffuncs=dflts,
                                                           wide=wide,
+                                                          agg_fn=_aggregate,
                                                           label_fn=partial(_tuple_hash,
                                                                            cols=sort_range,
                                                                            p=partition))))]
@@ -273,7 +274,7 @@ class SelectPipe(Job):
 
             # build the pipeline
             group_by_stage = []
-            if wide or join or full_join:
+            if wide:
                 group_by_stage = [
                     (GROUP_LABEL_NODE, HustleStage('group-combine',
                                                    sort=group_by_range,
@@ -289,7 +290,7 @@ class SelectPipe(Job):
             # Hustle needs all inputs with the same label to be combined.
             group_by_stage.append((GROUP_LABEL, HustleStage('group-reduce',
                                                             combine=True,
-                                                            input_sorted=wide or join or full_join,
+                                                            input_sorted=wide,
                                                             sort=group_by_range,
                                                             process=partial(process_group_fn,
                                                                             ffuncs=efs,
@@ -354,7 +355,7 @@ def _tuple_hash(key, cols, p):
     return r % p
 
 
-def _aggregate(inp, ffuncs, ghfuncs, deffuncs, label_fn):
+def _aggregate(inp, label_fn, ffuncs, ghfuncs, deffuncs):
     import copy
     baseaccums = [default() if default else None for default in deffuncs]
     vals = {}
@@ -389,7 +390,7 @@ def _aggregate(inp, ffuncs, ghfuncs, deffuncs, label_fn):
         # interface.output(out_label).add(key, empty)
 
 
-def process_restrict(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn, agg_fn, wide=False):
+def process_restrict(interface, state, label, inp, task, label_fn, ffuncs, ghfuncs, deffuncs, agg_fn, wide=False):
     from disco import util
     empty = ()
 
@@ -407,7 +408,7 @@ def process_restrict(interface, state, label, inp, task, ffuncs, ghfuncs, deffun
 
     # opportunistically aggregate in this stage
     if any(ffuncs) and not wide:
-        for out_label, key in agg_fn(inp, ffuncs, ghfuncs, deffuncs, label_fn):
+        for out_label, key in agg_fn(inp, label_fn, ffuncs, ghfuncs, deffuncs):
             interface.output(out_label).add(key, empty)
     else:
         for key, value in inp:
@@ -416,7 +417,7 @@ def process_restrict(interface, state, label, inp, task, ffuncs, ghfuncs, deffun
             interface.output(out_label).add(key, value)
 
 
-def process_join(interface, state, label, inp, task, full_join, label_fn):
+def process_join(interface, state, label, inp, task, full_join, label_fn, ffuncs, ghfuncs, deffuncs, agg_fn, wide=False):
     """
     Processor function for the join stage.
 
@@ -428,28 +429,37 @@ def process_join(interface, state, label, inp, task, full_join, label_fn):
     Finally, merging columns together.
     """
     from itertools import groupby
+    empty = ()
 
     def _merge_record(offset, r1, r2):
         return [i if i is not None else j for i, j in zip(r1[offset:], r2[offset:])]
 
-    # inp is a list of (key, value) tuples, the join_cloumn is the 2nd item of the key.
-    for joinkey, rest in groupby(inp, lambda k: k[0][1]):
-        # To process this join key, we must have values from both tables
-        first_table = []
-        for record, value in rest:
-            # Grab all records from first table by using where index
-            if record[0] == 0:
-                first_table.append(record)
-            else:
-                if not len(first_table):
-                    break
-                # merge each record from table 2 with all records from table 1
-                for first_record in first_table:
-                    # dispose of the where_index and join column
-                    newrecord = _merge_record(2, first_record, record)
-                    newlabel = label_fn(newrecord)
-                    # print "JOIN: %s %s %s" % (newrecord, first_record, record)
-                    interface.output(newlabel).add(newrecord, value)
+    def _join_input():
+        # inp is a list of (key, value) tuples, the join_cloumn is the 2nd item of the key.
+        for joinkey, rest in groupby(inp, lambda k: k[0][1]):
+            # To process this join key, we must have values from both tables
+            first_table = []
+            for record, value in rest:
+                # Grab all records from first table by using where index
+                if record[0] == 0:
+                    first_table.append(record)
+                else:
+                    if not len(first_table):
+                        break
+                    # merge each record from table 2 with all records from table 1
+                    for first_record in first_table:
+                        # dispose of the where_index and join column
+                        newrecord = _merge_record(2, first_record, record)
+                        yield newrecord, value
+
+    if any(ffuncs) and not wide:
+        for out_label, key in agg_fn(_join_input(), label_fn, ffuncs, ghfuncs, deffuncs):
+            interface.output(out_label).add(key, empty)
+    else:
+        for key, value in _join_input():
+            out_label = label_fn(key)
+            # print "JOIN: %s %s" % (key, value)
+            interface.output(out_label).add(key, value)
 
 
 def process_order(interface, state, label, inp, task, distinct, limit):
