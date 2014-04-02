@@ -514,7 +514,7 @@ def select(*project, **kwargs):
             return
         return blobs
     else:
-        return Future(job.name, job, settings['server'], *project)
+        return Future(job.name, job, settings['server'], nest, *project)
 
 
 def h_sum(col):
