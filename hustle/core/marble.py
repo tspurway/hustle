@@ -642,17 +642,18 @@ class Column(object):
                        'uint8', 'int64', 'uint64']
         dict_lookup = ['', '', '32', '', '16', '', '']
         string_lookup = ['trie', 'string', 'lz4', 'binary']
+        index_lookup = ['index', 'wide index']
+
         rval = type_lookup[self.type_indicator]
         if not self.type_indicator:
             rval += string_lookup[self.compression_indicator]
             if self.compression_indicator == 0:
                 rval += dict_lookup[self.rtrie_indicator]
-        inds = [rval]
+        name = self.alias or self.name if not self.partition else "*" + (self.alias or self.name)
+        inds = [rval, name]
         if self.index_indicator:
-            inds.append("IX")
-        if self.partition:
-            inds.append("PT")
-        return "%s (%s)" % (self.alias or self.name, ','.join(inds))
+            inds.insert(0, index_lookup[self.index_indicator])
+        return ' '.join(inds)
 
     def get_effective_inttype(self):
         if self.type_indicator == mdb.MDB_STR and self.compression_indicator == 0:
