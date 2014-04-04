@@ -458,7 +458,7 @@ def select(*project, **kwargs):
     distinct = settings.pop('distinct', False)
     desc = settings.pop('desc', False)
     limit = settings.pop('limit', None)
-    wide = settings.pop('wide', False)
+    wide = settings.pop('wide', True) #TODO: combine-optimizer appears to be broken for HLL, disable by default
     nest = settings.pop('nest', False)
     block = settings.pop('block', True)
     autodump = settings.pop('dump', False)
