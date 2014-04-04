@@ -1835,10 +1835,11 @@ class DupReader(object):
     mannually.
     '''
     def __init__(self, path, db_name=DEFAULT_DB_NAME,
-                 int_key=MDB_STR, int_val=MDB_STR, decode_fn=None):
+                 int_key=MDB_STR, int_val=MDB_STR, decode_fn=None,
+                 open_flags=0):
         self.path = path
         self.db_name = db_name
-        self.env = Env(path, flags=MDB_RDONLY|MDB_NOTLS)
+        self.env = Env(path, flags=MDB_RDONLY|MDB_NOTLS|open_flags)
         txn = self.env.begin_txn(flags=MDB_RDONLY)
         flags = MDB_DUPSORT
         flags |= MDB_INTEGERKEY if int_key else 0
@@ -1917,10 +1918,11 @@ class DupReader(object):
 
 class Reader(object):
     def __init__(self, path, db_name=DEFAULT_DB_NAME,
-                 int_key=MDB_STR, int_val=MDB_STR, decode_fn=None):
+                 int_key=MDB_STR, int_val=MDB_STR, decode_fn=None,
+                 open_flags=0):
         self.path = path
         self.db_name = db_name
-        self.env = Env(path, flags=MDB_RDONLY|MDB_NOTLS)
+        self.env = Env(path, flags=MDB_RDONLY|MDB_NOTLS|open_flags)
         txn = self.env.begin_txn(flags=MDB_RDONLY)
         flags= 0
         flags |= MDB_INTEGERKEY if int_key else 0
@@ -1950,6 +1952,19 @@ class Reader(object):
             value = self.db.get(txn, key, default)
             txn.commit()
             return self.decode_fn(value) if value is not default else value
+
+    def mget(self, keys, default=None):
+        try:
+            txn = self.env.begin_txn(flags=MDB_RDONLY)
+        except Exception as e:
+            print "MDB Error: %s" % e
+            yield default
+        else:
+            try:
+                for value in self.db.mget(txn, keys, default):
+                    yield self.decode_fn(value) if value is not default else value
+            finally:
+                txn.commit()
 
     def iteritems(self):
         try:
@@ -1986,11 +2001,11 @@ class Reader(object):
 class Writer(object):
     def __init__(self, path, mapsize=10*MB, db_name=DEFAULT_DB_NAME,
                  dup=False, int_key=MDB_STR, int_val=MDB_STR,
-                 encode_fn=None, drop_on_mput=False):
+                 encode_fn=None, drop_on_mput=False, open_flags=0):
         # Check directory exists
         self.db_name = db_name
         self._check_mdb_dir(path)
-        self.env = Env(path, flags=MDB_NOSYNC | MDB_WRITEMAP, mapsize=mapsize)
+        self.env = Env(path, flags=MDB_NOSYNC|MDB_WRITEMAP|open_flags, mapsize=mapsize)
         txn = self.env.begin_txn()
         flags = MDB_CREATE
         flags |= MDB_DUPSORT if dup else 0
