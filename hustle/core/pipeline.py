@@ -500,6 +500,9 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
                 print traceback.format_exc(15)
                 raise e
 
+# MSG: [group-combine:2] YOLO: f=(None, <function _inner_hll_accumulate at 0x18f0488>)
+#   a=[None, <cardunion.Cardunion object at 0x19eba30>] r=[u'2014-03-31', u'AdX'] g=(u'2014-03-31', None)
+
         accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
         if label_fn:
             label = label_fn(group)

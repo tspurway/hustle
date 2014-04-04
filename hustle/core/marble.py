@@ -59,7 +59,7 @@ class Marble(object):
         self._columns = {}
 
         for field in fields:
-            field, type_indicator, compression_indicator, rtrie_indicator, index_indicator = \
+            field, type_indicator, compression_indicator, rtrie_indicator, index_indicator, boolean = \
                 self._parse_index_type(field)
             part = field == partition
             col = Column(field,
@@ -68,7 +68,8 @@ class Marble(object):
                          partition=part,
                          type_indicator=type_indicator,
                          compression_indicator=compression_indicator,
-                         rtrie_indicator=rtrie_indicator)
+                         rtrie_indicator=rtrie_indicator,
+                         boolean=boolean)
             self._columns[field] = col
             self.__dict__[field] = col
 
@@ -99,11 +100,14 @@ class Marble(object):
         The rtrie_indicator - used only for 0 (rtrie) compression_indicators:
         MDB_UINT_32 - 32 bit VID
         MDB_UINT_16 - 16 bit VID
+
+        The boolean - used to indicate that this field is a boolean type
         """
         type_indicator = mdb.MDB_STR
         compression_indicator = 0
         rtrie_indicator = mdb.MDB_UINT_32
         index_indicator = 0
+        boolean = False
 
         nx = ix
         while True:
@@ -142,6 +146,8 @@ class Marble(object):
                         nx = ix[2:]
                     if ix[1] == '4':
                         nx = ix[2:]
+                elif ind == '!':
+                    boolean = True
                 elif ind == '$':
                     compression_indicator = 1
                 elif ind == '*':
@@ -157,7 +163,7 @@ class Marble(object):
                     ix = nx
                     continue
             break
-        return nx, type_indicator, compression_indicator, rtrie_indicator, index_indicator
+        return nx, type_indicator, compression_indicator, rtrie_indicator, index_indicator, boolean
 
     @classmethod
     def from_file(cls, filename):
@@ -204,6 +210,20 @@ class Marble(object):
 
     def _open_dbs(self, env, write, lru_size):
         from pylru import LRUDict
+
+        class BooleanDB(object):
+            def __init__(self, true_bm):
+                self.true_bm = true_bm
+
+            def close(self):
+                pass
+
+            def get(self, txn, key, default=None):
+                pass
+
+            def mget(self, txn, keys, default=None):
+                pass
+
         if write:
             txn = env.begin_txn()
         else:
@@ -553,16 +573,17 @@ class Column(object):
 
     """
     def __init__(self, name, table, index_indicator=0, partition=False, type_indicator=0,
-                 compression_indicator=0, rtrie_indicator=mdb.MDB_UINT_32, alias=None):
+                 compression_indicator=0, rtrie_indicator=mdb.MDB_UINT_32, alias=None, boolean=False):
         self.name = name
         self.fullname = "%s.%s" % (table._name, name) if hasattr(table, '_name') else name
         self.table = table
-        self.type_indicator = type_indicator
+        self.type_indicator = type_indicator if not boolean else mdb.MDB_UINT_8
         self.partition = partition
-        self.index_indicator = index_indicator
+        self.index_indicator = index_indicator if not boolean else 1
         self.compression_indicator = compression_indicator
         self.rtrie_indicator = rtrie_indicator
         self.alias = alias
+        self.is_boolean = boolean
         self.is_trie = type_indicator == mdb.MDB_STR and compression_indicator == 0
         self.is_lz4 = type_indicator == mdb.MDB_STR and compression_indicator == 2
         self.is_binary = type_indicator == mdb.MDB_STR and compression_indicator == 3
