@@ -9,8 +9,10 @@ def h_cardinality(col):
         return Cardunion(12)
 
     def _inner_hll_accumulate(a, v):
-        # print "ACC: %s %s" % (a, v)
+        start = a.count()
         a.bunion([v])
+        done = a.count()
+        # print "ACC: %s %s" % (start, done)
         return a
 
     return Aggregation("cardinality",

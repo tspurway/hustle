@@ -292,6 +292,7 @@ class SelectPipe(Job):
                                                             combine=True,
                                                             input_sorted=wide,
                                                             sort=group_by_range,
+                                                            binaries=binaries,
                                                             process=partial(process_group_fn,
                                                                             ffuncs=efs,
                                                                             ghfuncs=gees,
@@ -356,15 +357,13 @@ def _tuple_hash(key, cols, p):
 
 
 def _aggregate(inp, label_fn, ffuncs, ghfuncs, deffuncs):
-    import copy
-    baseaccums = [default() if default else None for default in deffuncs]
     vals = {}
     for record, _ in inp:
         group = tuple(e if ef is None else None for e, ef in zip(record, ffuncs))
         if group in vals:
             accums = vals[group]
         else:
-            accums = copy.copy(baseaccums)
+            accums = [default() if default else None for default in deffuncs]
 
         try:
             accums = [f(a, v) if None not in (f, a, v) else None
@@ -476,11 +475,8 @@ def process_order(interface, state, label, inp, task, distinct, limit):
 
 
 def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn=None):
-    """Process function of aggregation combine stage.
-
-    """
+    """Process function of aggregation combine stage."""
     from itertools import groupby
-    import copy
 
     empty = ()
 
@@ -489,12 +485,9 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
     # import pydevd
     # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
 
-    baseaccums = [default() if default else None for default in deffuncs]
-    # print "Base: %s" % repr(baseaccums)
-
     # pull the key apart
     for group, tups in groupby(inp, lambda (k, _): tuple(e if ef is None else None for e, ef in zip(k, ffuncs))):
-        accums = copy.copy(baseaccums)
+        accums = [default() if default else None for default in deffuncs]
         for record, _ in tups:
             # print "REC: %s" % repr(record)
             try:
