@@ -94,7 +94,7 @@ def hustle_output_stream(stream, partition, url, params, result_table):
     return HustleOutputStream(stream, url, params)
 
 
-def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_names, default_values=None):
+def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_names):
     from disco import util
     from hustle.core.marble import Expr, MarbleStream
     from itertools import izip, repeat
@@ -118,8 +118,6 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         otab = MarbleStream(fle)
         bitmaps = {}
 
-        if default_values is None:
-            default_values = tuple(repeat(None, ))
         for index, where in enumerate(wheres):
             # do not process where clauses that have nothing to do with this marble
             if where._name == otab.marble._name:
@@ -134,8 +132,8 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         for index, (bitmap, blen) in bitmaps.iteritems():
             prefix_gen = [repeat(index, blen)] if gen_where_index else []
 
-            row_iter = prefix_gen + [otab.mget(col, bitmap) if col is not None else repeat(def_val, blen)
-                                     for def_val, col in zip(default_values[index], key_names[index])]
+            row_iter = prefix_gen + [otab.mget(col, bitmap) if col is not None else repeat(None, blen)
+                                     for col in key_names[index]]
 
             for row in izip(*row_iter):
                 yield row, empty
@@ -194,20 +192,15 @@ class SelectPipe(Job):
 
     def _get_key_names(self, project, join):
         key_names = []
-        default_values = []
         for where in self.wheres:
             table_name = self._get_table(where)._name
             keys = []
-            defs = []
             if join:
                 join_column = next(c.name for c in join if c.table._name == table_name)
                 keys.append(join_column)
-                defs.append(None)
             keys += tuple(c.column.name if c.table and c.table._name == table_name else None for c in project)
-            defs += tuple(c.default() if type(c) is Aggregation and c.table is None else None for c in project)
             key_names.append(keys)
-            default_values.append(defs)
-        return key_names, default_values
+        return key_names
 
     def __init__(self,
                  master,
@@ -322,7 +315,7 @@ class SelectPipe(Job):
         if not select_hash_cols:
             select_hash_cols = sort_range
 
-        key_names, default_values = self._get_key_names(project, join)
+        key_names = self._get_key_names(project, join)
 
         pipeline = [(SPLIT, HustleStage('restrict-select',
                                         # combine=True,  # cannot set combine -- see #hack in restrict-select phase
@@ -339,8 +332,7 @@ class SelectPipe(Job):
                                                      partial(hustle_input_stream,
                                                              wheres=wheres,
                                                              gen_where_index=join or full_join,
-                                                             key_names=key_names,
-                                                             default_values=default_values)]))
+                                                             key_names=key_names)]))
                     ] + join_stage + group_by_stage + list(pre_order_stage) + order_stage
 
         # determine the style of output (ie. if it is a Hustle Table), and modify the last stage accordingly
