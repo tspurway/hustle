@@ -211,6 +211,20 @@ class Marble(object):
     def _open_dbs(self, env, write, lru_size):
         from pylru import LRUDict
         import ujson
+        from itertools import repeat
+
+        class CountDB(object):
+            def close(self):
+                pass
+
+            def put(self, txn, key, val):
+                pass
+
+            def get(self, _, rid, default=None):
+                return 1
+
+            def mget(self, _, rids, default=None):
+                return repeat(1, len(rids))
 
         class BooleanDB(object):
             def __init__(self, subindexdb, txn):
@@ -278,7 +292,7 @@ class Marble(object):
         meta = env.open_db(txn, name='_meta_', flags=mdb.MDB_CREATE)
         number_rows = ujson.loads(meta.get(txn, '_total_rows', "0"))
 
-        dbs = {}
+        dbs = {'_count': (CountDB(), None, None, Column('_count', None, type_indicator=1))}
         for index, column in self._columns.iteritems():
             subindexdb = None
             bitmap_dict = _dummy

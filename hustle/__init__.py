@@ -547,8 +547,8 @@ def h_count():
     returns a count of the number of employees in each department.
     """
     return Aggregation("count",
-                       Column('all', None, type_indicator=1),
-                       f=lambda a, v: a + (v or 1),
+                       Column('_count', None, type_indicator=1),
+                       f=lambda a, v: a + v,
                        default=lambda: 0)
 
 

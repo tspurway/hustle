@@ -198,7 +198,7 @@ class SelectPipe(Job):
             if join:
                 join_column = next(c.name for c in join if c.table._name == table_name)
                 keys.append(join_column)
-            keys += tuple(c.column.name if c.table and c.table._name == table_name else None for c in project)
+            keys += tuple(c.column.name if c.table is None or c.table._name == table_name else None for c in project)
             key_names.append(keys)
         return key_names
 
