@@ -210,24 +210,74 @@ class Marble(object):
 
     def _open_dbs(self, env, write, lru_size):
         from pylru import LRUDict
+        import ujson
 
         class BooleanDB(object):
-            def __init__(self, true_bm):
-                self.true_bm = true_bm
+            def __init__(self, subindexdb, txn):
+                bitset = BitSet()
+                try:
+                    data = subindexdb.get(txn, 1)
+                    bitset.loads(data)
+                except:
+                    pass
+                self.true_bm = bitset
 
             def close(self):
                 pass
 
-            def get(self, txn, key, default=None):
+            def put(self, txn, key, val):
                 pass
 
-            def mget(self, txn, keys, default=None):
-                pass
+            def get(self, _, rid, default=None):
+                if self.true_bm.get(rid):
+                    return 1
+                return 0
+
+            def mget(self, _, rids, default=None):
+                for rid in rids:
+                    if self.true_bm.get(rid):
+                        yield 1
+                    else:
+                        yield 0
+
+        class BooleanIX(object):
+            def __init__(self, subindexdb, txn, number_rows):
+                self.subindexdb = subindexdb
+                self.txn = txn
+                self.number_rows = number_rows
+
+            def close(self):
+                self.subindexdb.close()
+
+            def put(self, txn, key, val):
+                if key == 1:
+                    self.subindexdb.put(self.txn, key, val)
+
+            def get(self, txn, key, default=None):
+                bm = self.subindexdb.get(self.txn, 1)
+                if key == 1:
+                    return bm
+
+                # import sys
+                # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
+                # import pydevd
+                # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
+
+                bitmap = BitSet()
+                bitmap.loads(bm)
+                bitmap |= ZERO_BS
+                bitmap.set(self.number_rows)
+                bitmap.lnot_inplace()
+                return bitmap.dumps()
 
         if write:
             txn = env.begin_txn()
         else:
             txn = env.begin_txn(flags=mdb.MDB_RDONLY)
+
+        meta = env.open_db(txn, name='_meta_', flags=mdb.MDB_CREATE)
+        number_rows = ujson.loads(meta.get(txn, '_total_rows', "0"))
+
         dbs = {}
         for index, column in self._columns.iteritems():
             subindexdb = None
@@ -241,6 +291,10 @@ class Marble(object):
                                          name="ix:%s" % index,
                                          flags=flags,
                                          key_inttype=column.get_effective_inttype())
+
+                if column.is_boolean:
+                    subindexdb = BooleanIX(subindexdb, txn, number_rows)
+
                 if write:
                     if column.index_indicator == 2:
                         evict = Victor(mdb_evict, txn, subindexdb)
@@ -253,17 +307,19 @@ class Marble(object):
                     else:
                         bitmap_dict = defaultdict(BitSet)
 
-            flags = mdb.MDB_CREATE | mdb.MDB_INTEGERKEY
-            if column.is_int:
-                flags |= mdb.MDB_INTEGERDUP
-            subdb = env.open_db(txn,
-                                name=index,
-                                flags=flags,
-                                key_inttype=mdb.MDB_UINT_32,
-                                value_inttype=column.get_effective_inttype())
+            if column.is_boolean:
+                subdb = BooleanDB(subindexdb, txn)
+            else:
+                flags = mdb.MDB_CREATE | mdb.MDB_INTEGERKEY
+                if column.is_int:
+                    flags |= mdb.MDB_INTEGERDUP
+                subdb = env.open_db(txn,
+                                    name=index,
+                                    flags=flags,
+                                    key_inttype=mdb.MDB_UINT_32,
+                                    value_inttype=column.get_effective_inttype())
 
             dbs[index] = (subdb, subindexdb, bitmap_dict, column)
-        meta = env.open_db(txn, name='_meta_', flags=mdb.MDB_CREATE)
         return env, txn, dbs, meta
 
     def _insert(self, streams, preprocess=None, maxsize=1024 * 1024 * 1024,
@@ -429,16 +485,6 @@ class MarbleStream(object):
         data = db.get(self.txn, key)
         return column.fetcher(data, self.vid16_nodes, self.vid16_kids, self.vid_nodes, self.vid_kids)
 
-    def get_ix(self, column_name, key):
-        _, idb, _, _ = self.dbs[column_name]
-        bitset = BitSet()
-        try:
-            data = idb.get(self.txn, key)
-            bitset.loads(data)
-        except:
-            pass
-        return bitset
-
     def _vid_for_value(self, column, key):
         if column.is_trie:
             if column.rtrie_indicator == mdb.MDB_UINT_16:
@@ -584,9 +630,9 @@ class Column(object):
         self.rtrie_indicator = rtrie_indicator
         self.alias = alias
         self.is_boolean = boolean
-        self.is_trie = type_indicator == mdb.MDB_STR and compression_indicator == 0
-        self.is_lz4 = type_indicator == mdb.MDB_STR and compression_indicator == 2
-        self.is_binary = type_indicator == mdb.MDB_STR and compression_indicator == 3
+        self.is_trie = self.type_indicator == mdb.MDB_STR and compression_indicator == 0
+        self.is_lz4 = self.type_indicator == mdb.MDB_STR and compression_indicator == 2
+        self.is_binary = self.type_indicator == mdb.MDB_STR and compression_indicator == 3
         self.is_int = self.type_indicator != mdb.MDB_STR or self.compression_indicator == 0
         self.is_numeric = self.type_indicator > 0
         self.is_index = self.index_indicator > 0
@@ -651,6 +697,8 @@ class Column(object):
                 prefix += '*'
             elif self.compression_indicator == 3:
                 prefix += '&'
+        elif self.is_binary:
+            prefix = '!'
         else:
             prefix += lookup[self.type_indicator]
         return prefix + rval
@@ -663,7 +711,7 @@ class Column(object):
                        'uint8', 'int64', 'uint64']
         dict_lookup = ['', '', '32', '', '16', '', '']
         string_lookup = ['trie', 'string', 'lz4', 'binary']
-        index_lookup = ['index', 'wide index']
+        index_lookup = ['', 'index', 'wide index']
 
         rval = type_lookup[self.type_indicator]
         if not self.type_indicator:
@@ -672,7 +720,9 @@ class Column(object):
                 rval += dict_lookup[self.rtrie_indicator]
         name = self.alias or self.name if not self.partition else "*" + (self.alias or self.name)
         inds = [rval, name]
-        if self.index_indicator:
+        if self.is_boolean:
+            inds = ['bit', name]
+        elif self.index_indicator:
             inds.insert(0, index_lookup[self.index_indicator])
         return ' '.join(inds)
 

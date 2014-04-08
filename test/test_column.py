@@ -34,6 +34,15 @@ class TestColumn(unittest.TestCase):
                             rtrie_indicator=mdb.MDB_UINT_16)
         self.assertFalse(str_column.is_int)
 
+    def test_is_boolean(self):
+        b_column = Column(_NAME, None, boolean=True)
+        self.assertTrue(b_column.is_int)
+        self.assertTrue(b_column.is_index)
+        self.assertTrue(b_column.is_boolean)
+        self.assertFalse(b_column.is_wide)
+        self.assertFalse(b_column.is_trie)
+
+
     def test_is_trie(self):
         str_column = Column(_NAME, None, index_indicator=False, partition=False,
                             type_indicator=mdb.MDB_STR,

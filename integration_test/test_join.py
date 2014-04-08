@@ -53,7 +53,7 @@ class TestJoin(unittest.TestCase):
                                                                     where=imps.date < '2014-01-13'))]
         pix_sites = [(s, a) for (s, a), _ in result_iterator(select(pix.site_id, pix.amount,
                                                                     where=((pix.date < '2014-01-13') &
-                                                                           (pix.isActive > 0))))]
+                                                                           (pix.isActive == True))))]
 
         join = []
         for imp_site, imp_ad_id in imp_sites:
@@ -62,7 +62,7 @@ class TestJoin(unittest.TestCase):
                     join.append((imp_ad_id, pix_amount))
 
         sub_pix = select(pix.site_id, pix.amount, pix.date,
-                         where=((pix.date < '2014-01-15') & (pix.isActive > 0)),
+                         where=((pix.date < '2014-01-15') & (pix.isActive == True)),
                          nest=True)
 
         res = select(imps.ad_id, sub_pix.amount,

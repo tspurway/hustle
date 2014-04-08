@@ -168,6 +168,9 @@ class Table(Marble):
                 elif word == 'string':
                     typ = '$'
 
+                elif word == 'bit':
+                    typ = '!'
+
                 else:
                     raise ValueError("Illegal type modifier on: %s mod=%s" % (column, word))
 

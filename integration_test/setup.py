@@ -23,11 +23,12 @@ def ensure_tables():
 
     imps = Table.create(IMPS,
                         columns=['wide index string token', 'trie url', 'index trie site_id', 'uint cpm_millis',
-                                 'index int ad_id', 'index string date', 'index uint time'],
+                                 'index int ad_id', 'index string date', 'index uint time', 'bit click',
+                                 'index bit impression', 'bit conversion'],
                         partition='date',
                         force=True)
     pixels = Table.create(PIXELS,
-                          columns=['wide index string token', 'index uint8 isActive', 'index trie site_id',
+                          columns=['wide index string token', 'index bit isActive', 'index trie site_id',
                                    'uint amount', 'index int account_id', 'index trie city', 'index trie16 state',
                                    'index int16 metro', 'string ip', 'lz4 keyword', 'index string date'],
                           partition='date',
