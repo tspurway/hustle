@@ -212,6 +212,21 @@ class Table(Marble):
         for columns, _ in result_iterator(blobs):
             yield columns
 
+    def dumps(self):
+        dump = {}
+        dump['name'] = self._name
+        dump['fields'] = self._columns
+        dump['blobs'] = self._blobs
+        dump['partition'] = self._partition
+        return ujson.dumps(dump)
+
+    @classmethod
+    def loads(cls, s):
+        dump = ujson.decode(s)
+        t = cls(dump['name'], dump['fields'], dump['partition'])
+        t._blobs = dump['blobs']
+        return t
+
 
 def insert(table, phile=None, streams=None, preprocess=None,
            maxsize=100 * 1024 * 1024, tmpdir='/tmp', decoder=None,
