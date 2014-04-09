@@ -1,6 +1,6 @@
 import unittest
 from disco.core import result_iterator
-from hustle import select, Table, h_sum, h_count
+from hustle import select, Table, h_sum, h_count, star
 from setup import IMPS
 from hustle.core.settings import Settings, overrides
 
@@ -82,6 +82,30 @@ class TestAggregation(unittest.TestCase):
             sum_millis[key][1] += 1
 
         res = select(imps.ad_id, imps.date, h_sum(imps.cpm_millis), h_count(), where=imps.date > '2014-01-22')
+        results = [c for c, _ in result_iterator(res)]
+        self.assertGreater(len(results), 0)
+        for ad_id, dt, millis, count in results:
+            ad_tup = sum_millis[str(ad_id) + dt]
+            self.assertEqual(millis, ad_tup[0])
+            self.assertEqual(count, ad_tup[1])
+
+    def test_nested_agg(self):
+        imps = Table.from_tag(IMPS)
+        res = select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.date > '2014-01-22')
+        results = [c for c, _ in result_iterator(res)]
+
+        sum_millis = {}
+        for ad_id, dt, millis in results:
+            key = str(ad_id) + dt
+            if key not in sum_millis:
+                sum_millis[key] = [0, 0]
+            sum_millis[key][0] += millis
+            sum_millis[key][1] += 1
+
+        newtab = select(imps.ad_id, imps.date, h_sum(imps.cpm_millis), h_count(),
+                        where=imps.date > '2014-01-22',
+                        nest=True)
+        res = select(*star(newtab), where=newtab)
         results = [c for c, _ in result_iterator(res)]
         self.assertGreater(len(results), 0)
         for ad_id, dt, millis, count in results:
