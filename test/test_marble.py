@@ -63,6 +63,8 @@ class TestMarble(unittest.TestCase):
             #  check subdb, subinddb
             part_id[date] = 1
             for name, (db, ind_db, _, column) in dbs.iteritems():
+                if name == "_count":
+                    continue
                 bitmaps = {}
                 part_id[date] = 1
                 for album in self.albums:

@@ -18,18 +18,18 @@ class TestPipeline(unittest.TestCase):
         project = [self.emp.name, self.emp.salary, self.dept.building]
 
         pipe = SelectPipe('server', wheres=wheres, project=project)
-        self.assertTupleEqual(('name', 'salary', None), tuple(pipe._get_key_names(project, ())[0][0]))
-        self.assertTupleEqual((None, None, 'building'), tuple(pipe._get_key_names(project, ())[0][1]))
+        self.assertTupleEqual(('name', 'salary', None), tuple(pipe._get_key_names(project, ())[0]))
+        self.assertTupleEqual((None, None, 'building'), tuple(pipe._get_key_names(project, ())[1]))
 
         join = [self.dept.id, self.emp.department_id]
         pipe = SelectPipe('server', wheres=wheres, project=project, join=join)
-        self.assertTupleEqual(('department_id', 'name', 'salary', None), tuple(pipe._get_key_names(project, join)[0][0]))
-        self.assertTupleEqual(('id', None, None, 'building'), tuple(pipe._get_key_names(project, join)[0][1]))
+        self.assertTupleEqual(('department_id', 'name', 'salary', None), tuple(pipe._get_key_names(project, join)[0]))
+        self.assertTupleEqual(('id', None, None, 'building'), tuple(pipe._get_key_names(project, join)[1]))
 
         project = [self.dept.building, self.emp.name, self.emp.salary]
         pipe = SelectPipe('server', wheres=wheres, project=project, join=join)
-        self.assertTupleEqual(('department_id', None, 'name', 'salary'), tuple(pipe._get_key_names(project, join)[0][0]))
-        self.assertTupleEqual(('id', 'building', None, None), tuple(pipe._get_key_names(project, join)[0][1]))
+        self.assertTupleEqual(('department_id', None, 'name', 'salary'), tuple(pipe._get_key_names(project, join)[0]))
+        self.assertTupleEqual(('id', 'building', None, None), tuple(pipe._get_key_names(project, join)[1]))
 
     def test_get_sort_range(self):
         project = [self.emp.name, self.emp.salary, self.dept.building]
@@ -58,8 +58,8 @@ class TestPipeline(unittest.TestCase):
         project = [self.emp.name, self.emp.salary, self.dept.building]
 
         pipe = SelectPipe('server',
-                            wheres=wheres,
-                            project=project)
+                          wheres=wheres,
+                          project=project)
         #(SPLIT, HustleStage('restrict-project',
         #                            process=partial(process_restrict, jobobj=job),
         #                            input_chain=[partial(hustle_stream, jobobj=job)]))
@@ -70,9 +70,9 @@ class TestPipeline(unittest.TestCase):
 
         order_by = [self.dept.building, self.emp.name]
         pipe = SelectPipe('server',
-                            wheres=wheres,
-                            project=project,
-                            order_by=order_by)
+                          wheres=wheres,
+                          project=project,
+                          order_by=order_by)
         #(SPLIT, HustleStage('restrict-project',
         #                            process=partial(process_restrict, jobobj=job),
         #                            input_chain=[partial(hustle_stream, jobobj=job)])),
@@ -89,10 +89,10 @@ class TestPipeline(unittest.TestCase):
         order_by = [self.dept.building, self.emp.name]
         join = [self.dept.id, self.emp.department_id]
         pipe = SelectPipe('server',
-                            wheres=wheres,
-                            project=project,
-                            order_by=order_by,
-                            join=join)
+                          wheres=wheres,
+                          project=project,
+                          order_by=order_by,
+                          join=join)
         pipeline = pipe.pipeline
         self.assertEqual(len(pipeline), 4)
         self.assertEqual('split', pipeline[0][0])
@@ -108,17 +108,13 @@ class TestPipeline(unittest.TestCase):
         join = [self.emp.name, self.dept.name]
 
         pipe = SelectPipe('server',
-                            wheres=wheres,
-                            project=project,
-                            order_by=order_by,
-                            join=join)
+                          wheres=wheres,
+                          project=project,
+                          order_by=order_by,
+                          join=join)
 
         self.assertEqual(len(pipe.order_by), 4)
         self.assertEqual(pipe.order_by[0], self.emp.name)
         self.assertEqual(pipe.order_by[1], self.emp.salary)
         self.assertEqual(pipe.order_by[2], self.dept.building)
         self.assertEqual(pipe.order_by[0], self.dept.name)
-
-
-
-

@@ -292,7 +292,10 @@ class Marble(object):
         meta = env.open_db(txn, name='_meta_', flags=mdb.MDB_CREATE)
         number_rows = ujson.loads(meta.get(txn, '_total_rows', "0"))
 
-        dbs = {'_count': (CountDB(), None, None, Column('_count', None, type_indicator=1))}
+        if not write:
+            dbs = {'_count': (CountDB(), None, None, Column('_count', None, type_indicator=1))}
+        else:
+            dbs = {}
         for index, column in self._columns.iteritems():
             subindexdb = None
             bitmap_dict = _dummy
