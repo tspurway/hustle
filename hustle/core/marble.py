@@ -836,6 +836,18 @@ class Aggregation(object):
         inputted into the *f()* function.  The *g()* function is used at the very end of the computation to compute the
         final value to return the client.
 
+        Note that most aggreations are much simpler than :func:`h_avg() <hustle.h_avg>`.  Consider the implementation
+        for :func:`h_sum() <hustle.h_sum>`::
+
+            def h_sum(col):
+                return Aggregation("sum",
+                                   col,
+                                   f=lambda accum, val: accum + val
+                                   default=0)
+
+        We don't have to implement the :code:`h() or g()` functions, as they simply default to funcitons that
+        return the :code:`accum`, which is normally sufficient.
+
     .. seealso::
         :func:`h_sum() <hustle.h_sum>`, :func:`h_count() <hustle.h_count>`, :func:`h_avg() <hustle.h_avg>`
             Some of Hustle's aggregation functions
