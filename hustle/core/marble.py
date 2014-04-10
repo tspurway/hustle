@@ -1355,6 +1355,10 @@ def json_decoder(line):
     return ujson.loads(line)
 
 
+def csv_decoder(line, fieldnames, delimiter=','):
+    return dict(zip(fieldnames, line.rstrip().split(delimiter)))
+
+
 class Victor(object):
     def __init__(self, fn, txn, db):
         self.fn = fn
