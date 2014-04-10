@@ -864,6 +864,60 @@ class Aggregation(object):
         return newag
 
 
+class LExpr(object):
+    def __init__(self, predicate):
+        self.predicate = predicate
+
+    def __and__(self, other):
+        return LExpr(partial(_logical_expr_op,
+                             self.predicate,
+                             other.predicate,
+                             'and'))
+
+    def __or__(self, other):
+        return LExpr(partial(_logical_expr_op,
+                             self.predicate,
+                             other.predicate,
+                             'or'))
+
+    def __invert__(self):
+        return LExpr(partial(_logical_expr_op,
+                             self.predicate,
+                             None,
+                             'not'))
+
+    def __call__(self, row):
+        return self.predicate(row)
+
+
+def predicate(left, right, op):
+    if op == 'eq':
+        return lambda row: row[left] == row[right]
+    elif op == 'ne':
+        return lambda row: row[left] != row[right]
+    elif op == 'lt':
+        return lambda row: row[left] < row[right]
+    elif op == 'gt':
+        return lambda row: row[left] > row[right]
+    elif op == 'le':
+        return lambda row: row[left] <= row[right]
+    elif op == 'ge':
+        return lambda row: row[left] >= row[right]
+    else:
+        raise ValueError("Unknown operator %s" % op)
+
+
+def _logical_expr_op(p1, p2, op, row):
+    if op == 'and':
+        return p1(row) and p2(row)
+    elif op == 'or':
+        return p1(row) or p2(row)
+    elif op == 'not':
+        return not p1(row)
+    else:
+        raise ValueError("Unknown operator %s" % op)
+
+
 class Expr(object):
     """
     The *Expr* is returned by the overloaded relational operators of the :class:`Column <hustle.core.marble.Column>`
