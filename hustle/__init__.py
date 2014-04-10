@@ -215,7 +215,7 @@ class Table(Marble):
     def dumps(self):
         dump = {}
         dump['name'] = self._name
-        dump['fields'] = self._columns
+        dump['fields'] = self._fields
         dump['blobs'] = self._blobs
         dump['partition'] = self._partition
         return ujson.dumps(dump)
