@@ -215,6 +215,7 @@ class SelectPipe(Job):
                  partition=0,
                  nest=False,
                  wide=False,
+                 join_where=(None, None),
                  pre_order_stage=()):
         from hustle.core.pipeworker import Worker
 
@@ -244,14 +245,16 @@ class SelectPipe(Job):
                                           binaries=joinbins,
                                           process=partial(process_join,
                                                           full_join=full_join,
+                                                          label_fn=partial(_tuple_hash,
+                                                                           cols=sort_range,
+                                                                           p=partition),
+                                                          check=join_where[0],
+                                                          names=join_where[1],
                                                           ffuncs=efs,
                                                           ghfuncs=ehches,
                                                           deffuncs=dflts,
-                                                          wide=wide,
                                                           agg_fn=_aggregate,
-                                                          label_fn=partial(_tuple_hash,
-                                                                           cols=sort_range,
-                                                                           p=partition))))]
+                                                          wide=wide)))]
             select_hash_cols = (1,)
 
         group_by_stage = []
@@ -408,7 +411,8 @@ def process_restrict(interface, state, label, inp, task, label_fn, ffuncs, ghfun
             interface.output(out_label).add(key, value)
 
 
-def process_join(interface, state, label, inp, task, full_join, label_fn, ffuncs, ghfuncs, deffuncs, agg_fn, wide=False):
+def process_join(interface, state, label, inp, task, full_join, label_fn,
+                 check, names, ffuncs, ghfuncs, deffuncs, agg_fn, wide=False):
     """
     Processor function for the join stage.
 
@@ -441,7 +445,11 @@ def process_join(interface, state, label, inp, task, full_join, label_fn, ffuncs
                     for first_record in first_table:
                         # dispose of the where_index and join column
                         newrecord = _merge_record(2, first_record, record)
-                        yield newrecord, value
+                        if check is not None:
+                            if check(dict(zip(names, newrecord))):
+                                yield newrecord, value
+                        else:
+                            yield newrecord, value
 
     if any(ffuncs) and not wide:
         for out_label, key in agg_fn(_join_input(), label_fn, ffuncs, ghfuncs, deffuncs):

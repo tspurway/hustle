@@ -761,6 +761,9 @@ class Column(object):
                     part_expr,
                     self.partition)
 
+    def _get_lexpr(self, op, other):
+        return LExpr(Predicate(self, other, op))
+
     def __lshift__(self, other):
         return self._get_expr(in_in, part_in, other=other)
 
@@ -768,22 +771,40 @@ class Column(object):
         return self._get_expr(in_not_in, part_not_in, other=other)
 
     def __eq__(self, other):
-        return self._get_expr(in_eq, part_eq, other=other)
+        if isinstance(other, Column):
+            return self._get_lexpr('eq', other)
+        else:
+            return self._get_expr(in_eq, part_eq, other=other)
 
     def __ne__(self, other):
-        return self._get_expr(in_ne, part_ne, other=other)
+        if isinstance(other, Column):
+            return self._get_lexpr('ne', other)
+        else:
+            return self._get_expr(in_ne, part_ne, other=other)
 
     def __lt__(self, other):
-        return self._get_expr(in_lt, part_lt, other=other)
+        if isinstance(other, Column):
+            return self._get_lexpr('lt', other)
+        else:
+            return self._get_expr(in_lt, part_lt, other=other)
 
     def __gt__(self, other):
-        return self._get_expr(in_gt, part_gt, other=other)
+        if isinstance(other, Column):
+            return self._get_lexpr('gt', other)
+        else:
+            return self._get_expr(in_gt, part_gt, other=other)
 
     def __ge__(self, other):
-        return self._get_expr(in_ge, part_ge, other=other)
+        if isinstance(other, Column):
+            return self._get_lexpr('ge', other)
+        else:
+            return self._get_expr(in_ge, part_ge, other=other)
 
     def __le__(self, other):
-        return self._get_expr(in_le, part_le, other=other)
+        if isinstance(other, Column):
+            return self._get_lexpr('le', other)
+        else:
+            return self._get_expr(in_le, part_le, other=other)
 
     def __str__(self):
         return self.description()
@@ -864,45 +885,86 @@ class Aggregation(object):
         return newag
 
 
-class LExpr(object):
-    def __init__(self, predicate):
-        self.predicate = predicate
-
-    def __and__(self, other):
-        return LExpr(partial(_logical_expr_op,
-                             self.predicate,
-                             other.predicate,
-                             'and'))
-
-    def __or__(self, other):
-        return LExpr(partial(_logical_expr_op,
-                             self.predicate,
-                             other.predicate,
-                             'or'))
-
-    def __invert__(self):
-        return LExpr(partial(_logical_expr_op,
-                             self.predicate,
-                             None,
-                             'not'))
+class Predicate(object):
+    def __init__(self, left, right, op):
+        self.predicate = _mk_predicate(left, right, op)
+        self.columns = [(left, right)]
 
     def __call__(self, row):
         return self.predicate(row)
 
 
-def predicate(left, right, op):
+class LExpr(object):
+
+    def __init__(self, predicate, pairs=None):
+        self.predicate = predicate
+        self.pairs = pairs or predicate.columns
+
+    def __and__(self, other):
+        expr = LExpr(partial(_logical_expr_op,
+                             self.predicate,
+                             other.predicate,
+                             'and'),
+                     self.pairs + other.pairs)
+        return expr
+
+    def __or__(self, other):
+        expr = LExpr(partial(_logical_expr_op,
+                             self.predicate,
+                             other.predicate,
+                             'or'),
+                     self.pairs + other.pairs)
+        return expr
+
+    def __invert__(self):
+        expr = LExpr(partial(_logical_expr_op,
+                             self.predicate,
+                             None,
+                             'not'),
+                     self.pairs)
+        return expr
+
+    def __call__(self, row):
+        return self.predicate(row)
+
+
+def _leq(left, right, row):
+    return row[left.fullname] == row[right.fullname]
+
+
+def _lne(left, right, row):
+    return row[left.fullname] != row[right.fullname]
+
+
+def _lgt(left, right, row):
+    return row[left.fullname] > row[right.fullname]
+
+
+def _llt(left, right, row):
+    return row[left.fullname] < row[right.fullname]
+
+
+def _lge(left, right, row):
+    return row[left.fullname] >= row[right.fullname]
+
+
+def _lle(left, right, row):
+    return row[left.fullname] <= row[right.fullname]
+
+
+def _mk_predicate(left, right, op):
     if op == 'eq':
-        return lambda row: row[left] == row[right]
+        return partial(_leq, left, right)
     elif op == 'ne':
-        return lambda row: row[left] != row[right]
+        return partial(_lne, left, right)
     elif op == 'lt':
-        return lambda row: row[left] < row[right]
+        return partial(_llt, left, right)
     elif op == 'gt':
-        return lambda row: row[left] > row[right]
+        return partial(_lgt, left, right)
     elif op == 'le':
-        return lambda row: row[left] <= row[right]
+        return partial(_lle, left, right)
     elif op == 'ge':
-        return lambda row: row[left] >= row[right]
+        return partial(_lge, left, right)
     else:
         raise ValueError("Unknown operator %s" % op)
 

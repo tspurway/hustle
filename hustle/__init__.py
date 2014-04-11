@@ -481,6 +481,7 @@ def select(*project, **kwargs):
     block = settings.pop('block', True)
     autodump = settings.pop('dump', False)
     pre_order_stage = settings.pop('pre_order_stage', ())
+    join_where = settings.pop('join_where', None)
     ddfs = settings['ddfs']
     partition = settings.pop('partition', 0)
     if partition < 0:
@@ -494,6 +495,22 @@ def select(*project, **kwargs):
     except ValueError as e:
         print "  Invalid query:\n    %s" % e
         return None
+
+    extended_project = list(project)
+    pairs = join_where.pairs if join_where else None
+    if pairs:
+        fullnames = [c.fullname for c in extended_project]
+        for left, right in pairs:
+            if left.fullname not in fullnames:
+                extended_project.append(left)
+                fullnames.append(left.fullname)
+            if right.fullname not in fullnames:
+                extended_project.append(right)
+                fullnames.append(right.fullname)
+        project = extended_project
+        check_columns = (join_where, fullnames)
+    else:
+        check_columns = (None, None)
 
     name = '-'.join([where._name for where in wheres])[:64]
     job_blobs = set()
@@ -512,6 +529,7 @@ def select(*project, **kwargs):
                      partition=partition,
                      wide=wide,
                      nest=nest,
+                     join_where=check_columns,
                      pre_order_stage=pre_order_stage)
 
     job.run(name='select_from_%s' % name, input=job_blobs, **settings)
