@@ -11,7 +11,6 @@ import sys
 def stat_input_stream(fd, size, url, params):
     from disco import util
     from hustle.core.marble import MarbleStream
-    from disco.worker import Worker
 
     try:
         scheme, netloc, rest = util.urlsplit(url)
@@ -22,9 +21,9 @@ def stat_input_stream(fd, size, url, params):
 
     otab = None
     try:
-        print "FLurlG: %s" % url
+        # print "FLurlG: %s" % url
         fle = util.localize(rest, disco_data=params._task.disco_data, ddfs_data=params._task.ddfs_data)
-        print "FLOGLE: %s" % fle
+        # print "FLOGLE: %s" % fle
         otab = MarbleStream(fle)
         rows = otab.number_rows
         frows = float(rows)

@@ -544,7 +544,7 @@ def stat(where, limit=16, **kwargs):
     settings = Settings(**kwargs)
     ddfs = settings['ddfs']
     job_blobs = set(tuple(sorted(w)) for w in _get_blobs(where, ddfs, limit))
-    print job_blobs
+    # print job_blobs
     job = StatPipe(settings['server'])
     job.run(name="stat_" + where._name, input=job_blobs, **settings)
     res = job.wait()
