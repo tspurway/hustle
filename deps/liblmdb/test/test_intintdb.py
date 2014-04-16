@@ -74,6 +74,38 @@ class TestDB(TestCase):
         self.assertEqual(list(db.mget(txn, [3, 1, 2, 5])),
                          [3, 1, 2, 5])
 
+    def test_get_neighbours(self):
+        self.drop_mdb()
+        txn = self.env.begin_txn()
+        db = self.env.open_db(txn, 'test_db',
+                              flags=mdb.MDB_CREATE|mdb.MDB_INTEGERKEY|mdb.MDB_INTEGERDUP)
+        db.put(txn, 1, 1)
+        db.put(txn, 5, 2)
+        db.put(txn, 7, 3)
+        db.put(txn, 8, 5)
+        txn.commit()
+        txn = self.env.begin_txn()
+        self.assertEqual(db.get_neighbours(txn, 0),
+                         ((1, 1), (1, 1)))
+        self.assertEqual(db.get_neighbours(txn, 1),
+                         ((1, 1), (1, 1)))
+        self.assertEqual(db.get_neighbours(txn, 2),
+                         ((1, 1), (5, 2)))
+        self.assertEqual(db.get_neighbours(txn, 3),
+                         ((1, 1), (5, 2)))
+        self.assertEqual(db.get_neighbours(txn, 4),
+                         ((1, 1), (5, 2)))
+        self.assertEqual(db.get_neighbours(txn, 5),
+                         ((5, 2), (5, 2)))
+        self.assertEqual(db.get_neighbours(txn, 6),
+                         ((5, 2), (7, 3)))
+        self.assertEqual(db.get_neighbours(txn, 7),
+                         ((7, 3), (7, 3)))
+        self.assertEqual(db.get_neighbours(txn, 8),
+                         ((8, 5), (8, 5)))
+        self.assertEqual(db.get_neighbours(txn, 9),
+                         ((8, 5), (8, 5)))
+
     def test_contains(self):
         # all keys must be sorted
         txn = self.env.begin_txn()
@@ -107,8 +139,6 @@ class TestDB(TestCase):
         self.assertEqual([value for value in db.get_dup(txn, 13)],
                          [1312321313123, 1431231231231])
         self.assertEqual(db.get(txn, 13123), 1431231231231)
-        for k, v in db.dup_items(txn):
-            print k, v
         txn.commit()
         db.close()
 
