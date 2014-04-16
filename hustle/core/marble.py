@@ -1428,6 +1428,10 @@ class PartitionDB(object):
         for i in range(len(keys)):
             yield self.echome
 
+    def get_neighbours(self, txn, key):
+        v = (key, self.echome)
+        return v, v
+
     def get(self, txn, key, default=None):
         return self.echome
 
