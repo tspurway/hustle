@@ -556,9 +556,16 @@ def stat(where, limit=16, **kwargs):
         weight = cols.pop('_') / total
         for col, card in cols.iteritems():
             final[col] += card * weight
-    final['_'] = int(total)
 
-    return final
+    # round everything up to a number between 0 .. 100
+    really_final = {}
+    for key in final:
+        card = int(final[key] * 100)
+        if card > 0:
+            really_final[key] = card
+    really_final['_'] = int(total)
+
+    return really_final
 
 
 def h_sum(col):
