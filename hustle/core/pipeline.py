@@ -45,12 +45,14 @@ def hustle_output_stream(stream, partition, url, params, result_table):
             from hustle.core.marble import _insert_row
             data = dict(zip(self.result_columns, list(k) + list(v)))
             #print "BOZAK! adding %s %s %s" % (self.result_columns, k, v)
-            _insert_row(data,
-                        self.txn,
-                        self.dbs,
-                        self.autoinc,
-                        self.vid_trie,
-                        self.vid16_trie)
+            updated_dbs = _insert_row(data,
+                                      self.txn,
+                                      self.dbs,
+                                      self.autoinc,
+                                      self.vid_trie,
+                                      self.vid16_trie)
+            if updated_dbs:
+                self.dbs = updated_dbs
             self.autoinc += 1
 
         def close(self):
@@ -70,7 +72,7 @@ def hustle_output_stream(stream, partition, url, params, result_table):
             self.meta.put_raw(self.txn, '_vid16_kids', vk16_ptr, vk16_len)
             self.meta.put(self.txn, 'name', ujson.dumps(self.result_table._name))
             self.meta.put(self.txn, 'fields', ujson.dumps(self.result_table._fields))
-            for index, (subdb, subindexdb, bitmap_dict, column) in self.dbs.iteritems():
+            for index, (subdb, subindexdb, bitmap_dict, column, last) in self.dbs.iteritems():
                 if subindexdb:
                     # process all values for this bitmap index
                     if column.index_indicator == 2:
@@ -78,6 +80,8 @@ def hustle_output_stream(stream, partition, url, params, result_table):
                     else:
                         for val, bitmap in bitmap_dict.iteritems():
                             subindexdb.put(self.txn, val, bitmap.dumps())
+                # insert a sentinel row to value table
+                subdb.put(self.txn, self.autoinc + 1, last)
             self.txn.commit()
 
             try:
