@@ -20,7 +20,7 @@ import ujson
 from disco.core import Job, Disco
 from disco.error import CommError
 from hustle.core.marble import Aggregation, Marble, json_decoder, Column, Expr, check_query
-
+import sys
 
 _TAG_PREFIX = 'hustle:'
 _ALG_RIGHT, _ALG_LEFT, _ALG_CENTER = 0x01, 0x10, 0x20
@@ -535,6 +535,32 @@ def select(*project, **kwargs):
         return Future(job.name, job, settings['server'], nest, *project)
 
 
+def stat(where, limit=16, **kwargs):
+    from hustle.core.settings import Settings
+    from hustle.core.stat import StatPipe
+    from disco.core import result_iterator
+    from collections import defaultdict
+
+    settings = Settings(**kwargs)
+    ddfs = settings['ddfs']
+    job_blobs = set(tuple(sorted(w)) for w in _get_blobs(where, ddfs, limit))
+    print job_blobs
+    job = StatPipe(settings['server'])
+    job.run(name="stat_" + where._name, input=job_blobs, **settings)
+    res = job.wait()
+
+    # first we need the total, so that we can calculate weighted average
+    total = float(sum(v['_'] for _, v in result_iterator(res)))
+    final = defaultdict(int)
+    for _, cols in result_iterator(res):
+        weight = cols.pop('_') / total
+        for col, card in cols.iteritems():
+            final[col] += card * weight
+    final['_'] = int(total)
+
+    return final
+
+
 def h_sum(col):
     """
     Return an aggregation for the sum of the given column.  Like SQL sum() function.
@@ -893,12 +919,12 @@ def _print_line(items, width=80, cols=3, alignments=None):
     print line
 
 
-def _get_blobs(table_or_expr, ddfs):
+def _get_blobs(table_or_expr, ddfs, limit=sys.maxint):
     # assume a table is being passed in
     table = table_or_expr
     where = None
     if hasattr(table_or_expr, 'table'):
-        # nope, its a where clause (ie. and expr)
+        # nope, its a where clause (ie. an expr)
         table = table_or_expr.table
         where = table_or_expr
 
@@ -912,6 +938,8 @@ def _get_blobs(table_or_expr, ddfs):
         rval = list()
         for tag in seltags:
             rval.extend(ddfs.blobs(tag))
+            if len(rval) >= limit:
+                return rval[:limit]
         return rval
     else:
         tags = ddfs.list(table.base_tag(table._name))
@@ -919,6 +947,8 @@ def _get_blobs(table_or_expr, ddfs):
         for tag in tags:
             replicas = list(ddfs.blobs(tag))
             blobs.extend(replicas)
+            if len(blobs) >= limit:
+                return blobs[:limit]
         return blobs
 
 

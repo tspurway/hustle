@@ -165,8 +165,7 @@ class SelectPipe(Job):
         name = '-'.join([w._name for w in self.wheres])[:64]
         # append a 3-digit random suffix to avoid name collision
         # TODO: random doesn't guarantee uniqueness, 1/1000th chance of getting the same number
-        self.output_table = Table(name="sub-%s-%03d" % (name, random.randint(0, 999)),
-                                  fields=fields)
+        self.output_table = Table(name="sub-%s-%03d" % (name, random.randint(0, 999)), fields=fields)
         return self.output_table
 
     def _get_table(self, obj):

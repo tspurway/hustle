@@ -267,6 +267,9 @@ class Marble(object):
                 if key == 1:
                     self.subindexdb.put(self.txn, key, val)
 
+            def stat(self, txn):
+                return {'ms_entries': 2}
+
             def get(self, txn, key, default=None):
                 bm = self.subindexdb.get(self.txn, 1)
                 if key == 1:
