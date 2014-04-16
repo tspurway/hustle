@@ -226,6 +226,9 @@ class Marble(object):
             def mget(self, _, rids, default=None):
                 return repeat(1, len(rids))
 
+            def get_neighbours(self, _, rid, default=None):
+                return (rid, 1), (rid, 1)
+
         class BooleanDB(object):
             def __init__(self, subindexdb, txn):
                 bitset = BitSet()
@@ -246,6 +249,10 @@ class Marble(object):
                 if self.true_bm.get(rid):
                     return 1
                 return 0
+
+            def get_neighbours(self, _, rid, default=None):
+                v = self.true_bm.get(rid)
+                return (rid, v), (rid, v)
 
             def mget(self, _, rids, default=None):
                 for rid in rids:
@@ -296,12 +303,14 @@ class Marble(object):
         number_rows = ujson.loads(meta.get(txn, '_total_rows', "0"))
 
         if not write:
-            dbs = {'_count': (CountDB(), None, None, Column('_count', None, type_indicator=1))}
+            dbs = {'_count': (CountDB(), None, None,
+                              Column('_count', None, type_indicator=1), None)}
         else:
             dbs = {}
         for index, column in self._columns.iteritems():
             subindexdb = None
             bitmap_dict = _dummy
+            last = None  # to record the last inserted value
             if column.index_indicator:
                 # create an index for this column
                 flags = mdb.MDB_CREATE
@@ -339,7 +348,7 @@ class Marble(object):
                                     key_inttype=mdb.MDB_UINT_32,
                                     value_inttype=column.get_effective_inttype())
 
-            dbs[index] = (subdb, subindexdb, bitmap_dict, column)
+            dbs[index] = (subdb, subindexdb, bitmap_dict, column, last)
         return env, txn, dbs, meta
 
     def _insert(self, streams, preprocess=None, maxsize=1024 * 1024 * 1024,
@@ -407,7 +416,7 @@ class Marble(object):
                                 txn = env.begin_txn()
                             #TODO: a bit a hack - need to reset txns and dbs for all of our indexes
                             #  (iff they are LRUDicts)
-                            for index, (_, subindexdb, bitmap_dict, _) in dbs.iteritems():
+                            for index, (_, subindexdb, bitmap_dict, _, _) in dbs.iteritems():
                                 if bitmap_dict is not _dummy and type(bitmap_dict) is not defaultdict:
                                     lru_evict = bitmap_dict._Evict
                                     lru_fetch = bitmap_dict._Fetch
@@ -416,9 +425,11 @@ class Marble(object):
                             partitions[pdata] = bigfile, env, txn, dbs, meta, pmaxsize
                             counters[pdata] = 0
 
-                        _insert_row(data, txn, dbs, autoincs[pdata], vid_tries[pdata], vid16_tries[pdata])
+                        updated_dbs = _insert_row(data, txn, dbs, autoincs[pdata], vid_tries[pdata], vid16_tries[pdata])
                         autoincs[pdata] += 1
                         counters[pdata] += 1
+                        if updated_dbs:
+                            partitions[pdata] = bigfile, env, txn, updated_dbs, meta, pmaxsize
 
             files = {}
             total_records = 0
@@ -439,7 +450,7 @@ class Marble(object):
                     meta.put(txn, 'name', ujson.dumps(self._name))
                     meta.put(txn, 'fields', ujson.dumps(self._fields))
                     meta.put(txn, 'partition', ujson.dumps(self._partition))
-                    for index, (subdb, subindexdb, bitmap_dict, column) in dbs.iteritems():
+                    for index, (subdb, subindexdb, bitmap_dict, column, last) in dbs.iteritems():
                         if subindexdb:
                             # process all values for this bitmap index
                             if column.index_indicator == 2:
@@ -447,7 +458,8 @@ class Marble(object):
                             else:
                                 for val, bitmap in bitmap_dict.iteritems():
                                     subindexdb.put(txn, val, bitmap.dumps())
-
+                        # insert a sentinel row to value table
+                        subdb.put(txn, autoincs[pdata], last)
                     txn.commit()
                 except Exception as e:
                     print "Error writing to MDB: %s" % e
@@ -459,7 +471,7 @@ class Marble(object):
                 else:
                     # close dbs
                     meta.close()
-                    for index, (subdb, subindexdb, _, _) in dbs.iteritems():
+                    for index, (subdb, subindexdb, _, _, _) in dbs.iteritems():
                         subdb.close()
                         if subindexdb:
                             subindexdb.close()
@@ -496,14 +508,29 @@ class MarbleStream(object):
         return xrange(1, self.number_rows)
 
     def mget(self, column_name, keys):
-        db, _, _, column = self.dbs[column_name]
-        for data in db.mget(self.txn, keys):
-            yield column.fetcher(data, self.vid16_nodes, self.vid16_kids, self.vid_nodes, self.vid_kids)
+        db, _, _, column, _ = self.dbs[column_name]
+        lower, upper = (-1, None), (-1, None)
+        for key in keys:
+            if key < upper[0]:
+                data = lower[1]
+            elif key == upper[0]:
+                data = upper[1]
+            else:
+                lower, upper = db.get_neighbours(self.txn, key)
+                data = lower[1]
+            yield column.fetcher(data, self.vid16_nodes, self.vid_kids,
+                                 self.vid_nodes, self.vid_kids)
 
     def get(self, column_name, key):
-        db, _, _, column = self.dbs[column_name]
-        data = db.get(self.txn, key)
-        return column.fetcher(data, self.vid16_nodes, self.vid16_kids, self.vid_nodes, self.vid_kids)
+        """
+        In hustle, value table stores data in an Ajacent-Duplicates-Compressing
+        fashion. Also, each table has a sentinel as the last value so that
+        we don't check the case that key doesn't exist in this function.
+        """
+        db, _, _, column, _ = self.dbs[column_name]
+        lower, _ = db.get_neighbours(self.txn, key)
+        return column.fetcher(lower[1], self.vid16_nodes, self.vid16_kids,
+                              self.vid_nodes, self.vid_kids)
 
     def _vid_for_value(self, column, key):
         if column.is_trie:
@@ -516,7 +543,7 @@ class MarbleStream(object):
         return key
 
     def bit_eq(self, ix, key):
-        _, idb, _, column = self.dbs[ix]
+        _, idb, _, column, _ = self.dbs[ix]
         rval = BitSet()
         zkey = self._vid_for_value(column, key)
         if zkey is not None:
@@ -526,7 +553,7 @@ class MarbleStream(object):
         return rval
 
     def bit_ne(self, ix, key):
-        _, idb, _, column = self.dbs[ix]
+        _, idb, _, column, _ = self.dbs[ix]
         rval = BitSet()
         key = self._vid_for_value(column, key)
         if key is not None:
@@ -540,7 +567,7 @@ class MarbleStream(object):
 
     def bit_eq_ex(self, ix, keys):
         from collections import Iterable
-        _, idb, _, column = self.dbs[ix]
+        _, idb, _, column, _ = self.dbs[ix]
         rval = BitSet()
         for key in keys:
             if isinstance(key, Iterable) and not isinstance(key, (basestring, unicode)):
@@ -557,7 +584,7 @@ class MarbleStream(object):
 
     def bit_ne_ex(self, ix, keys):
         from collections import Iterable
-        _, idb, _, column = self.dbs[ix]
+        _, idb, _, column, _ = self.dbs[ix]
         rval = BitSet()
         for key in keys:
             if isinstance(key, Iterable) and not isinstance(key, (basestring, unicode)):
@@ -587,19 +614,19 @@ class MarbleStream(object):
         return rval
 
     def bit_lt(self, ix, val):
-        _, idb, _, _ = self.dbs[ix]
+        _, idb, _, _, _ = self.dbs[ix]
         return self._bit_op(val, idb.get_lt)
 
     def bit_gt(self, ix, val):
-        _, idb, _, _ = self.dbs[ix]
+        _, idb, _, _, _ = self.dbs[ix]
         return self._bit_op(val, idb.get_gt)
 
     def bit_le(self, ix, val):
-        _, idb, _, _ = self.dbs[ix]
+        _, idb, _, _, _ = self.dbs[ix]
         return self._bit_op(val, idb.get_le)
 
     def bit_ge(self, ix, val):
-        _, idb, _, _ = self.dbs[ix]
+        _, idb, _, _, _ = self.dbs[ix]
         return self._bit_op(val, idb.get_ge)
 
     def close(self):
@@ -1389,12 +1416,20 @@ class Victor(object):
 
 def _insert_row(data, txn, dbs, row_id, vid_trie, vid16_trie):
     column = None
+    updated = False
     try:
-        for subdb, _, bitmap_dict, column in dbs.itervalues():
-
+        for col, (subdb, subinxdb, bitmap_dict, column, last) in dbs.iteritems():
             val = column.converter(data.get(column.name, column.default_value) or column.default_value,
                                    vid_trie, vid16_trie)
-            subdb.put(txn, row_id, val)
+            if val != last:
+                subdb.put(txn, row_id, val)
+                updated = True
+                dbs[col] = subdb, subinxdb, bitmap_dict, column, val
             bitmap_dict[val].set(row_id)
     except Exception as e:
         print "Can't INSERT: %s %s: %s" % (repr(data), column, e)
+
+    if updated:
+        return dbs
+    else:
+        return None
