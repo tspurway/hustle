@@ -174,7 +174,7 @@ if __name__ == '__main__':
 
     # modules we want in our imported namespace
     from hustle import Table, h_min, h_avg, h_max, h_sum, h_count, \
-        select, dump, edump, insert, star, tables, get_tables, \
+        select, cat, insert, star, tables, get_tables, \
         delete, drop, schema, partitions
     from hustle.core.settings import Settings, overrides
 
@@ -192,8 +192,7 @@ if __name__ == '__main__':
         "h_sum": h_sum,
         "h_count": h_count,
         "select": select,
-        "dump": dump,
-        "edump": edump,
+        "cat": cat,
         "drop": drop,
         "delete": delete,
         "tables": tables,
@@ -208,7 +207,7 @@ if __name__ == '__main__':
         print """
 Type `help(<command>)` for more help:
   select()    - select rows and columns from a Table
-  cat()       - dump the results of a non-nested select query
+  cat()       - pretty print a table or query
   ---
   Table.create() - create a new Table
   insert()    - insert data into a Table

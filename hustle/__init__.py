@@ -204,16 +204,10 @@ class Table(Marble):
 
     def __iter__(self):
         """
-        return a generator of all columns from a nested query
+        return a generator of all columns from a table
 
         """
-        from disco.core import result_iterator
-
-        if not self._blobs:
-            return
-        blobs = select(*star(self), where=self, dump=False, nest=False)
-        for columns, _ in result_iterator(blobs):
-            yield columns
+        return select(*star(self), where=self, dump=False, nest=False)
 
     def dumps(self):
         dump = {}
@@ -321,10 +315,11 @@ def select(*project, **kwargs):
     """
     Perform a relational query, by selecting rows and columns from one or more tables.
 
-    The return value is either:
+    The return value is either::
 
-    * a list of urls containing the result records.  This is the same as normal results from Disco
+    * an iterator over the resulting tuples when :code:`nest==False`
     * a :class:`Table <hustle.Table>` instance when :code:`nest==True`
+    * in the case of :code:`nest==False and dump==True` return None (this is the default CLI interaction)
 
     For all of the examples below, *imps* and *pix* are instances of :class:`Table <hustle.Table>`.
 
@@ -534,9 +529,9 @@ def select(*project, **kwargs):
                         alignments=[_ALG_RIGHT if c.is_numeric else _ALG_LEFT
                                     for c in project])
             _print_separator(80)
-            dump(blobs, 80)
+            cat(_query_iterator(blobs), 80)
             return
-        return blobs
+        return _query_iterator(blobs)
     else:
         return Future(job.name, job, settings['server'], nest, *project)
 
@@ -684,19 +679,18 @@ def star(table):
     return [table._columns[col] for col in table._field_names]
 
 
-def dump(result_urls, width=80):
+def cat(result, width=80):
     """
-    Dump the results of a non-nested query.
+    Pretty print the results of a query or table.
 
-    :type result_urls: sequence of strings
-    :param result_urls: result of an (unnested) query
+    :type result: iterator over tuples
+    :param result: result of a query or a table
 
     :type width: int
     :param width: the number of columns to constrain output to
     """
-    from disco.core import result_iterator
     alignments = None
-    for columns, _ in result_iterator(result_urls):
+    for columns in result:
         if not alignments:
             alignments = []
             for column in columns:
@@ -708,20 +702,6 @@ def dump(result_urls, width=80):
 
         _print_line(columns, width=width, cols=len(alignments),
                     alignments=alignments)
-
-
-def edump(table):
-    """
-    Dump the results of a nested query.
-
-    :type table: a :class:`Table <hustle.Table>` object
-    :param table: it must be a result table from a nested select query
-    """
-    if not isinstance(table, Table):
-        raise ValueError("First argument must be a table.")
-    if not table._blobs:
-        raise Exception("Can not dump a empty table.")
-    return select(*star(table), where=table, dump=True)
 
 
 def get_tables(**kwargs):
@@ -888,6 +868,15 @@ def drop(table, **kwargs):
 
     delete(table, **kwargs)
     ddfs.delete(Table.base_tag(table._name))
+
+
+def _query_iterator(blobs):
+    from disco.core import result_iterator
+
+    print "beebles: %s" % blobs
+
+    for columns, _ in result_iterator(blobs):
+        yield columns
 
 
 def _print_separator(width=80):
@@ -1062,7 +1051,7 @@ class Future(object):
             if self._nest:
                 return self.table
             else:
-                return self._blobs
+                return _query_iterator(self._blobs)
 
     @property
     def done(self):
