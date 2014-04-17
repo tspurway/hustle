@@ -1,11 +1,10 @@
 from disco.core import Job
 from disco.worker.task_io import task_input_stream
+from hustle.core.pipeworker import Worker, HustleStage
+
 import hustle
 import hustle.core
 import hustle.core.marble
-from hustle.core.marble import Aggregation
-from hustle.core.pipeworker import Worker, HustleStage
-import sys
 
 
 def stat_input_stream(fd, size, url, params):
@@ -18,11 +17,11 @@ def stat_input_stream(fd, size, url, params):
         print "Error handling hustle_input_stream for %s. %s" % (url, e)
         raise e
 
-
     otab = None
     try:
         # print "FLurlG: %s" % url
-        fle = util.localize(rest, disco_data=params._task.disco_data, ddfs_data=params._task.ddfs_data)
+        fle = util.localize(rest, disco_data=params._task.disco_data,
+                            ddfs_data=params._task.ddfs_data)
         # print "FLOGLE: %s" % fle
         otab = MarbleStream(fle)
         rows = otab.number_rows
@@ -48,9 +47,11 @@ class StatPipe(Job):
     def __init__(self, master):
 
         super(StatPipe, self).__init__(master=master, worker=Worker())
-        self.pipeline = [('split', HustleStage('stat',
-                                         process=process_stat,
-                                         input_chain=[task_input_stream, stat_input_stream]))]
+        self.pipeline = [('split',
+                          HustleStage('stat',
+                                      process=process_stat,
+                                      input_chain=[task_input_stream,
+                                                   stat_input_stream]))]
 
 
 def process_stat(interface, state, label, inp, task):
@@ -66,7 +67,8 @@ def process_stat(interface, state, label, inp, task):
             break
 
     if not input_processed:
-        raise Exception("Input %s not processed, no LOCAL resource found." % str(inp.input))
+        raise Exception("Input %s not processed, no LOCAL resource found."
+                        % str(inp.input))
 
     for key, value in inp:
         interface.output(0).add(key, value)

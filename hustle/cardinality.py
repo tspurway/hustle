@@ -9,10 +9,7 @@ def h_cardinality(col):
         return Cardunion(12)
 
     def _inner_hll_accumulate(a, v):
-        start = a.count()
         a.bunion([v])
-        done = a.count()
-        # print "ACC: %s %s" % (start, done)
         return a
 
     return Aggregation("cardinality",
@@ -57,5 +54,3 @@ def h_minhash_merge(col):
                        g=lambda a, c: a.dumps(),
                        h=lambda a: a.dumps(),
                        default=_inner_deault)
-
-

@@ -4,18 +4,17 @@
 
 
 """
-from functools import partial
 from collections import defaultdict
+from functools import partial
 from pyebset import BitSet
-import mdb
-import ujson
-import os
-import tempfile
-import clz4
-import rtrie
-import time
 
-COMMIT_THRESHOLD = 50000
+import clz4
+import mdb
+import os
+import rtrie
+import tempfile
+import time
+import ujson
 
 
 class Marble(object):
@@ -59,8 +58,8 @@ class Marble(object):
         self._columns = {}
 
         for field in fields:
-            field, type_indicator, compression_indicator, rtrie_indicator, index_indicator, boolean = \
-                self._parse_index_type(field)
+            field, type_indicator, compression_indicator, rtrie_indicator, \
+                index_indicator, boolean = self._parse_index_type(field)
             part = field == partition
             col = Column(field,
                          self,
@@ -219,7 +218,6 @@ class Marble(object):
 
     def _open_dbs(self, env, write, lru_size):
         from pylru import LRUDict
-        import ujson
         from itertools import repeat
 
         class PartitionDB(object):
@@ -388,6 +386,8 @@ class Marble(object):
         """insert a file into the hustle table."""
         from wtrie import Trie
 
+        COMMIT_THRESHOLD = 50000
+
         if not decoder:
             decoder = json_decoder
 
@@ -418,7 +418,8 @@ class Marble(object):
                                 bigfile, env, txn, dbs, meta, pmaxsize = partitions[pdata]
                             else:
                                 bigfile = tempfile.mktemp(prefix="hustle", dir=tmpdir) + '.big'
-                                env, txn, dbs, meta = self._open(bigfile, maxsize=maxsize, write=True, lru_size=lru_size)
+                                env, txn, dbs, meta = self._open(bigfile, maxsize=maxsize,
+                                                                 write=True, lru_size=lru_size)
                                 page_size = env.stat()['ms_psize']
                                 partitions[pdata] = bigfile, env, txn, dbs, meta, maxsize
                                 counters[pdata] = 0
@@ -438,7 +439,9 @@ class Marble(object):
                                 try:
                                     print "======= attempting to resize mmap ======"
                                     env.set_mapsize(pmaxsize)
-                                    env, txn, dbs, meta = self._open_dbs(env, write=True, lru_size=lru_size)
+                                    env, txn, dbs, meta = self._open_dbs(env,
+                                                                         write=True,
+                                                                         lru_size=lru_size)
                                 except Exception as e:
                                     import traceback
                                     print "Error resizing MDB: %s" % e
@@ -457,7 +460,8 @@ class Marble(object):
                             partitions[pdata] = bigfile, env, txn, dbs, meta, pmaxsize
                             counters[pdata] = 0
 
-                        updated_dbs = _insert_row(data, txn, dbs, autoincs[pdata], vid_tries[pdata], vid16_tries[pdata])
+                        updated_dbs = _insert_row(data, txn, dbs, autoincs[pdata],
+                                                  vid_tries[pdata], vid16_tries[pdata])
                         autoincs[pdata] += 1
                         counters[pdata] += 1
                         if updated_dbs:
@@ -524,7 +528,6 @@ class Marble(object):
 
 class MarbleStream(object):
     def __init__(self, local_file):
-        import ujson
         import socket
         self.marble = Marble.from_file(local_file)
         self.env, self.txn, self.dbs, self.meta = self.marble._open(local_file, write=False)
@@ -746,8 +749,9 @@ class Column(object):
         :type alias: str
         :param alias: the name of the alias
         """
-        newcol = Column(self.name, self.table, self.index_indicator, self.partition, self.type_indicator,
-                        self.compression_indicator, self.rtrie_indicator, alias)
+        newcol = Column(self.name, self.table, self.index_indicator, self.partition,
+                        self.type_indicator, self.compression_indicator,
+                        self.rtrie_indicator, alias)
         return newcol
 
     @property
@@ -756,8 +760,8 @@ class Column(object):
 
     def schema_string(self):
         """
-        return the schema for this column.  This is used to build the schema of a query result, so we need to
-        use the alias.
+        return the schema for this column.  This is used to build the schema of a query
+        result, so we need to use the alias.
         """
         rval = self.alias or self.name
         indexes = ['', '+', '=']
@@ -798,7 +802,8 @@ class Column(object):
             rval += string_lookup[self.compression_indicator]
             if self.compression_indicator == 0:
                 rval += dict_lookup[self.rtrie_indicator]
-        name = self.alias or self.name if not self.partition else "*" + (self.alias or self.name)
+        name = self.alias or self.name if not self.partition \
+            else "*" + (self.alias or self.name)
         inds = [rval, name]
         if self.is_boolean:
             inds = ['bit', name]
@@ -815,9 +820,11 @@ class Column(object):
         if not self.partition \
                 and op in [in_lt, in_gt, in_ge, in_le] \
                 and (self.is_trie or self.is_lz4 or self.is_binary):
-            raise TypeError("Column %s doesn't support range query." % self.fullname)
+            raise TypeError("Column %s doesn't support range query."
+                            % self.fullname)
         if not self.is_index:
-            raise TypeError("Column %s is not an index, cannot appear in 'where' clause." % self.fullname)
+            raise TypeError("Column %s is not an index, cannot appear in 'where' clause."
+                            % self.fullname)
         part_expr = partial(part_op, other=other) if self.partition else part_all
         return Expr(self.table,
                     partial(op, col=self.name, other=other),
@@ -916,8 +923,8 @@ class Aggregation(object):
             Some of Hustle's aggregation functions
 
     """
-    def __init__(self, name, column, f=None, g=lambda a: a, h=lambda a: a, default=lambda: None,
-                 is_numeric=None, is_binary=None):
+    def __init__(self, name, column, f=None, g=lambda a: a, h=lambda a: a,
+                 default=lambda: None, is_numeric=None, is_binary=None):
 
         self.column = column
         self.f = f
@@ -935,7 +942,8 @@ class Aggregation(object):
         return self.column.table
 
     def named(self, alias):
-        newag = Aggregation(self.name, self.column.named(alias), self.f, self.g, self.h, self.default)
+        newag = Aggregation(self.name, self.column.named(alias), self.f,
+                            self.g, self.h, self.default)
         return newag
 
 
@@ -1002,7 +1010,8 @@ class Expr(object):
         return not self.has_partition
 
     def _assert_unity(self, other_expr):
-        if self.table is not None and other_expr.table is not None and self.table._name != other_expr.table._name:
+        if self.table is not None and other_expr.table is not None \
+                and self.table._name != other_expr.table._name:
             raise Exception("Error Expression must have a single table: %s != %s" %
                             (self.table._name, other_expr.table._name))
 
@@ -1013,16 +1022,18 @@ class Expr(object):
         if self.is_partition and other_expr.is_partition:
             return Expr(self.table,
                         None,
-                        partial(part_conditional, op='and', l_expr=self.part_f, r_expr=other_expr.part_f),
+                        partial(part_conditional, op='and', l_expr=self.part_f,
+                                r_expr=other_expr.part_f),
                         True)
         # n & n
         elif self.has_no_partition and other_expr.has_no_partition:
             return Expr(self.table,
-                        partial(in_conditional, op='and', l_expr=self.f, r_expr=other_expr.f),
+                        partial(in_conditional, op='and', l_expr=self.f,
+                                r_expr=other_expr.f),
                         part_all)
         # n & p
-        elif (self.is_partition and other_expr.has_no_partition) or \
-                (self.has_no_partition and other_expr.is_partition):
+        elif (self.is_partition and other_expr.has_no_partition) \
+                or (self.has_no_partition and other_expr.is_partition):
             if self.is_partition:
                 f_expr = other_expr.f
                 pf_expr = self.part_f
@@ -1031,29 +1042,34 @@ class Expr(object):
                 pf_expr = other_expr.part_f
             return Expr(self.table, f_expr, pf_expr)
         # n & np
-        elif (self.has_no_partition and other_expr.has_partition) or \
-                (self.has_partition and other_expr.has_no_partition):
+        elif (self.has_no_partition and other_expr.has_partition) \
+                or (self.has_partition and other_expr.has_no_partition):
             if self.has_partition:
                 pf_expr = self.part_f
             else:
                 pf_expr = other_expr.part_f
             return Expr(self.table,
-                        partial(in_conditional, op='and', l_expr=self.f, r_expr=other_expr.f),
+                        partial(in_conditional, op='and', l_expr=self.f,
+                                r_expr=other_expr.f),
                         pf_expr)
         # p & np
-        elif (self.is_partition and other_expr.has_partition) or (self.has_partition and other_expr.is_partition):
+        elif (self.is_partition and other_expr.has_partition) \
+                or (self.has_partition and other_expr.is_partition):
             if self.is_partition:
                 f_expr = other_expr.f
             else:
                 f_expr = self.f
             return Expr(self.table,
                         f_expr,
-                        partial(part_conditional, op='and', l_expr=self.part_f, r_expr=other_expr.part_f))
+                        partial(part_conditional, op='and', l_expr=self.part_f,
+                                r_expr=other_expr.part_f))
         # np & np
         elif self.has_partition and other_expr.has_partition:
             return Expr(self.table,
-                        partial(in_conditional, op='and', l_expr=self.f, r_expr=other_expr.f),
-                        partial(part_conditional, op='and', l_expr=self.part_f, r_expr=other_expr.part_f))
+                        partial(in_conditional, op='and', l_expr=self.f,
+                                r_expr=other_expr.f),
+                        partial(part_conditional, op='and', l_expr=self.part_f,
+                                r_expr=other_expr.part_f))
         else:
             raise Exception("Error in partitions (and)")
 
@@ -1063,27 +1079,34 @@ class Expr(object):
         # p | p
         if self.is_partition and other_expr.is_partition:
             return Expr(self.table,
-                        partial(in_conditional, op='or', l_expr=self.f, r_expr=other_expr.f),
-                        partial(part_conditional, op='or', l_expr=self.part_f, r_expr=other_expr.part_f),
+                        partial(in_conditional, op='or', l_expr=self.f,
+                                r_expr=other_expr.f),
+                        partial(part_conditional, op='or', l_expr=self.part_f,
+                                r_expr=other_expr.part_f),
                         True)
         # p | np
-        elif (self.is_partition and other_expr.has_partition) or (self.has_partition and other_expr.is_partition):
+        elif (self.is_partition and other_expr.has_partition) \
+                or (self.has_partition and other_expr.is_partition):
             if self.is_partition:
                 f_expr = other_expr.f
             else:
                 f_expr = self.f
             return Expr(self.table,
                         f_expr,
-                        partial(part_conditional, op='or', l_expr=self.part_f, r_expr=other_expr.part_f))
+                        partial(part_conditional, op='or', l_expr=self.part_f,
+                                r_expr=other_expr.part_f))
         # np | np
         elif self.has_partition and other_expr.has_partition:
             return Expr(self.table,
-                        partial(in_conditional, op='or', l_expr=self.f, r_expr=other_expr.f),
-                        partial(part_conditional, op='or', l_expr=self.part_f, r_expr=other_expr.part_f))
+                        partial(in_conditional, op='or', l_expr=self.f,
+                                r_expr=other_expr.f),
+                        partial(part_conditional, op='or', l_expr=self.part_f,
+                                r_expr=other_expr.part_f))
         # n | n, n | p, n | np
         elif self.has_no_partition or other_expr.has_no_partition:
             return Expr(self.table,
-                        partial(in_conditional, op='or', l_expr=self.f, r_expr=other_expr.f),
+                        partial(in_conditional, op='or', l_expr=self.f,
+                                r_expr=other_expr.f),
                         part_all)
         else:
             raise Exception("Error in partitions (or)")
@@ -1209,7 +1232,8 @@ def in_conditional(tablet, invert, op, l_expr, r_expr):
 
 def in_in(tablet, invert, col, other):
     from collections import Iterable
-    if isinstance(other, Iterable) and not isinstance(other, (basestring, unicode)):
+    if isinstance(other, Iterable) \
+            and not isinstance(other, (basestring, unicode)):
         other = set(other)
         if invert:
             return tablet.bit_ne_ex(col, other)
@@ -1220,7 +1244,8 @@ def in_in(tablet, invert, col, other):
 
 def part_in(tags, invert, other):
     from collections import Iterable
-    if isinstance(other, Iterable) and not isinstance(other, (basestring, unicode)):
+    if isinstance(other, Iterable) \
+            and not isinstance(other, (basestring, unicode)):
         other = set(other)
         if invert:
             return part_not_in(tags, False, other)
@@ -1231,7 +1256,8 @@ def part_in(tags, invert, other):
 
 def in_not_in(tablet, invert, col, other):
     from collections import Iterable
-    if isinstance(other, Iterable) and not isinstance(other, (basestring, unicode)):
+    if isinstance(other, Iterable) \
+            and not isinstance(other, (basestring, unicode)):
         other = set(other)
         if invert:
             return tablet.bit_eq_ex(col, other)
@@ -1242,7 +1268,8 @@ def in_not_in(tablet, invert, col, other):
 
 def part_not_in(tags, invert, other):
     from collections import Iterable
-    if isinstance(other, Iterable) and not isinstance(other, (basestring, unicode)):
+    if isinstance(other, Iterable) \
+            and not isinstance(other, (basestring, unicode)):
         other = set(other)
         if invert:
             return part_in(tags, False, other)
@@ -1327,7 +1354,8 @@ def check_query(select, join, order_by, limit, wheres):
     """Query checker for hustle."""
 
     if not len(wheres):
-        raise ValueError("Where clause must have at least one table. where=%s" % repr(wheres))
+        raise ValueError("Where clause must have at least one table. where=%s"
+                         % repr(wheres))
 
     tables = {}
     for where in wheres:
@@ -1452,8 +1480,8 @@ def _insert_row(data, txn, dbs, row_id, vid_trie, vid16_trie):
     updated = False
     try:
         for col, (subdb, subinxdb, bitmap_dict, column, last) in dbs.iteritems():
-            val = column.converter(data.get(column.name, column.default_value) or column.default_value,
-                                   vid_trie, vid16_trie)
+            val = column.converter(data.get(column.name, column.default_value)
+                                   or column.default_value, vid_trie, vid16_trie)
             if val != last:
                 subdb.put(txn, row_id, val)
                 updated = True

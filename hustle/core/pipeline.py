@@ -1,12 +1,14 @@
 from disco.core import Job
 from disco.worker.task_io import task_input_stream
+from functools import partial
+from hustle.core.marble import Marble, Column, Aggregation
+from hustle.core.pipeworker import HustleStage
+
+import sys
 import hustle
 import hustle.core
 import hustle.core.marble
-from hustle.core.marble import Marble, Column, Aggregation
-from functools import partial
-from hustle.core.pipeworker import HustleStage
-import sys
+
 
 SPLIT = "split"
 GROUP_ALL = "group_all"
@@ -32,10 +34,9 @@ def hustle_output_stream(stream, partition, url, params, result_table):
             tmpdir = getattr(params, 'tmpdir', '/tmp')
             self.filename = tempfile.mktemp(prefix="hustle", dir=tmpdir)
             maxsize = getattr(params, 'maxsize', 100 * 1024 * 1024)
-            self.env, self.txn, self.dbs, self.meta = self.result_table._open(self.filename,
-                                                                              maxsize,
-                                                                              write=True,
-                                                                              lru_size=10000)
+            self.env, self.txn, self.dbs, self.meta = \
+                self.result_table._open(self.filename, maxsize, write=True,
+                                        lru_size=10000)
             self.autoinc = 1
             self.url = url
             self.vid_trie = Trie()
@@ -45,12 +46,8 @@ def hustle_output_stream(stream, partition, url, params, result_table):
             from hustle.core.marble import _insert_row
             data = dict(zip(self.result_columns, list(k) + list(v)))
             #print "BOZAK! adding %s %s %s" % (self.result_columns, k, v)
-            updated_dbs = _insert_row(data,
-                                      self.txn,
-                                      self.dbs,
-                                      self.autoinc,
-                                      self.vid_trie,
-                                      self.vid16_trie)
+            updated_dbs = _insert_row(data, self.txn, self.dbs, self.autoinc,
+                                      self.vid_trie, self.vid16_trie)
             if updated_dbs:
                 self.dbs = updated_dbs
             self.autoinc += 1
@@ -109,7 +106,8 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         print "Error handling hustle_input_stream for %s. %s" % (url, e)
         raise e
 
-    fle = util.localize(rest, disco_data=params._task.disco_data, ddfs_data=params._task.ddfs_data)
+    fle = util.localize(rest, disco_data=params._task.disco_data,
+                        ddfs_data=params._task.ddfs_data)
     # print "FLOGLE: %s %s" % (url, fle)
 
     otab = None
@@ -128,15 +126,16 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
                     bm = where(otab)
                     bitmaps[index] = (bm, len(bm))
                 else:
-                    # it is either the table itself, or a partition expression.  either way,
-                    # return the entire table
+                    # it is either the table itself, or a partition expression.
+                    # Either way, returns the entire table
                     bitmaps[index] = (otab.iter_all(), otab.number_rows)
 
         for index, (bitmap, blen) in bitmaps.iteritems():
             prefix_gen = [repeat(index, blen)] if gen_where_index else []
 
-            row_iter = prefix_gen + [otab.mget(col, bitmap) if col is not None else repeat(None, blen)
-                                     for col in key_names[index]]
+            row_iter = prefix_gen + \
+                [otab.mget(col, bitmap) if col is not None else repeat(None, blen)
+                 for col in key_names[index]]
 
             for row in izip(*row_iter):
                 yield row, empty
@@ -168,11 +167,13 @@ class SelectPipe(Job):
         name = '-'.join([w._name for w in self.wheres])[:64]
         # append a 3-digit random suffix to avoid name collision
         # TODO: random doesn't guarantee uniqueness, 1/1000th chance of getting the same number
-        self.output_table = Table(name="sub-%s-%03d" % (name, random.randint(0, 999)), fields=fields)
+        self.output_table = Table(name="sub-%s-%03d" %
+                                  (name, random.randint(0, 999)), fields=fields)
         return self.output_table
 
     def _get_table(self, obj):
-        """If obj is a table return its name otherwise figure out what it is and return the tablename"""
+        """If obj is a table return its name otherwise figure out
+        what it is and return the tablename"""
         if isinstance(obj, Marble):
             return obj
         else:
@@ -184,7 +185,8 @@ class SelectPipe(Job):
             if isinstance(col, types):
                 rval.append(col)
             elif isinstance(col, basestring):
-                selectcol = next((c for c in check if c.name == col or c.fullname == col), None)
+                selectcol = next((c for c in check
+                                  if c.name == col or c.fullname == col), None)
                 if selectcol:
                     rval.append(selectcol)
             elif isinstance(col, int):
@@ -198,9 +200,12 @@ class SelectPipe(Job):
             table_name = self._get_table(where)._name
             keys = []
             if join:
-                join_column = next(c.name for c in join if c.table._name == table_name)
+                join_column = next(c.name for c in join
+                                   if c.table._name == table_name)
                 keys.append(join_column)
-            keys += tuple(c.column.name if c.table is None or c.table._name == table_name else None for c in project)
+            keys += tuple(c.column.name
+                          if c.table is None or c.table._name == table_name
+                          else None for c in project)
             key_names.append(keys)
         return key_names
 
@@ -224,13 +229,15 @@ class SelectPipe(Job):
         self.wheres = wheres
         self.order_by = self._resolve(order_by, project)
         partition = partition or _NPART
-        binaries = [i for i, c in enumerate(project) if isinstance(c, (Column, Aggregation)) and c.is_binary]
+        binaries = [i for i, c in enumerate(project)
+                    if isinstance(c, (Column, Aggregation)) and c.is_binary]
         # if nest is true, use output_schema to store the output table
         self.output_table = None
 
         # aggregation functions and their defaults
         efs, gees, ehches, dflts = zip(*[(c.f, c.g, c.h, c.default)
-                                         if isinstance(c, Aggregation) else (None, None, None, None)
+                                         if isinstance(c, Aggregation)
+                                         else (None, None, None, None)
                                          for c in project])
 
         # build the pipeline
@@ -241,19 +248,20 @@ class SelectPipe(Job):
         if join or full_join:
             joinbins = [i + 2 for i in binaries]
             join_stage = [
-                (GROUP_LABEL, HustleStage('join',
-                                          sort=(1, 0),
-                                          binaries=joinbins,
-                                          process=partial(process_join,
-                                                          full_join=full_join,
-                                                          ffuncs=efs,
-                                                          ghfuncs=ehches,
-                                                          deffuncs=dflts,
-                                                          wide=wide,
-                                                          agg_fn=_aggregate,
-                                                          label_fn=partial(_tuple_hash,
-                                                                           cols=sort_range,
-                                                                           p=partition))))]
+                (GROUP_LABEL,
+                 HustleStage('join',
+                             sort=(1, 0),
+                             binaries=joinbins,
+                             process=partial(process_join,
+                                             full_join=full_join,
+                                             ffuncs=efs,
+                                             ghfuncs=ehches,
+                                             deffuncs=dflts,
+                                             wide=wide,
+                                             agg_fn=_aggregate,
+                                             label_fn=partial(_tuple_hash,
+                                                              cols=sort_range,
+                                                              p=partition))))]
             select_hash_cols = (1,)
 
         group_by_stage = []
@@ -265,53 +273,58 @@ class SelectPipe(Job):
                 group_by_range = []
             else:
                 process_group_fn = process_group
-                group_by_range = [i for i, c in enumerate(project) if isinstance(c, Column)]
+                group_by_range = [i for i, c in enumerate(project)
+                                  if isinstance(c, Column)]
 
             # build the pipeline
             group_by_stage = []
             if wide:
                 group_by_stage = [
-                    (GROUP_LABEL_NODE, HustleStage('group-combine',
-                                                   sort=group_by_range,
-                                                   binaries=binaries,
-                                                   process=partial(process_group_fn,
-                                                                   ffuncs=efs,
-                                                                   ghfuncs=ehches,
-                                                                   deffuncs=dflts,
-                                                                   label_fn=partial(_tuple_hash,
-                                                                                    cols=group_by_range,
-                                                                                    p=partition))))]
+                    (GROUP_LABEL_NODE,
+                     HustleStage('group-combine',
+                                 sort=group_by_range,
+                                 binaries=binaries,
+                                 process=partial(process_group_fn,
+                                                 ffuncs=efs,
+                                                 ghfuncs=ehches,
+                                                 deffuncs=dflts,
+                                                 label_fn=partial(_tuple_hash,
+                                                                  cols=group_by_range,
+                                                                  p=partition))))]
             # A Hack here that overrides disco stage's default option 'combine'.
             # Hustle needs all inputs with the same label to be combined.
-            group_by_stage.append((GROUP_LABEL, HustleStage('group-reduce',
-                                                            combine=True,
-                                                            input_sorted=wide,
-                                                            sort=group_by_range,
-                                                            binaries=binaries,
-                                                            process=partial(process_group_fn,
-                                                                            ffuncs=efs,
-                                                                            ghfuncs=gees,
-                                                                            deffuncs=dflts))))
+            group_by_stage.append((GROUP_LABEL,
+                                   HustleStage('group-reduce',
+                                               combine=True,
+                                               input_sorted=wide,
+                                               sort=group_by_range,
+                                               binaries=binaries,
+                                               process=partial(process_group_fn,
+                                                               ffuncs=efs,
+                                                               ghfuncs=gees,
+                                                               deffuncs=dflts))))
 
         # process the order_by/distinct stage
         order_stage = []
         if self.order_by or distinct or limit:
             order_stage = [
-                (GROUP_LABEL_NODE, HustleStage('order-combine',
-                                               sort=sort_range,
-                                               binaries=binaries,
-                                               desc=desc,
-                                               process=partial(process_order,
-                                                               distinct=distinct,
-                                                               limit=limit or sys.maxint))),
-                (GROUP_ALL, HustleStage('order-reduce',
-                                        sort=sort_range,
-                                        desc=desc,
-                                        input_sorted=True,
-                                        combine_labels=True,
-                                        process=partial(process_order,
-                                                        distinct=distinct,
-                                                        limit=limit or sys.maxint))),
+                (GROUP_LABEL_NODE,
+                 HustleStage('order-combine',
+                             sort=sort_range,
+                             binaries=binaries,
+                             desc=desc,
+                             process=partial(process_order,
+                                             distinct=distinct,
+                                             limit=limit or sys.maxint))),
+                (GROUP_ALL,
+                 HustleStage('order-reduce',
+                             sort=sort_range,
+                             desc=desc,
+                             input_sorted=True,
+                             combine_labels=True,
+                             process=partial(process_order,
+                                             distinct=distinct,
+                                             limit=limit or sys.maxint))),
             ]
 
         if not select_hash_cols:
@@ -319,27 +332,30 @@ class SelectPipe(Job):
 
         key_names = self._get_key_names(project, join)
 
-        pipeline = [(SPLIT, HustleStage('restrict-select',
-                                        # combine=True,  # cannot set combine -- see #hack in restrict-select phase
-                                        process=partial(process_restrict,
-                                                        ffuncs=efs,
-                                                        ghfuncs=ehches,
-                                                        deffuncs=dflts,
-                                                        wide=wide or join or full_join,
-                                                        agg_fn=_aggregate,
-                                                        label_fn=partial(_tuple_hash,
-                                                                         cols=select_hash_cols,
-                                                                         p=partition)),
-                                        input_chain=[task_input_stream,
-                                                     partial(hustle_input_stream,
-                                                             wheres=wheres,
-                                                             gen_where_index=join or full_join,
-                                                             key_names=key_names)]))
+        pipeline = [(SPLIT,
+                     HustleStage('restrict-select',
+                                 # combine=True,  # cannot set combine -- see #hack in restrict-select phase
+                                 process=partial(process_restrict,
+                                                 ffuncs=efs,
+                                                 ghfuncs=ehches,
+                                                 deffuncs=dflts,
+                                                 wide=wide or join or full_join,
+                                                 agg_fn=_aggregate,
+                                                 label_fn=partial(_tuple_hash,
+                                                                  cols=select_hash_cols,
+                                                                  p=partition)),
+                                 input_chain=[task_input_stream,
+                                              partial(hustle_input_stream,
+                                                      wheres=wheres,
+                                                      gen_where_index=join or full_join,
+                                                      key_names=key_names)]))
                     ] + join_stage + group_by_stage + list(pre_order_stage) + order_stage
 
-        # determine the style of output (ie. if it is a Hustle Table), and modify the last stage accordingly
+        # determine the style of output (ie. if it is a Hustle Table),
+        # and modify the last stage accordingly
         if nest:
-            pipeline[-1][1].output_chain = [partial(hustle_output_stream, result_table=self.get_result_schema(project))]
+            pipeline[-1][1].output_chain = \
+                [partial(hustle_output_stream, result_table=self.get_result_schema(project))]
         self.pipeline = pipeline
 
 
@@ -363,10 +379,6 @@ def _aggregate(inp, label_fn, ffuncs, ghfuncs, deffuncs):
             accums = [f(a, v) if None not in (f, a, v) else None
                       for f, a, v in zip(ffuncs, accums, record)]
         except Exception as e:
-            # import sys
-            # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
-            # import pydevd
-            # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
             print e
             print "YEEHEQW: f=%s a=%s r=%s g=%s" % (ffuncs, accums, record, group)
             import traceback
@@ -383,7 +395,8 @@ def _aggregate(inp, label_fn, ffuncs, ghfuncs, deffuncs):
         # interface.output(out_label).add(key, empty)
 
 
-def process_restrict(interface, state, label, inp, task, label_fn, ffuncs, ghfuncs, deffuncs, agg_fn, wide=False):
+def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
+                     ghfuncs, deffuncs, agg_fn, wide=False):
     from disco import util
     empty = ()
 
@@ -397,7 +410,8 @@ def process_restrict(interface, state, label, inp, task, label_fn, ffuncs, ghfun
             break
 
     if not input_processed:
-        raise Exception("Input %s not processed, no LOCAL resource found." % str(inp.input))
+        raise Exception("Input %s not processed, no LOCAL resource found."
+                        % str(inp.input))
 
     # opportunistically aggregate in this stage
     if any(ffuncs) and not wide:
@@ -410,7 +424,8 @@ def process_restrict(interface, state, label, inp, task, label_fn, ffuncs, ghfun
             interface.output(out_label).add(key, value)
 
 
-def process_join(interface, state, label, inp, task, full_join, label_fn, ffuncs, ghfuncs, deffuncs, agg_fn, wide=False):
+def process_join(interface, state, label, inp, task, full_join, label_fn,
+                 ffuncs, ghfuncs, deffuncs, agg_fn, wide=False):
     """
     Processor function for the join stage.
 
@@ -474,13 +489,9 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
 
     empty = ()
 
-    # import sys
-    # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
-    # import pydevd
-    # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
-
     # pull the key apart
-    for group, tups in groupby(inp, lambda (k, _): tuple(e if ef is None else None for e, ef in zip(k, ffuncs))):
+    for group, tups in groupby(inp, lambda (k, _):
+                               tuple(e if ef is None else None for e, ef in zip(k, ffuncs))):
         accums = [default() if default else None for default in deffuncs]
         for record, _ in tups:
             # print "REC: %s" % repr(record)
@@ -494,9 +505,6 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
                 print traceback.format_exc(15)
                 raise e
 
-# MSG: [group-combine:2] YOLO: f=(None, <function _inner_hll_accumulate at 0x18f0488>)
-#   a=[None, <cardunion.Cardunion object at 0x19eba30>] r=[u'2014-03-31', u'AdX'] g=(u'2014-03-31', None)
-
         accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
         if label_fn:
             label = label_fn(group)
@@ -505,7 +513,8 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
         interface.output(label).add(key, empty)
 
 
-def process_skip_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn=None):
+def process_skip_group(interface, state, label, inp, task, ffuncs,
+                       ghfuncs, deffuncs, label_fn=None):
     """Process function of aggregation combine stage without groupby.
     """
     empty = ()
@@ -523,10 +532,13 @@ def process_skip_group(interface, state, label, inp, task, ffuncs, ghfuncs, deff
 
 def _get_sort_range(select_offset, select_columns, order_by_columns):
     # sort by all
-    sort_range = [i + select_offset for i, c in enumerate(select_columns) if isinstance(c, Column) and not c.is_binary]
+    sort_range = [i + select_offset for i, c in enumerate(select_columns)
+                  if isinstance(c, Column) and not c.is_binary]
     if order_by_columns:
-        scols = ["%s%s" % (c.table._name if c.table else '', c.name) for c in select_columns]
-        ocols = ["%s%s" % (c.table._name if c.table else '', c.name) for c in order_by_columns]
+        scols = ["%s%s" % (c.table._name if c.table else '', c.name)
+                 for c in select_columns]
+        ocols = ["%s%s" % (c.table._name if c.table else '', c.name)
+                 for c in order_by_columns]
         rcols = set(scols) - set(ocols)
         # make sure to include the columns *not* in the order_by expression as well
         # this is to ensure that 'distinct' will work

@@ -15,12 +15,15 @@ Hustle is ideal for low latency OLAP queries over massive data sets.
 """
 __version__ = '0.1.3'
 
-import os
-import ujson
+
 from disco.core import Job, Disco
 from disco.error import CommError
 from hustle.core.marble import Aggregation, Marble, json_decoder, Column, Expr, check_query
+
+import os
 import sys
+import ujson
+
 
 _TAG_PREFIX = 'hustle:'
 _ALG_RIGHT, _ALG_LEFT, _ALG_CENTER = 0x01, 0x10, 0x20
@@ -526,7 +529,8 @@ def select(*project, **kwargs):
             cols = [c.name for c in project]
             _print_separator(80)
             _print_line(cols, width=80, cols=len(cols),
-                        alignments=[_ALG_RIGHT if c.is_numeric else _ALG_LEFT for c in project])
+                        alignments=[_ALG_RIGHT if c.is_numeric else _ALG_LEFT
+                                    for c in project])
             _print_separator(80)
             dump(blobs, 80)
             return
@@ -700,7 +704,8 @@ def dump(result_urls, width=80):
                 except:
                     alignments.append(_ALG_LEFT)
 
-        _print_line(columns, width=width, cols=len(alignments), alignments=alignments)
+        _print_line(columns, width=width, cols=len(alignments),
+                    alignments=alignments)
 
 
 def edump(table):
@@ -826,7 +831,8 @@ def _get_tags(table_or_expr, ddfs):
     basetag = table.base_tag(table._name) + ':'
     if where and table._partition:
         tags = [tag[len(basetag):] for tag in ddfs.list(basetag)]
-        seltags = [table.base_tag(table._name, part) for part in where.partition(tags)]
+        seltags = [table.base_tag(table._name, part)
+                   for part in where.partition(tags)]
     else:
         seltags = ddfs.list(basetag)
     return seltags
@@ -941,7 +947,8 @@ def _get_blobs(table_or_expr, ddfs, limit=sys.maxint):
         # collect the blobs
         basetag = table.base_tag(table._name) + ':'
         tags = [tag[len(basetag):] for tag in ddfs.list(basetag)]
-        seltags = [table.base_tag(table._name, part) for part in where.partition(tags)]
+        seltags = [table.base_tag(table._name, part)
+                   for part in where.partition(tags)]
         rval = list()
         for tag in seltags:
             rval.extend(ddfs.blobs(tag))
@@ -979,12 +986,14 @@ def _resolve_join(wheres, joins):
         elif isinstance(where, Expr):
             table = where.table
         else:
-            raise ValueError("Invalid item in the where clause, expect a table or an expression.")
+            raise ValueError("Invalid item in the where clause,"
+                             "expect a table or an expression.")
         try:
             col = table._columns[join]
             join_cols.append(col)
         except KeyError:
-            raise ValueError("Table %s doesn't have column %s." % (table._name, join))
+            raise ValueError("Table %s doesn't have column %s."
+                             % (table._name, join))
     return join_cols
 
 

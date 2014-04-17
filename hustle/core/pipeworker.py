@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
+from collections import defaultdict
+from disco import util
 from disco.util import shuffled, chainify
 from disco.worker.pipeline import worker
-from disco import util
-from collections import defaultdict
 from disco.worker.pipeline.worker import Stage
 from heapq import merge
 from itertools import islice
@@ -35,7 +35,8 @@ def sort_reader(fd, fname, read_buffer_size=8192):
             break
 
 
-def disk_sort(input, filename, sort_keys, binaries=(), sort_buffer_size='10%', desc=False):
+def disk_sort(input, filename, sort_keys, binaries=(), sort_buffer_size='10%',
+              desc=False):
     import ujson
     from disco.comm import open_local
     from disco.fileutils import AtomicFile
@@ -169,7 +170,8 @@ def merge_wrapper(it, sort_range=(0,), desc=False):
 
 
 class HustleStage(Stage):
-    def __init__(self, name, sort=(), input_sorted=False, desc=False, combine_labels=False, binaries=(), **kwargs):
+    def __init__(self, name, sort=(), input_sorted=False, desc=False,
+                 combine_labels=False, binaries=(), **kwargs):
         super(HustleStage, self).__init__(name, **kwargs)
         self.sort = sort
         self.input_sorted = input_sorted
@@ -206,7 +208,8 @@ class Worker(worker.Worker):
         # label.
         map = defaultdict(list)
 
-        for l, i in util.chainify(self.labelexpand(task, stage, i, params) for i in self.get_inputs()):
+        for l, i in util.chainify(self.labelexpand(task, stage, i, params)
+                                  for i in self.get_inputs()):
             if stage.combine_labels:
                 map[0].append(i)
             else:
@@ -216,7 +219,10 @@ class Worker(worker.Worker):
             newmap = {}
             if stage.input_sorted:
                 for label, inputs in map.iteritems():
-                    input = merge(*(merge_wrapper(inp, sort_range=stage.sort, desc=stage.desc) for inp in inputs))
+                    input = merge(*(merge_wrapper(inp,
+                                                  sort_range=stage.sort,
+                                                  desc=stage.desc)
+                                    for inp in inputs))
                     newmap[label] = [input]
             else:
                 for label, inputs in map.iteritems():
@@ -241,7 +247,8 @@ class Worker(worker.Worker):
             input_map = self.prepare_input_map(task, stage, params)
             for label in stage.input_hook(state, input_map.keys()):
                 if stage.combine:
-                    stage.process(interface, state, label, worker.SerialInput(input_map[label]), task)
+                    stage.process(interface, state, label,
+                                  worker.SerialInput(input_map[label]), task)
                 else:
                     for inp in input_map[label]:
                         stage.process(interface, state, label, inp, task)
