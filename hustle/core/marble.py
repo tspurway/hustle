@@ -1431,3 +1431,26 @@ def _insert_row(data, txn, dbs, row_id, vid_trie, vid16_trie):
             bitmap_dict[val].set(row_id)
     except Exception as e:
         print "Can't INSERT: %s %s: %s" % (repr(data), column, e)
+
+
+class PartitionDB(object):
+    '''
+    A fake mdb-like class just for partition columns.
+    '''
+    def __init__(self, partition):
+        self.echome = partition
+
+    def put(self, txn, row_id, val):
+        return
+
+    def mget(self, txn, keys, default=None):
+        '''keys should be a bitmap
+        '''
+        for i in range(len(keys)):
+            yield self.echome
+
+    def get(self, txn, key, default=None):
+        return self.echome
+
+    def close(self):
+        return
