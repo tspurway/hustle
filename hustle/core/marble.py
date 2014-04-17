@@ -213,7 +213,7 @@ class Marble(object):
                 pdata = ujson.loads(meta.get(txn, '_pdata', 'null'))
                 if not pdata:
                     raise ValueError("Can't load partition information from meta table.")
-                db, _, _, _ = dbs[partition]
+                db, _, _, _, _ = dbs[partition]
                 db.echome = pdata
         return env, txn, dbs, meta
 
