@@ -913,7 +913,6 @@ cdef class StrIntDB(DB):
         for key, value in self.get_eq(txn, key_):
             yield key, value
 
-
     def get_gt(self, Txn txn, key):
         cdef cmdb.MDB_cursor *cursor
         cdef cmdb.MDB_val api_key
@@ -1269,6 +1268,58 @@ cdef class IntStrDB(DB):
         for key, value in self.get_eq(txn, key_):
             yield key, value
 
+    def get_neighbours(self, Txn txn, key):
+        '''
+        Returns the neighbours of the specified key. If the key exists,
+        both the lower and upper are itself. Otherwise, returns the smallest
+        range which contains this key. If the key locates outside of the two
+        ends, returns the corresponding end instead.
+        '''
+        cdef cmdb.MDB_cursor *cursor
+        cdef cmdb.MDB_val api_key
+        cdef cmdb.MDB_val api_value
+        cdef void *data
+        cdef int64_t skey
+        cdef uint64_t ukey
+        cdef tuple neighbours, pair
+
+        if self.signed:
+            skey = key
+            data = &skey
+        else:
+            ukey = key
+            data = &ukey
+
+        err = cmdb.mdb_cursor_open(txn.txn, self.dbi, &cursor)
+        if err:
+            raise Exception("Error creating Cursor: %s"
+                    % cmdb.mdb_strerror(err))
+        api_key.mv_size = self.keysize
+        api_key.mv_data = data
+        api_value.mv_size = 0
+        api_value.mv_data = NULL
+
+        if not cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_SET_RANGE):
+            key_ = self.caster(api_key.mv_data)
+            value_ = (<char*>api_value.mv_data)[:api_value.mv_size-1]
+            if key == key_:
+                pair = key_, value_
+                neighbours = pair, pair
+            else:
+                cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_PREV)
+                v = (<char*>api_value.mv_data)[:api_value.mv_size-1]
+                neighbours = (self.caster(api_key.mv_data), v), (key_, value_)
+        else:
+            # special case if MDB_SET_RANGE fails, try to get the last one
+            if not cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_LAST):
+                value_ = (<char*>api_value.mv_data)[:api_value.mv_size-1]
+                pair = (self.caster(api_key.mv_data), value_)
+                neighbours = pair, pair
+            else:
+                pair = (None, None)
+                neighbours = pair, pair
+        cmdb.mdb_cursor_close(cursor)
+        return neighbours
 
     def get_gt(self, Txn txn, key):
         cdef cmdb.MDB_cursor *cursor
@@ -1632,6 +1683,58 @@ cdef class IntIntDB(DB):
         for key, value in self.get_eq(txn, key_):
             yield key, value
 
+    def get_neighbours(self, Txn txn, key):
+        '''
+        Returns the neighbours of the specified key. If the key exists,
+        both the lower and upper are itself. Otherwise, returns the smallest
+        range which contains this key. If the key locates outside of the two
+        ends, returns the corresponding end instead.
+        '''
+        cdef cmdb.MDB_cursor *cursor
+        cdef cmdb.MDB_val api_key
+        cdef cmdb.MDB_val api_value
+        cdef void *data
+        cdef int64_t skey
+        cdef uint64_t ukey
+        cdef tuple neighbours, pair
+
+        if self.key_signed:
+            skey = key
+            data = &skey
+        else:
+            ukey = key
+            data = &ukey
+
+        err = cmdb.mdb_cursor_open(txn.txn, self.dbi, &cursor)
+        if err:
+            raise Exception("Error creating Cursor: %s"
+                    % cmdb.mdb_strerror(err))
+        api_key.mv_size = self.keysize
+        api_key.mv_data = data
+        api_value.mv_size = 0
+        api_value.mv_data = NULL
+
+        if not cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_SET_RANGE):
+            key_ = self.key_caster(api_key.mv_data)
+            value_ = self.value_caster(api_value.mv_data)
+            if key == key_:
+                pair = key_, value_
+                neighbours = pair, pair
+            else:
+                cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_PREV)
+                neighbours = (self.key_caster(api_key.mv_data),
+                              self.value_caster(api_value.mv_data)), (key_, value_)
+        else:
+            # special case if MDB_SET_RANGE fails, try to get the last one
+            if not cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_LAST):
+                pair = (self.key_caster(api_key.mv_data),
+                        self.value_caster(api_value.mv_data))
+                neighbours = pair, pair
+            else:
+                pair = (None, None)
+                neighbours = pair, pair
+        cmdb.mdb_cursor_close(cursor)
+        return neighbours
 
     def get_gt(self, Txn txn, key):
         cdef cmdb.MDB_cursor *cursor
