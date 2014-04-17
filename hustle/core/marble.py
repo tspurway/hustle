@@ -222,6 +222,32 @@ class Marble(object):
         import ujson
         from itertools import repeat
 
+        class PartitionDB(object):
+            '''
+            A fake mdb-like class just for partition columns.
+            '''
+            def __init__(self, partition):
+                self.echome = partition
+
+            def put(self, txn, row_id, val):
+                return
+
+            def mget(self, txn, keys, default=None):
+                '''keys should be a bitmap
+                '''
+                for i in range(len(keys)):
+                    yield self.echome
+
+            def get_neighbours(self, txn, key):
+                v = (key, self.echome)
+                return v, v
+
+            def get(self, txn, key, default=None):
+                return self.echome
+
+            def close(self):
+                return
+
         class CountDB(object):
             def close(self):
                 pass
@@ -283,11 +309,6 @@ class Marble(object):
                 bm = self.subindexdb.get(self.txn, 1)
                 if key == 1:
                     return bm
-
-                # import sys
-                # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
-                # import pydevd
-                # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
 
                 bitmap = BitSet()
                 bitmap.loads(bm)
@@ -1410,30 +1431,3 @@ def _insert_row(data, txn, dbs, row_id, vid_trie, vid16_trie):
             bitmap_dict[val].set(row_id)
     except Exception as e:
         print "Can't INSERT: %s %s: %s" % (repr(data), column, e)
-
-
-class PartitionDB(object):
-    '''
-    A fake mdb-like class just for partition columns.
-    '''
-    def __init__(self, partition):
-        self.echome = partition
-
-    def put(self, txn, row_id, val):
-        return
-
-    def mget(self, txn, keys, default=None):
-        '''keys should be a bitmap
-        '''
-        for i in range(len(keys)):
-            yield self.echome
-
-    def get_neighbours(self, txn, key):
-        v = (key, self.echome)
-        return v, v
-
-    def get(self, txn, key, default=None):
-        return self.echome
-
-    def close(self):
-        return
