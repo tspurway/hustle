@@ -1,5 +1,4 @@
 import unittest
-from disco.core import result_iterator
 from hustle import select, Table, h_sum, h_count
 from setup import IMPS, PIXELS
 from hustle.core.settings import Settings, overrides
@@ -17,12 +16,12 @@ class TestJoin(unittest.TestCase):
 
     def test_simple_join(self):
         imps = Table.from_tag(IMPS)
-        pix  = Table.from_tag(PIXELS)
+        pix = Table.from_tag(PIXELS)
 
-        imp_sites = [(s, a) for (s, a), _ in result_iterator(select(imps.site_id, imps.ad_id,
-                                                                    where=imps.date < '2014-01-13'))]
-        pix_sites = [(s, a) for (s, a), _ in result_iterator(select(pix.site_id, pix.amount,
-                                                                    where=pix.date < '2014-01-13'))]
+        imp_sites = [(s, a) for (s, a) in select(imps.site_id, imps.ad_id,
+                                                 where=imps.date < '2014-01-13')]
+        pix_sites = [(s, a) for (s, a) in select(pix.site_id, pix.amount,
+                                                 where=pix.date < '2014-01-13')]
 
         join = []
         for imp_site, imp_ad_id in imp_sites:
@@ -34,7 +33,7 @@ class TestJoin(unittest.TestCase):
                      where=(imps.date < '2014-01-13', pix.date < '2014-01-13'),
                      join=(imps.site_id, pix.site_id),
                      order_by='amount')
-        results = [(ad_id, amount) for (ad_id, amount), _ in result_iterator(res)]
+        results = list(res)
         self.assertEqual(len(results), len(join))
 
         for jtup in join:
@@ -47,13 +46,13 @@ class TestJoin(unittest.TestCase):
 
     def test_nested_join(self):
         imps = Table.from_tag(IMPS)
-        pix  = Table.from_tag(PIXELS)
+        pix = Table.from_tag(PIXELS)
 
-        imp_sites = [(s, a) for (s, a), _ in result_iterator(select(imps.site_id, imps.ad_id,
-                                                                    where=imps.date < '2014-01-13'))]
-        pix_sites = [(s, a) for (s, a), _ in result_iterator(select(pix.site_id, pix.amount,
-                                                                    where=((pix.date < '2014-01-13') &
-                                                                           (pix.isActive == True))))]
+        imp_sites = list(select(imps.site_id, imps.ad_id,
+                                where=imps.date < '2014-01-13'))
+        pix_sites = list(select(pix.site_id, pix.amount,
+                                where=((pix.date < '2014-01-13') &
+                                       (pix.isActive == True))))
 
         join = []
         for imp_site, imp_ad_id in imp_sites:
@@ -68,7 +67,7 @@ class TestJoin(unittest.TestCase):
         res = select(imps.ad_id, sub_pix.amount,
                      where=(imps.date < '2014-01-13', sub_pix.date < '2014-01-13'),
                      join=(imps.site_id, sub_pix.site_id))
-        results = [(ad_id, amount) for (ad_id, amount), _ in result_iterator(res)]
+        results = [tuple(c) for c in res]
         self.assertEqual(len(results), len(join))
 
         for jtup in join:
@@ -80,10 +79,10 @@ class TestJoin(unittest.TestCase):
         """
         imps = Table.from_tag(IMPS)
 
-        early = [(a,c) for (a,c),_ in result_iterator(select(imps.ad_id, imps.cpm_millis,
-                                                 where=imps.date < '2014-01-20'))]
-        late = [(a,c) for (a,c),_ in result_iterator(select(imps.ad_id, imps.cpm_millis,
-                                                where=imps.date >= '2014-01-20'))]
+        early = list(select(imps.ad_id, imps.cpm_millis,
+                            where=imps.date < '2014-01-20'))
+        late = list(select(imps.ad_id, imps.cpm_millis,
+                           where=imps.date >= '2014-01-20'))
 
         join = {}
         for eid, ecpm in early:
@@ -104,7 +103,7 @@ class TestJoin(unittest.TestCase):
                        where=(early, late),
                        join='ad_id')
 
-        james = [(a, e, l, c) for (a, e, l, c), _ in result_iterator(jimmy)]
+        james = list(jimmy)
         self.assertEqual(len(join), len(james))
 
         for (ad_id, emillis, lmillis, cnt) in james:
@@ -116,12 +115,12 @@ class TestJoin(unittest.TestCase):
 
     def test_aggregate_join(self):
         imps = Table.from_tag(IMPS)
-        pix  = Table.from_tag(PIXELS)
+        pix = Table.from_tag(PIXELS)
 
-        imp_sites = [(s, a) for (s, a), _ in result_iterator(select(imps.site_id, imps.ad_id,
-                                                                    where=imps.date < '2014-01-13'))]
-        pix_sites = [(s, a) for (s, a), _ in result_iterator(select(pix.site_id, pix.amount,
-                                                                    where=pix.date < '2014-01-13'))]
+        imp_sites = list(select(imps.site_id, imps.ad_id,
+                                where=imps.date < '2014-01-13'))
+        pix_sites = list(select(pix.site_id, pix.amount,
+                                where=pix.date < '2014-01-13'))
 
         join = {}
         for imp_site, imp_ad_id in imp_sites:
@@ -135,7 +134,7 @@ class TestJoin(unittest.TestCase):
         res = select(imps.ad_id, h_sum(pix.amount), h_count(),
                      where=(imps.date < '2014-01-13', pix.date < '2014-01-13'),
                      join=(imps.site_id, pix.site_id))
-        results = [(ad_id, amount, count) for (ad_id, amount, count), _ in result_iterator(res)]
+        results = list(res)
         self.assertEqual(len(results), len(join))
 
         for (ad_id, amount, count) in results:

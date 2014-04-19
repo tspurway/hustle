@@ -873,8 +873,6 @@ def drop(table, **kwargs):
 def _query_iterator(blobs):
     from disco.core import result_iterator
 
-    print "beebles: %s" % blobs
-
     for columns, _ in result_iterator(blobs):
         yield columns
 

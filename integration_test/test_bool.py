@@ -1,5 +1,4 @@
 import unittest
-from disco.core import result_iterator
 from hustle import select, Table, h_sum, h_count
 from setup import IMPS, PIXELS
 from hustle.core.settings import Settings, overrides
@@ -19,7 +18,7 @@ class TestBool(unittest.TestCase):
         imps = Table.from_tag(IMPS)
         res = select(imps.click, imps.conversion, imps.impression, where=imps)
         clicks = conversions = impressions = 0
-        for (click, conv, imp), _ in result_iterator(res):
+        for (click, conv, imp) in res:
             clicks += click
             conversions += conv
             impressions += imp
@@ -32,7 +31,7 @@ class TestBool(unittest.TestCase):
         imps = Table.from_tag(IMPS)
         res = select(h_sum(imps.click), h_sum(imps.conversion), h_sum(imps.impression), where=imps)
 
-        (clicks, conversions, impressions), _ = list(result_iterator(res))[0]
+        (clicks, conversions, impressions) = list(res)[0]
 
         self.assertEqual(clicks, 21)
         self.assertEqual(conversions, 5)
@@ -42,14 +41,14 @@ class TestBool(unittest.TestCase):
         pix = Table.from_tag(PIXELS)
         res = select(pix.isActive, where=pix.isActive == True)
         actives = 0
-        for (act, ), _ in result_iterator(res):
+        for (act, ) in res:
             actives += act
 
         self.assertEqual(actives, 234)
 
         res = select(pix.isActive, where=pix.isActive == 0)
         actives = 0
-        for (act, ), _ in result_iterator(res):
+        for (act, ) in res:
             actives += 1
 
         self.assertEqual(actives, 266)
@@ -58,7 +57,7 @@ class TestBool(unittest.TestCase):
         pix = Table.from_tag(PIXELS)
         res = select(pix.isActive, where=pix.isActive == 1)
         actives = 0
-        for (act, ), _ in result_iterator(res):
+        for (act, ) in res:
             actives += act
 
         self.assertEqual(actives, 234)
