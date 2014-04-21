@@ -141,6 +141,13 @@ respective *token* column.  Joins in Hustle have the following constraints:
 * both the *where* and *join* parameters must be sequences of exactly two elements
 * currently all joins in Hustle are `inner joins <http://en.wikipedia.org/wiki/Join_(SQL)#Inner_join>`_
 
+Note that the join argument can also take the name of the column to join on if both tables have the same column name.
+The above query could be equivalently written::
+
+    select(impressions.date, pixels.site_id,
+           where=(impressions.site_id == 'google.com', pixels.site_id == 'yahoo.com'),
+           join='token')
+
 Column Cardinality
 ------------------
 
@@ -216,20 +223,26 @@ depending on it's parameters.
 
 * *nest=True* - will return a :class:`Table <hustle.Table>`
 * *dump=True* - this is the default in the CLI - will return None, but will dump the result to stdout
-* *nest=False, dump=False* - this is the default when writing Python programs, and will return a list of URLs
+* *nest=False, dump=False* - this is the default when writing Python programs, and will return an iterator of tuples representing the result
 * *nest=True, dump=True* - same as *nest=True* above
 
-The idea here is that when the CLI, you really just want to see the output of your query, while building a program,
+The idea here is that when in the CLI, you really just want to see the output of your query, while building a program,
 you would like to just process the results like a normal
 `map/reduce disco job <http://disco.readthedocs.org/en/latest/lib/core.html#disco.core.result_iterator>`_.  Here's
 an example of processing the results of a query in Python::
 
     from hustle import select, Table
-    from disco.core import result_iterator
     imps = Table.from_tag('impressions')
     result = select(imps.date, h_sum(imps.cpm_mills), where=imps)
-    for (date, total), _ in result_iterator(result):
+    for date, total in result:
         print date, total
+
+Also note that it is possible to iterate over all rows in a `Table <hustle.Table>` directly::
+
+    from hustle import select, Table
+    imps = Table.from_tag('impressions')
+    for date, clicks, impressions, site_id, cpm_millis in imps:
+      print date, clicks
 
 .. seealso::
 
@@ -255,7 +268,7 @@ For example::
     >>> future.done
     >>> True
     ... wait() function gives your results like the select() does ...
-    >>> dump(future.wait())
+    >>> cat(future.wait())
     ... Note that if you call wait() on a ongoing query, it'll block until it's done ...
 
 .. seealso::

@@ -4,7 +4,7 @@ server: disco://localhost
 # default hustle worker. Mostly, there is no need to change it.
 worker_class: hustle.core.pipeworker.Worker
 
-# print out the result to the terminal. If this is disabled, you need to call dump
+# print out the result to the terminal. If this is disabled, you need to call cat()
 # function yourself to get the result.
 dump: False
 
