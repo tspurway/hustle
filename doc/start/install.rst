@@ -13,6 +13,7 @@ Dependencies
 Hustle has the following dependencies:
 
 * you will need `Python 2.7 <http://www.python.org/downloads/>`_
+* you will need `Cython <http://cython.org/>`_
 * you will need `Disco 0.5 <http://disco.readthedocs.org/en/latest/start/install.html>`_
 * you will need `ultrajson <https://github.com/esnme/ultrajson>`_
 

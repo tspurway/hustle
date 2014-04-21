@@ -309,8 +309,10 @@ def insert(table, phile=None, streams=None, preprocess=None,
     if partition_files is not None:
         for part, pfile in partition_files.iteritems():
             tag = part_tag(table._name, part)
+            st = os.stat(pfile)
             ddfs.push(tag, [pfile])
-            print 'pushed %s, %s to %s' % (part, tag, ddfs)
+            print 'pushed %s(%.2fG), %s to %s' % \
+                (part, st.st_size * 1.0 / 1073741824, tag, ddfs)
             os.unlink(pfile)
     return table._name, lines
 
