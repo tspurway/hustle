@@ -315,6 +315,16 @@ cdef class Env:
         return flags
 
     def begin_txn(self, Txn parent=None, uint32_t flags=0):
+        """
+        Begin a new transcation for reading or writing
+
+        :type  parent: Txn
+        :param parent: parent transcation if specified
+
+        :type  flags: integer
+        :param flags: specify the type of transaction. Defaulut value is write
+        transaction. Set it to MDB_RDONLY means it's a readonly transaction.
+        """
         cdef Txn txn
 
         txn = Txn(self, parent, flags)
@@ -323,6 +333,29 @@ cdef class Env:
     def open_db(self, Txn txn, name=None,
                 uint32_t flags=MDB_CREATE | MDB_DUPSORT,
                 key_inttype=MDB_INT_32, value_inttype=MDB_INT_32):
+        """
+        Open a mdb database within given Env and Txn
+
+        :type  txn: Txn
+        :param txn: transcation attached to this database
+
+        :type  name: string
+        :param name: name of the database in mdb
+
+        :type  flags: integer
+        :param flags: flags when openning database. See more details in
+        mdb_dbi_open() in lmdb.h
+
+        :type  key_inttype: enum
+        :param key_type: indicate the data type of the key. User can use one of:
+
+            MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+        :type  int_val: enum
+        :param value_inttype: indicate the data type of the vaule. User can use one of:
+
+            MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+        """
         cdef DB db
 
         if flags & MDB_INTEGERKEY:
@@ -367,6 +400,9 @@ cdef class DB:
                             % cmdb.mdb_strerror(err))
 
     def stat(self, Txn txn):
+        """
+        Get statistical information of current database
+        """
         cdef cmdb.MDB_stat stat
 
         err = cmdb.mdb_stat(txn.txn, self.dbi, &stat)
@@ -381,6 +417,9 @@ cdef class DB:
                     ms_entries=stat.ms_entries)
 
     def contains(self, Txn txn, key):
+        """
+        Check whether current database contains the given key
+        """
         cdef cmdb.MDB_val api_key
         cdef cmdb.MDB_val api_value
         cdef size_t key_len
@@ -396,6 +435,9 @@ cdef class DB:
             return False
 
     def get(self, Txn txn, key, default=None):
+        """
+        Get the value of the given key, return default if key doesn't exist
+        """
         cdef cmdb.MDB_val api_key
         cdef cmdb.MDB_val api_value
         cdef size_t key_len
@@ -413,6 +455,9 @@ cdef class DB:
         return rval[:api_value.mv_size-1]
 
     def mget(self, Txn txn, keys, default=None):
+        """
+        Get the values of the given keys, return default if the key doesn't exist
+        """
         cdef cmdb.MDB_cursor *cursor
         cdef cmdb.MDB_val api_key
         cdef cmdb.MDB_val api_value
@@ -438,7 +483,10 @@ cdef class DB:
             cmdb.mdb_cursor_close(cursor)
 
     def get_raw(self, Txn txn, key, default=None):
-        """return the pointer and length of the data"""
+        """
+        Get the pointer and length of the value, it returns the memory address
+        of the given key, no memory copy occurs
+        """
         cdef cmdb.MDB_val api_key
         cdef cmdb.MDB_val api_value
         cdef size_t key_len
@@ -455,6 +503,9 @@ cdef class DB:
         return <uint64_t>api_value.mv_data, api_value.mv_size
 
     def put(self, Txn txn, key, value, uint32_t flags=0):
+        """
+        Put key, value pair to the current database
+        """
         cdef cmdb.MDB_val api_key
         cdef cmdb.MDB_val api_value
         cdef size_t key_len = len(key)
@@ -479,6 +530,10 @@ cdef class DB:
             raise Exception("Error putting data: %s" % cmdb.mdb_strerror(err))
 
     def put_raw(self, Txn txn, key, uint64_t val_ptr, uint64_t val_len, uint32_t flags=0):
+        """
+        Like the put() except value here is a pointer coupled with the length
+        of the memory chunk
+        """
         cdef cmdb.MDB_val api_key
         cdef cmdb.MDB_val api_value
         cdef size_t key_len = len(key)
@@ -503,7 +558,8 @@ cdef class DB:
             raise Exception("Error putting data: %s" % cmdb.mdb_strerror(err))
 
     def delete(self, Txn txn, key, value=None):
-        """Delete key/value from MDB
+        """
+        Delete key/value from MDB
 
         If value is not specified, delete all values with this key. Otherwise,
         delete the specified key/value.
@@ -527,7 +583,8 @@ cdef class DB:
                                 % cmdb.mdb_strerror(err))
 
     def items(self, Txn txn):
-        '''Return all the unique key values
+        '''
+        Return all the unique key values
         '''
         cdef Cursor cursor
 
@@ -541,7 +598,8 @@ cdef class DB:
         cursor.close()
 
     def dup_items(self, Txn txn):
-        '''Return all the key values
+        '''
+        Return all the key values including duplicate keys if neccesary
         '''
         cdef Cursor cursor
 
@@ -557,6 +615,10 @@ cdef class DB:
             cursor.close()
 
     def get_dup(self, Txn txn, key):
+        """
+        Get all values of a given key. For a non-duplicate databse, it returns
+        the only value in the dataase.
+        """
         cdef cmdb.MDB_val api_key
         cdef cmdb.MDB_val api_value
         cdef char *value_
@@ -583,15 +645,24 @@ cdef class DB:
         cmdb.mdb_cursor_close(cursor)
 
     def get_eq(self, Txn txn, key_):
+        """
+        Get all key/values pairs whose key is equal to then given key
+        """
         for value in self.get_dup(txn, key_):
             yield key_, value
 
     def get_ne(self, Txn txn, key_):
+        """
+        Get all key/values pairs whose key is not equal to the given key
+        """
         for key, value in self.dup_items(txn):
             if key != key_:
                 yield key, value
 
     def get_lt(self, Txn txn, key):
+        """
+        Get all key/values pairs whose key is less than the given key
+        """
         cdef cmdb.MDB_cursor *cursor
         cdef cmdb.MDB_val api_key
         cdef cmdb.MDB_val api_value
@@ -621,6 +692,9 @@ cdef class DB:
             cmdb.mdb_cursor_close(cursor)
 
     def get_le(self, Txn txn, key_):
+        """
+        Get all key/values pairs whose key is less or equal than the given key
+        """
         for key, value in self.get_lt(txn, key_):
             yield key, value
         for key, value in self.get_eq(txn, key_):
@@ -628,6 +702,9 @@ cdef class DB:
 
 
     def get_gt(self, Txn txn, key):
+        """
+        Get all key/values pairs whose key is great than the given key
+        """
         cdef cmdb.MDB_cursor *cursor
         cdef cmdb.MDB_val api_key
         cdef cmdb.MDB_val api_value
@@ -670,12 +747,18 @@ cdef class DB:
             cmdb.mdb_cursor_close(cursor)
 
     def get_ge(self, Txn txn, key_):
+        """
+        Get all key/values pairs whose key is great or equal than the given key
+        """
         for key, value in self.get_eq(txn, key_):
             yield key, value
         for key, value in self.get_gt(txn, key_):
             yield key, value
 
     def get_range(self, Txn txn, key_begin, key_end):
+        """
+        Get all key/values pairs whose key is inside of the given key range(inclusive)
+        """
         if key_begin > key_end:
             raise KeyError("Keys are out of order")
         for key, value in self.get_ge(txn, key_begin):
@@ -1896,6 +1979,49 @@ def mdb_write_handle(path,                          # the path of mdb
                      value_type=MDB_STR,            # value type [MDB_STR|MDB_INT_*]
                      open_flags=0                   # additional flags for open
                      ):
+    """
+    Helper function to get mdb handle for writing
+
+    Returns a mdb triplet(env, txn, db)
+
+    :type  path: string
+    :param path: the path of the mdb files.
+
+        Set open_flags to MDB_NOSUBDIR if you don't want put mdb files into
+        an extra directory.
+
+    :type  size: integer
+    :param size: size in byte of the mdb. KB, MB, and GB are predifined.
+
+    :type  db_name: string
+    :param db_name: the name of your database
+
+        Note that liblmdb supports multiple sub-databases in a single
+        environment. Internally, it stores the names of sub-databases in the
+        main databases. Therefore, we always use sub-database to avoid data
+        ambiguity in the main database. The default value is '_default'.
+
+    :type  dup: boolean
+    :param dup: indicate whether the key is duplicate or not, ie. MDB_DUPSORT
+
+    :type  key_type: enum
+    :param key_type: indicate the data type of the key. User can use one of:
+
+        MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+    :type  value_type: enum
+    :param key_type: indicate the data type of the vaule. User can use one of:
+
+        MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+    :type  open_flags: enum
+    :param open_flags: extra options to control the mdb. Reference to lmdb.h
+    for more information. Frequently used as follows:
+
+        MDB_NOLOCK: do not use lockfile
+        MDB_NOSUBDIR: do not use an extra directory for mdb files
+        MDB_NOLOOKAHEAD: do not use lookahead
+    """
     env = Env(path, flags=MDB_NOSYNC | MDB_WRITEMAP | open_flags, mapsize=size)
     txn = env.begin_txn()
     flags = MDB_CREATE
@@ -1915,6 +2041,38 @@ def mdb_read_handle(path,                           # the path of mdb
                     value_type=MDB_STR,            # value type [MDB_STR|MDB_INT_*]
                     open_flags=0                    # additional flags for open
                     ):
+    """
+    Helper function to get mdb handle for reading
+
+    Returns a mdb triplet(env, txn, db)
+
+    :type  path: string
+    :param path: the path of the mdb files.
+
+    :type  db_name: string
+    :param db_name: the name of your database
+
+    :type  dup: boolean
+    :param dup: indicate whether the key is duplicate or not, ie. MDB_DUPSORT
+
+    :type  key_type: enum
+    :param key_type: indicate the data type of the key. User can use one of:
+
+        MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+    :type  value_type: enum
+    :param key_type: indicate the data type of the vaule. User can use one of:
+
+        MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+    :type  open_flags: enum
+    :param open_flags: extra options to control the mdb. Reference to lmdb.h
+    for more information. Frequently used as follows:
+
+        MDB_NOLOCK: do not use lockfile
+        MDB_NOSUBDIR: do not use an extra directory for mdb files
+        MDB_NOLOOKAHEAD: do not use lookahead
+    """
     env = Env(path, flags=MDB_RDONLY|open_flags)
     txn = env.begin_txn(flags=MDB_RDONLY)
     flags = 0
@@ -1928,7 +2086,8 @@ def mdb_read_handle(path,                           # the path of mdb
 
 
 class DupReader(object):
-    '''Class to read duplicate mdb database. Note txn in __init__
+    '''
+    Class to read duplicate mdb database. Note txn in __init__
     aborts immediately to avoid the long-lived read txn. The mdb would
     be closed automatically once it's no longer existed.
 
@@ -1940,6 +2099,35 @@ class DupReader(object):
     def __init__(self, path, db_name=DEFAULT_DB_NAME,
                  int_key=MDB_STR, int_val=MDB_STR, decode_fn=None,
                  open_flags=0):
+        """
+        :type  path: string
+        :param path: the path of the mdb files.
+
+        :type  db_name: string
+        :param db_name: the name of your database
+
+        :type  key_type: enum
+        :param key_type: indicate the data type of the key. User can use one of:
+
+            MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+        :type  value_type: enum
+        :param key_type: indicate the data type of the vaule. User can use one of:
+
+            MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+        :type  decode_fn: function
+        :param decode_fn: callback function to decode value after retrieving from
+        mdb if specified.
+
+        :type  open_flags: enum
+        :param open_flags: extra options to control the mdb. Reference to lmdb.h
+                        for more information. Frequently used as follows:
+
+            MDB_NOLOCK: do not use lockfile
+            MDB_NOSUBDIR: do not use an extra directory for mdb files
+            MDB_NOLOOKAHEAD: do not use lookahead
+        """
         self.path = path
         self.db_name = db_name
         self.env = Env(path, flags=MDB_RDONLY|MDB_NOTLS|open_flags)
@@ -2023,6 +2211,35 @@ class Reader(object):
     def __init__(self, path, db_name=DEFAULT_DB_NAME,
                  int_key=MDB_STR, int_val=MDB_STR, decode_fn=None,
                  open_flags=0):
+        """
+        :type  path: string
+        :param path: the path of the mdb files.
+
+        :type  db_name: string
+        :param db_name: the name of your database
+
+        :type  key_type: enum
+        :param key_type: indicate the data type of the key. User can use one of:
+
+            MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+        :type  value_type: enum
+        :param key_type: indicate the data type of the vaule. User can use one of:
+
+            MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+        :type  decode_fn: function
+        :param decode_fn: callback function to decode value after retrieving from
+        mdb if specified.
+
+        :type  open_flags: enum
+        :param open_flags: extra options to control the mdb. Reference to lmdb.h
+                        for more information. Frequently used as follows:
+
+            MDB_NOLOCK: do not use lockfile
+            MDB_NOSUBDIR: do not use an extra directory for mdb files
+            MDB_NOLOOKAHEAD: do not use lookahead
+        """
         self.path = path
         self.db_name = db_name
         self.env = Env(path, flags=MDB_RDONLY|MDB_NOTLS|open_flags)
@@ -2102,12 +2319,68 @@ class Reader(object):
 
 
 class Writer(object):
+    """
+    A thin wrapper to write key/values to mdb
+
+    Note that unlike the low-level APIs in Env, Txn, and DB, all methods in
+    this class will complete the corresponding operation in a single transcation.
+    Thus, it's somewhat slower, but safer. If you have a collection of key/values
+    to insert, consider using mput(), which takes any type of iterable as KV pairs.
+    """
     def __init__(self, path, mapsize=10*MB, db_name=DEFAULT_DB_NAME,
                  dup=False, int_key=MDB_STR, int_val=MDB_STR,
                  encode_fn=None, drop_on_mput=False, open_flags=0):
+        """
+        :type  path: string
+        :param path: the path of the mdb files.
+
+            Set open_flags to MDB_NOSUBDIR if you don't want put mdb files into
+            an extra directory.
+
+        :type  size: integer
+        :param size: size in byte of the mdb. KB, MB, and GB are predifined.
+
+        :type  db_name: string
+        :param db_name: the name of your database
+
+            Note that liblmdb supports multiple sub-databases in a single
+            environment. Internally, it stores the names of sub-databases in the
+            main databases. Therefore, we always use sub-database to avoid data
+            ambiguity in the main database. The default value is '_default'.
+
+        :type  dup: boolean
+        :param dup: indicate whether the key is duplicate or not, ie. MDB_DUPSORT
+
+        :type  int_key: enum
+        :param key_type: indicate the data type of the key. User can use one of:
+
+            MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+        :type  int_val: enum
+        :param key_type: indicate the data type of the vaule. User can use one of:
+
+            MDB_STR, MDB_INT_[8|16|32|64], MDB_UINT_[8|16|32|64]
+
+        :type  encode_fn: function
+        :param encode_fn: callback function to encode value before inserting values
+        to mdb if specified.
+
+        :type  drop_on_mput: boolean
+        :param drop_on_mput: indicate whether drop the database before conducting
+        mput()
+
+        :type  open_flags: enum
+        :param open_flags: extra options to control the mdb. Reference to lmdb.h
+        for more information. Frequently used as follows:
+
+            MDB_NOLOCK: do not use lockfile
+            MDB_NOSUBDIR: do not use an extra directory for mdb files
+            MDB_NOLOOKAHEAD: do not use lookahead
+        """
         # Check directory exists
         self.db_name = db_name
-        self._check_mdb_dir(path)
+        if (open_flags & MDB_NOSUBDIR) == 0:
+            self._check_mdb_dir(path)
         self.env = Env(path, flags=MDB_NOSYNC|MDB_WRITEMAP|open_flags, mapsize=mapsize)
         txn = self.env.begin_txn()
         flags = MDB_CREATE
