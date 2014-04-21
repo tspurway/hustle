@@ -1,3 +1,15 @@
+0.2.0 (April 21 2014)
+	Added feature #11. Serialization of Hustle tables
+	Added feature #15. Compression of partition data
+	Added feature #21. Optimization for in-stage combine
+	Added feature #22. Boolean data type
+	Added feature #25. Support for csv_decoder
+	Added feature #27. Support for HyperLogLog and MinHash aggregation
+	Added feature #32. Optimization for duplicate adjacent values
+	Added functionality to get statistical information of Hustle tables
+	Fixed issue #26. Can't insert data with a huge number of partitions
+	Known issues to fix: #34
+
 0.1.3 (March 19 2014)
 	Added mget() for lmdb Python client
 	Improved the hustle_input_stream by using mget()
