@@ -16,6 +16,7 @@ GROUP_LABEL = "group_label"
 GROUP_LABEL_NODE = "group_node_label"
 GROUP_NODE = "group_node"
 
+_POOL = 'abcdefghijklmnopqrstuvwxyz0123456789'
 # default number of partitions, users can set this in the settings.yaml
 _NPART = 16
 
@@ -165,10 +166,9 @@ class SelectPipe(Job):
             if col.name not in fields:
                 fields.append(col.schema_string())
         name = '-'.join([w._name for w in self.wheres])[:64]
-        # append a 3-digit random suffix to avoid name collision
-        # TODO: random doesn't guarantee uniqueness, 1/1000th chance of getting the same number
+        # append a 3-charactor random suffix to avoid name collision
         self.output_table = Table(name="sub-%s-%03d" %
-                                  (name, random.randint(0, 999)), fields=fields)
+                                  (name, random.sample(_POOL, 3)), fields=fields)
         return self.output_table
 
     def _get_table(self, obj):
