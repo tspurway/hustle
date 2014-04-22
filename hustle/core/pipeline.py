@@ -167,8 +167,9 @@ class SelectPipe(Job):
                 fields.append(col.schema_string())
         name = '-'.join([w._name for w in self.wheres])[:64]
         # append a 3-charactor random suffix to avoid name collision
-        self.output_table = Table(name="sub-%s-%03d" %
-                                  (name, random.sample(_POOL, 3)), fields=fields)
+        self.output_table = Table(name="sub-%s-%s" %
+                                  (name, "".join(random.sample(_POOL, 3))),
+                                  fields=fields)
         return self.output_table
 
     def _get_table(self, obj):
