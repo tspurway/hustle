@@ -129,7 +129,7 @@ a very efficient and compact way to store the index in an append-only database l
 
 <dl class="class">
 <dt id="hustle.core.marble.Column">
-<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Column</tt><big>(</big><em>name</em>, <em>table</em>, <em>index_indicator=0</em>, <em>partition=False</em>, <em>type_indicator=0</em>, <em>compression_indicator=0</em>, <em>rtrie_indicator=2</em>, <em>alias=None</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Column" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Column</tt><big>(</big><em>name</em>, <em>table</em>, <em>index_indicator=0</em>, <em>partition=False</em>, <em>type_indicator=0</em>, <em>compression_indicator=0</em>, <em>rtrie_indicator=2</em>, <em>alias=None</em>, <em>boolean=False</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Column" title="Permalink to this definition">¶</a></dt>
 <dd><p>A <em>Column</em> is the named, typed field of a <a class="reference internal" href="#hustle.core.marble.Marble" title="hustle.core.marble.Marble"><tt class="xref py py-class docutils literal"><span class="pre">Marble</span></tt></a>.   <em>Columns</em> are typically
 created automatically by parsing the <em>fields</em> of a the <em>Marble</em> instantiation.</p>
 <p>The <em>Column</em> overrides Python&#8217;s relational operators <tt class="code docutils literal"><span class="pre">&gt;</span> <span class="pre">&lt;</span> <span class="pre">&lt;=</span> <span class="pre">&gt;=</span> <span class="pre">==</span></tt> which forms the basis for
@@ -164,8 +164,8 @@ select(date_column, where=date_column_expression &amp; )
 <dl class="method">
 <dt id="hustle.core.marble.Column.schema_string">
 <tt class="descname">schema_string</tt><big>(</big><big>)</big><a class="headerlink" href="#hustle.core.marble.Column.schema_string" title="Permalink to this definition">¶</a></dt>
-<dd><p>return the schema for this column.  This is used to build the schema of a query result, so we need to
-use the alias.</p>
+<dd><p>return the schema for this column.  This is used to build the schema of a query
+result, so we need to use the alias.</p>
 </dd></dl>
 
 <dl class="method">
@@ -178,7 +178,7 @@ use the alias.</p>
 
 <dl class="class">
 <dt id="hustle.core.marble.Aggregation">
-<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Aggregation</tt><big>(</big><em>name</em>, <em>column</em>, <em>f=None</em>, <em>g=&lt;function &lt;lambda&gt; at 0x109568d70&gt;</em>, <em>h=&lt;function &lt;lambda&gt; at 0x109568de8&gt;</em>, <em>default=&lt;function &lt;lambda&gt; at 0x109568e60&gt;</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Aggregation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">hustle.core.marble.</tt><tt class="descname">Aggregation</tt><big>(</big><em>name</em>, <em>column</em>, <em>f=None</em>, <em>g=&lt;function &lt;lambda&gt; at 0x1101e9c08&gt;</em>, <em>h=&lt;function &lt;lambda&gt; at 0x1101e9c80&gt;</em>, <em>default=&lt;function &lt;lambda&gt; at 0x1101e9cf8&gt;</em>, <em>is_numeric=None</em>, <em>is_binary=None</em><big>)</big><a class="headerlink" href="#hustle.core.marble.Aggregation" title="Permalink to this definition">¶</a></dt>
 <dd><p>An <em>Aggregation</em> is a Column Function that represents some aggregating computation over the values of that
 column.  It is exclusively used in the <em>project</em> section of the <a class="reference internal" href="hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">select()</span></tt></a> function.</p>
 <p>An <em>Aggregation</em> object holds onto four distinct function references which are called at specific times
@@ -212,13 +212,24 @@ for a numeric column in a <a class="reference internal" href="hustle.html#hustle
                        <span class="n">default</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
 </pre></div>
 </div>
-<p class="last">First look at the <em>default()</em> function which returns the tuple (0, 0).  This sets the <em>accum</em> and <em>count</em> values
+<p>First look at the <em>default()</em> function which returns the tuple (0, 0).  This sets the <em>accum</em> and <em>count</em> values
 that we will be tracking both to zero.  Next, let&#8217;s see what&#8217;s happening in the <em>f()</em> function.  Note that it
 performs two computations, one <tt class="code docutils literal"><span class="pre">accum</span> <span class="pre">+</span> <span class="pre">val</span></tt> builds a sum of the values, and the <tt class="code docutils literal"><span class="pre">count</span> <span class="pre">+</span> <span class="pre">1</span></tt> will
 count the total number of values.  The difference between the <em>g()</em> and <em>h()</em> functions is when they take place.
 The <em>h()</em> function is used to summarize results.  It should always return an <em>accum</em> that can be further
 inputted into the <em>f()</em> function.  The <em>g()</em> function is used at the very end of the computation to compute the
 final value to return the client.</p>
+<p>Note that most aggreations are much simpler than <a class="reference internal" href="hustle.html#hustle.h_avg" title="hustle.h_avg"><tt class="xref py py-func docutils literal"><span class="pre">h_avg()</span></tt></a>.  Consider the implementation
+for <a class="reference internal" href="hustle.html#hustle.h_sum" title="hustle.h_sum"><tt class="xref py py-func docutils literal"><span class="pre">h_sum()</span></tt></a>:</p>
+<div class="highlight-python"><div class="highlight"><pre>def h_sum(col):
+    return Aggregation(&quot;sum&quot;,
+                       col,
+                       f=lambda accum, val: accum + val
+                       default=0)
+</pre></div>
+</div>
+<p class="last">We don&#8217;t have to implement the <tt class="code docutils literal"><span class="pre">h()</span> <span class="pre">or</span> <span class="pre">g()</span></tt> functions, as they simply default to funcitons that
+return the <tt class="code docutils literal"><span class="pre">accum</span></tt>, which is normally sufficient.</p>
 </div>
 <div class="admonition seealso">
 <p class="first admonition-title">See also</p>

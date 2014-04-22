@@ -102,7 +102,7 @@ Queries are run using a <a class="reference internal" href="../howto/query.html#
 <p>Hustle is ideal for low latency OLAP queries over massive data sets.</p>
 <dl class="class">
 <dt id="hustle.Table">
-<em class="property">class </em><tt class="descclassname">hustle.</tt><tt class="descname">Table</tt><big>(</big><em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.Table" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">hustle.</tt><tt class="descname">Table</tt><big>(</big><em>name=None</em>, <em>fields=()</em>, <em>partition=None</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.Table" title="Permalink to this definition">¶</a></dt>
 <dd><p>The fundamental data type to support Hustle&#8217;s relational model.  A Table contains a number of named
 <a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Columns</span></tt></a>, each of which is decorated with schema information.
 Note that the table is stored in Disco&#8217;s
@@ -242,10 +242,11 @@ slow when inserting gigantic files or on nodes with limited memory resources.</p
 <tt class="descclassname">hustle.</tt><tt class="descname">select</tt><big>(</big><em>*project</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#hustle.select" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform a relational query, by selecting rows and columns from one or more tables.</p>
 <p>The return value is either:</p>
-<ul class="simple">
-<li>a list of urls containing the result records.  This is the same as normal results from Disco</li>
-<li>a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> instance when <tt class="code docutils literal"><span class="pre">nest==True</span></tt></li>
-</ul>
+<div class="highlight-python"><div class="highlight"><pre>* an iterator over the resulting tuples when :code:`nest==False`
+* a :class:`Table &lt;hustle.Table&gt;` instance when :code:`nest==True`
+* in the case of :code:`nest==False and dump==True` return None (this is the default CLI interaction)
+</pre></div>
+</div>
 <p>For all of the examples below, <em>imps</em> and <em>pix</em> are instances of <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -333,6 +334,9 @@ group by i.ad_id, i.site_id
 </pre></div>
 </div>
 </li>
+<li><strong>full_join</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if True, specifies that a full join between the specified tables in the <em>where clause</em> should
+be joined in a full cross-product.  Note that if both <em>full_join</em> and <em>join</em> are specified, <em>join</em> will
+be ignored.</li>
 <li><strong>order_by</strong> (string | <a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a> | int |
 (sequence of string | <a class="reference internal" href="core.html#hustle.core.marble.Column" title="hustle.core.marble.Column"><tt class="xref py py-class docutils literal"><span class="pre">Column</span></tt></a> | int)) &#8211; <p>the column(s) to sort the result by</p>
 <p>The sort columns can be specified either as a Column or a list of Columns.  Alternatively, you can specify
@@ -352,6 +356,18 @@ last case would be used for <em>Aggregations</em>.  Here are a few examples:</p>
 <li><strong>desc</strong> (<em>boolean</em>) &#8211; affects sort order of the <em>order_by clause</em> to descending (default ascending)</li>
 <li><strong>distinct</strong> (<em>boolean</em>) &#8211; indicates whether to remove duplicates in results</li>
 <li><strong>limit</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; limits the total number of records in the output</li>
+<li><strong>block</strong> (<em>boolean</em>) &#8211; make select call either blocking (default) or non-blocking.  If True, causes select() to return</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>a <a class="reference internal" href="#hustle.Future" title="hustle.Future"><tt class="xref py py-class docutils literal"><span class="pre">Future</span></tt></a> object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>nest</strong> (<em>boolean (default = False)</em>) &#8211; <p>specify that the return value is a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> to be used in another query</p>
 <p>This allows us to build nested queries.  You may want to do this to join more than two tables, or to reuse
 the results of a query in more than one subsequent query.  For example:</p>
@@ -419,7 +435,7 @@ This is used in <a class="reference internal" href="#hustle.select" title="hustl
 <dt id="hustle.h_min">
 <tt class="descclassname">hustle.</tt><tt class="descname">h_min</tt><big>(</big><em>col</em><big>)</big><a class="headerlink" href="#hustle.h_min" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return an aggregation for the minimum of the given column.  Like the SQL min() function:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_min</span><span class="p">(</span><span class="n">employee</span><span class="o">.</span><span class="n">salar</span><span class="p">),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">h_min</span><span class="p">(</span><span class="n">employee</span><span class="o">.</span><span class="n">salary</span><span class="p">),</span> <span class="n">employee</span><span class="o">.</span><span class="n">department</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">employee</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>returns the lowest salary in each department.</p>
@@ -470,32 +486,18 @@ This is used in <a class="reference internal" href="#hustle.select" title="hustl
 </dd></dl>
 
 <dl class="function">
-<dt id="hustle.dump">
-<tt class="descclassname">hustle.</tt><tt class="descname">dump</tt><big>(</big><em>result_urls</em>, <em>width=80</em><big>)</big><a class="headerlink" href="#hustle.dump" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dump the results of a non-nested query.</p>
+<dt id="hustle.cat">
+<tt class="descclassname">hustle.</tt><tt class="descname">cat</tt><big>(</big><em>result</em>, <em>width=80</em><big>)</big><a class="headerlink" href="#hustle.cat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pretty print the results of a query or table.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>result_urls</strong> (<em>sequence of strings</em>) &#8211; result of an (unnested) query</li>
+<li><strong>result</strong> (<em>iterator over tuples</em>) &#8211; result of a query or a table</li>
 <li><strong>width</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; the number of columns to constrain output to</li>
 </ul>
 </td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="hustle.edump">
-<tt class="descclassname">hustle.</tt><tt class="descname">edump</tt><big>(</big><em>table</em><big>)</big><a class="headerlink" href="#hustle.edump" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dump the results of a nested query.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>table</strong> (a <a class="reference internal" href="#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a> object) &#8211; it must be a result table from a nested select query</td>
 </tr>
 </tbody>
 </table>
@@ -611,6 +613,48 @@ a specific range of partitions, e.g. &#8216;impression.date &lt; 2014-01-01&#821
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="class">
+<dt id="hustle.Future">
+<em class="property">class </em><tt class="descclassname">hustle.</tt><tt class="descname">Future</tt><big>(</big><em>name</em>, <em>job</em>, <em>disco</em>, <em>nest</em>, <em>*project</em><big>)</big><a class="headerlink" href="#hustle.Future" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return value of non-blocking function <tt class="xref py py-func docutils literal"><span class="pre">select_nb()</span></tt>.</p>
+<p>It has a series of functions to check query&#8217;s status and fetch query&#8217;s results.</p>
+<dl class="method">
+<dt id="hustle.Future.status">
+<tt class="descname">status</tt><big>(</big><big>)</big><a class="headerlink" href="#hustle.Future.status" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the status of the attached query.</p>
+<dl class="docutils">
+<dt>The status of a query might be one of following strings:</dt>
+<dd>&#8216;dead&#8217;: query is dead
+&#8216;active&#8217;: query is still being executed
+&#8216;ready&#8217;: query is finished, all results are available
+&#8216;unknown&#8217;: status is unknown, e.g. connection to server is busy</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="hustle.Future.wait">
+<tt class="descname">wait</tt><big>(</big><big>)</big><a class="headerlink" href="#hustle.Future.wait" title="Permalink to this definition">¶</a></dt>
+<dd><p>Block and wait the query to finish. If the query is already finished,
+it returns the result at once.</p>
+<p>The return value is the same as <a class="reference internal" href="#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">select()</span></tt></a>.
+If query is nested, it returns a table. Otherwise, a list of urls.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="hustle.Future.done">
+<tt class="descname">done</tt><a class="headerlink" href="#hustle.Future.done" title="Permalink to this definition">¶</a></dt>
+<dd><p>A helper function that shows whether query is done or not</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="hustle.Future.table">
+<tt class="descname">table</tt><a class="headerlink" href="#hustle.Future.table" title="Permalink to this definition">¶</a></dt>
+<dd><p>A helper function for the nested query to return its table result.</p>
+<p>If query is not nested or query is not finished, an exception will be raised.</p>
+</dd></dl>
+
 </dd></dl>
 
 </div>

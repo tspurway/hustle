@@ -71,6 +71,7 @@
 <li><a class="reference internal" href="#limit-distinct-clauses">Limit / Distinct Clauses</a></li>
 <li><a class="reference internal" href="#nested-queries">Nested Queries</a></li>
 <li><a class="reference internal" href="#select-return-values">select() Return Values</a></li>
+<li><a class="reference internal" href="#non-blocking-select">Non-blocking select()</a></li>
 </ul>
 </li>
 </ul>
@@ -239,6 +240,13 @@ respective <em>token</em> column.  Joins in Hustle have the following constraint
 <li>both the <em>where</em> and <em>join</em> parameters must be sequences of exactly two elements</li>
 <li>currently all joins in Hustle are <a class="reference external" href="http://en.wikipedia.org/wiki/Join_(SQL)#Inner_join">inner joins</a></li>
 </ul>
+<p>Note that the join argument can also take the name of the column to join on if both tables have the same column name.
+The above query could be equivalently written:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">select</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">pixels</span><span class="o">.</span><span class="n">site_id</span><span class="p">,</span>
+       <span class="n">where</span><span class="o">=</span><span class="p">(</span><span class="n">impressions</span><span class="o">.</span><span class="n">site_id</span> <span class="o">==</span> <span class="s">&#39;google.com&#39;</span><span class="p">,</span> <span class="n">pixels</span><span class="o">.</span><span class="n">site_id</span> <span class="o">==</span> <span class="s">&#39;yahoo.com&#39;</span><span class="p">),</span>
+       <span class="n">join</span><span class="o">=</span><span class="s">&#39;token&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="column-cardinality">
 <h2>Column Cardinality<a class="headerlink" href="#column-cardinality" title="Permalink to this headline">¶</a></h2>
@@ -309,19 +317,25 @@ depending on it&#8217;s parameters.</p>
 <ul class="simple">
 <li><em>nest=True</em> - will return a <a class="reference internal" href="../api/hustle.html#hustle.Table" title="hustle.Table"><tt class="xref py py-class docutils literal"><span class="pre">Table</span></tt></a></li>
 <li><em>dump=True</em> - this is the default in the CLI - will return None, but will dump the result to stdout</li>
-<li><em>nest=False, dump=False</em> - this is the default when writing Python programs, and will return a list of URLs</li>
+<li><em>nest=False, dump=False</em> - this is the default when writing Python programs, and will return an iterator of tuples representing the result</li>
 <li><em>nest=True, dump=True</em> - same as <em>nest=True</em> above</li>
 </ul>
-<p>The idea here is that when the CLI, you really just want to see the output of your query, while building a program,
+<p>The idea here is that when in the CLI, you really just want to see the output of your query, while building a program,
 you would like to just process the results like a normal
 <a class="reference external" href="http://disco.readthedocs.org/en/latest/lib/core.html#disco.core.result_iterator">map/reduce disco job</a>.  Here&#8217;s
 an example of processing the results of a query in Python:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">hustle</span> <span class="kn">import</span> <span class="n">select</span><span class="p">,</span> <span class="n">Table</span>
-<span class="kn">from</span> <span class="nn">disco.core</span> <span class="kn">import</span> <span class="n">result_iterator</span>
 <span class="n">imps</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_tag</span><span class="p">(</span><span class="s">&#39;impressions&#39;</span><span class="p">)</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">h_sum</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">cpm_mills</span><span class="p">),</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="p">)</span>
-<span class="k">for</span> <span class="p">(</span><span class="n">date</span><span class="p">,</span> <span class="n">total</span><span class="p">),</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">result_iterator</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
+<span class="k">for</span> <span class="n">date</span><span class="p">,</span> <span class="n">total</span> <span class="ow">in</span> <span class="n">result</span><span class="p">:</span>
     <span class="k">print</span> <span class="n">date</span><span class="p">,</span> <span class="n">total</span>
+</pre></div>
+</div>
+<p>Also note that it is possible to iterate over all rows in a <cite>Table &lt;hustle.Table&gt;</cite> directly:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">hustle</span> <span class="kn">import</span> <span class="n">select</span><span class="p">,</span> <span class="n">Table</span>
+<span class="n">imps</span> <span class="o">=</span> <span class="n">Table</span><span class="o">.</span><span class="n">from_tag</span><span class="p">(</span><span class="s">&#39;impressions&#39;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">date</span><span class="p">,</span> <span class="n">clicks</span><span class="p">,</span> <span class="n">impressions</span><span class="p">,</span> <span class="n">site_id</span><span class="p">,</span> <span class="n">cpm_millis</span> <span class="ow">in</span> <span class="n">imps</span><span class="p">:</span>
+  <span class="k">print</span> <span class="n">date</span><span class="p">,</span> <span class="n">clicks</span>
 </pre></div>
 </div>
 <div class="admonition seealso">
@@ -330,6 +344,32 @@ an example of processing the results of a query in Python:</p>
 <dt><a class="reference internal" href="../api/hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">hustle.select()</span></tt></a></dt>
 <dd>Hustle&#8217;s select statement</dd>
 </dl>
+</div>
+</div>
+<div class="section" id="non-blocking-select">
+<h2>Non-blocking select()<a class="headerlink" href="#non-blocking-select" title="Permalink to this headline">¶</a></h2>
+<p>If you want to run multiple queries at the same time, consider using non-blocking select - <tt class="xref py py-func docutils literal"><span class="pre">select_nb</span></tt>. It&#8217;s exactly the same as <a class="reference internal" href="../api/hustle.html#hustle.select" title="hustle.select"><tt class="xref py py-func docutils literal"><span class="pre">select</span></tt></a> except that it returns immediately after submitting query to the cluster. The user can use the return value - a <a class="reference internal" href="../api/hustle.html#hustle.Future" title="hustle.Future"><tt class="xref py py-class docutils literal"><span class="pre">Future</span></tt></a> object to check the query&#8217;s status and fetch its resutls.</p>
+<p>For example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">future</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">imps</span><span class="o">.</span><span class="n">ad_id</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">date</span><span class="p">,</span> <span class="n">imps</span><span class="o">.</span><span class="n">cpm_millis</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">imps</span><span class="o">.</span><span class="n">date</span> <span class="o">&gt;</span> <span class="s">&#39;2014-01-15&#39;</span><span class="p">,</span> <span class="n">nest</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">future</span><span class="o">.</span><span class="n">status</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s">&#39;active&#39;</span>
+<span class="gp">... </span><span class="n">run</span> <span class="n">more</span> <span class="n">queries</span> <span class="n">here</span> <span class="o">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">future</span><span class="o">.</span><span class="n">done</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="bp">False</span>
+<span class="gp">... </span><span class="n">do</span> <span class="n">some</span> <span class="n">other</span> <span class="n">things</span> <span class="o">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">future</span><span class="o">.</span><span class="n">status</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="s">&#39;ready&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">future</span><span class="o">.</span><span class="n">done</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="bp">True</span>
+<span class="gp">... </span><span class="n">wait</span><span class="p">()</span> <span class="n">function</span> <span class="n">gives</span> <span class="n">your</span> <span class="n">results</span> <span class="n">like</span> <span class="n">the</span> <span class="n">select</span><span class="p">()</span> <span class="n">does</span> <span class="o">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cat</span><span class="p">(</span><span class="n">future</span><span class="o">.</span><span class="n">wait</span><span class="p">())</span>
+<span class="gp">... </span><span class="n">Note</span> <span class="n">that</span> <span class="k">if</span> <span class="n">you</span> <span class="n">call</span> <span class="n">wait</span><span class="p">()</span> <span class="n">on</span> <span class="n">a</span> <span class="n">ongoing</span> <span class="n">query</span><span class="p">,</span> <span class="n">it</span><span class="s">&#39;ll block until it&#39;</span><span class="n">s</span> <span class="n">done</span> <span class="o">...</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last"><tt class="xref py py-func docutils literal"><span class="pre">hustle.select_nb()</span></tt>
+<a class="reference internal" href="../api/hustle.html#hustle.Future" title="hustle.Future"><tt class="xref py py-class docutils literal"><span class="pre">hustle.Future</span></tt></a></p>
 </div>
 </div>
 </div>

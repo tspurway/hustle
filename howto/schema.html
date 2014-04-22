@@ -65,6 +65,7 @@
 <li><a class="reference internal" href="#accessing-fields">Accessing Fields</a></li>
 <li><a class="reference internal" href="#indexes">Indexes</a></li>
 <li><a class="reference internal" href="#integer-data">Integer Data</a></li>
+<li><a class="reference internal" href="#bit-data">Bit Data</a></li>
 <li><a class="reference internal" href="#string-data-and-compression">String Data and Compression</a></li>
 <li><a class="reference internal" href="#binary-data">Binary Data</a></li>
 <li><a class="reference internal" href="#partitions">Partitions</a></li>
@@ -139,23 +140,27 @@ column using the following syntax:</p>
 <td>&nbsp;</td>
 <td>String Type</td>
 </tr>
-<tr class="row-odd"><td>uint</td>
+<tr class="row-odd"><td>bit</td>
+<td>&nbsp;</td>
+<td>1-bit integer / boolean type</td>
+</tr>
+<tr class="row-even"><td>uint</td>
 <td>8 16 32 64</td>
 <td>Unsigned Integer Type</td>
 </tr>
-<tr class="row-even"><td>int</td>
+<tr class="row-odd"><td>int</td>
 <td>8 16 32 64</td>
 <td>Signed Integer Type</td>
 </tr>
-<tr class="row-odd"><td>trie</td>
+<tr class="row-even"><td>trie</td>
 <td>16 32</td>
 <td>Prefix Trie Compressed String type</td>
 </tr>
-<tr class="row-even"><td>lz4</td>
+<tr class="row-odd"><td>lz4</td>
 <td>&nbsp;</td>
 <td>LZ4 Compressed String type</td>
 </tr>
-<tr class="row-odd"><td>binary</td>
+<tr class="row-even"><td>binary</td>
 <td>&nbsp;</td>
 <td>Unencoded, uncompressed string type</td>
 </tr>
@@ -197,6 +202,12 @@ the specified column to be very high with respect to the overall number of rows.
 <div class="section" id="integer-data">
 <h2>Integer Data<a class="headerlink" href="#integer-data" title="Permalink to this headline">¶</a></h2>
 <p>Integers can be 1, 2, 4 or 8 bytes and are either signed or unsigned.</p>
+</div>
+<div class="section" id="bit-data">
+<h2>Bit Data<a class="headerlink" href="#bit-data" title="Permalink to this headline">¶</a></h2>
+<p>Bits are one bit unsigned integers.  They can represent the number 0 or 1, or the boolean values True and False.</p>
+<p><em>Bit</em> typed columns are stored very efficiently and utilize the same bitmap compression that indexed columns
+use.  Similarly, it is very efficient to execute aggregating functions over <em>bit</em> type data.</p>
 </div>
 <div class="section" id="string-data-and-compression">
 <h2>String Data and Compression<a class="headerlink" href="#string-data-and-compression" title="Permalink to this headline">¶</a></h2>

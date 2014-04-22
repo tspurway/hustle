@@ -16,6 +16,7 @@ Columns
     wide                            Use LRU cache when inserting this index
     index                           Create index for this column
     string                          String Type
+    bit                             1-bit integer / boolean type
     uint            8 16 32 64      Unsigned Integer Type
     int             8 16 32 64      Signed Integer Type
     trie            16 32           Prefix Trie Compressed String type
@@ -64,6 +65,14 @@ Integer Data
 ------------
 
 Integers can be 1, 2, 4 or 8 bytes and are either signed or unsigned.
+
+Bit Data
+--------
+
+Bits are one bit unsigned integers.  They can represent the number 0 or 1, or the boolean values True and False.
+
+*Bit* typed columns are stored very efficiently and utilize the same bitmap compression that indexed columns
+use.  Similarly, it is very efficient to execute aggregating functions over *bit* type data.
 
 String Data and Compression
 ---------------------------
