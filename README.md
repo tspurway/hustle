@@ -49,7 +49,7 @@ Please refer to the [Installation Guide](http://chango.github.io/hustle/start/in
 Documentation
 -------------
 
-http://chango.github.io/hustle/
+[Hustle User Guide](http://chango.github.io/hustle/)
 
 [Hustle Mailing List](http://groups.google.com/group/hustle-users)
 
