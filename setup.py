@@ -29,4 +29,4 @@ setup(
     install_requires=install_requires,
     tests_require=tests_require,
     test_suite='nose.collector',
-    requires=['disco'])
+    requires=['disco', 'mdb'])

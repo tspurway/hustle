@@ -707,7 +707,7 @@ class Column(object):
         select(date_column, where=date_column_expression & )
 
     """
-    def __init__(self, name, table, index_indicator=0, partition=False, type_indicator=0,
+    def __init__(self, name, table=None, index_indicator=0, partition=False, type_indicator=0,
                  compression_indicator=0, rtrie_indicator=mdb.MDB_UINT_32, alias=None, boolean=False):
         self.name = name
         self.fullname = "%s.%s" % (table._name, name) if hasattr(table, '_name') else name
@@ -769,7 +769,7 @@ class Column(object):
         return the schema for this column.  This is used to build the schema of a query
         result, so we need to use the alias.
         """
-        rval = self.alias or self.name
+        rval = self.alias or self.name or ''
         indexes = ['', '+', '=']
         prefix = indexes[self.index_indicator]
         lookup = ['', '#4', '@4', '#2', '@2', '#1', '@1', '#8', '@8']
@@ -930,7 +930,7 @@ class Aggregation(object):
 
     """
     def __init__(self, name, column, f=None, g=lambda a: a, h=lambda a: a,
-                 default=lambda: None, is_numeric=None, is_binary=None):
+                 default=lambda: None, result_spec=None):
 
         self.column = column
         self.f = f
@@ -939,6 +939,7 @@ class Aggregation(object):
         self.default = default
         self.name = "%s(%s)" % (name, column.name if column else '')
         self.fullname = "%s(%s)" % (name, column.fullname if column else '')
+        self.result_spec = result_spec
 
         self.is_numeric = column.is_numeric if column else False
         self.is_binary = column.is_binary if column else False
@@ -952,6 +953,14 @@ class Aggregation(object):
                             self.g, self.h, self.default)
         return newag
 
+    def schema_string(self):
+        """
+        return the schema for this aggregation.  override this by setting the :code:`result_spec`
+        """
+        if self.result_spec:
+            return self.result_spec.schema_string()
+        else:
+            return self.column.schema_string()
 
 class Expr(object):
     """

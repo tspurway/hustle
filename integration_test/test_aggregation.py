@@ -106,4 +106,15 @@ class TestAggregation(unittest.TestCase):
             self.assertEqual(count, ad_tup[1])
 
     def test_overflow(self):
-        pass
+        from itertools import izip
+
+        imps = Table.from_tag(IMPS)
+        fly_results = select(imps.date, h_sum(imps.impression), where=imps, order_by=imps.date)
+
+        nest_tab = select(imps.date, h_sum(imps.impression), where=imps, nest=True)
+        nest_results = select(*star(nest_tab), where=nest_tab, order_by=0)
+
+        for ((fdate, fimps), (ndate, nimps)) in izip(fly_results, nest_results):
+            self.assertEqual(fdate, ndate)
+            self.assertEqual(fimps, nimps)
+

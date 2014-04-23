@@ -288,8 +288,6 @@ def insert(table, phile=None, streams=None, preprocess=None,
     if not decoder:
         decoder = json_decoder
 
-    # print 'committed'
-
     def part_tag(name, partition=None):
         rval = "hustle:" + name
         if partition:
@@ -581,10 +579,12 @@ def h_sum(col):
     :type col: :class:`hustle.core.marble.Column`
     :param col: the column to aggregate
     """
+    import mdb
     return Aggregation("sum",
                        col,
                        f=lambda a, v: a + v,
-                       default=lambda: 0)
+                       default=lambda: 0,
+                       result_spec=Column('_sum_type', type_indicator=mdb.MDB_INT_32))
 
 
 def h_count():
@@ -595,10 +595,12 @@ def h_count():
 
     returns a count of the number of employees in each department.
     """
+    import mdb
     return Aggregation("count",
-                       Column('_count', None, type_indicator=1),
+                       Column(name='_count', type_indicator=1),
                        f=lambda a, v: a + v,
-                       default=lambda: 0)
+                       default=lambda: 0,
+                       result_spec=Column('_count_type', type_indicator=mdb.MDB_UINT_32))
 
 
 def h_max(col):
@@ -612,11 +614,14 @@ def h_max(col):
     :type col: :class:`hustle.core.marble.Column`
     :param col: the column to aggregate
     """
+    import mdb
+
     if col.is_numeric:
         return Aggregation("max",
                            col,
                            f=lambda a, v: a if a > v else v,
-                           default=lambda: -9223372036854775808)
+                           default=lambda: -9223372036854775808,
+                           result_spec=Column('_max_type', type_indicator=mdb.MDB_INT_32))
     else:
         return Aggregation("max",
                            col,
@@ -635,11 +640,14 @@ def h_min(col):
     :type col: :class:`hustle.core.marble.Column`
     :param col: the column to aggregate
     """
+    import mdb
+
     if col.is_numeric:
         return Aggregation("min",
                            col,
                            f=lambda a, v: a if a < v else v,
-                           default=lambda: 9223372036854775807)
+                           default=lambda: 9223372036854775807,
+                           result_spec=Column('_min_type', type_indicator=mdb.MDB_INT_32))
     else:
         return Aggregation("min",
                            col,
@@ -658,11 +666,14 @@ def h_avg(col):
     :type col: :class:`hustle.core.marble.Column`
     :param col: the column to aggregate
    """
+    import mdb
+
     return Aggregation("avg",
                        col,
                        f=lambda (a, c), v: (a + v, c + 1),
                        g=lambda (a, c): float(a) / c,
-                       default=lambda: (0, 0))
+                       default=lambda: (0, 0),
+                       result_spec=Column('_avg_type', type_indicator=mdb.MDB_INT_32))
 
 
 def star(table):

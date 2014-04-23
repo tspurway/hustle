@@ -161,10 +161,10 @@ class SelectPipe(Job):
         if self.output_table:
             return self.output_table
         fields = []
-        for col_spec in project:
-            col = col_spec.column
-            if col.name not in fields:
-                fields.append(col.schema_string())
+        for col_or_agg in project:
+            col_spec = col_or_agg.schema_string()
+            if col_spec not in fields:
+                fields.append(col_spec)
         name = '-'.join([w._name for w in self.wheres])[:64]
         # append a 3-charactor random suffix to avoid name collision
         self.output_table = Table(name="sub-%s-%s" %
