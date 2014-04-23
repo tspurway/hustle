@@ -16,6 +16,7 @@ Hustle has the following dependencies:
 * you will need `Cython <http://cython.org/>`_
 * you will need `Disco 0.5 <http://disco.readthedocs.org/en/latest/start/install.html>`_
 * you will need `ultrajson <https://github.com/esnme/ultrajson>`_
+* you will need `PyYAML <http://pyyaml.org>`_
 
 Installing the Hustle Client
 ----------------------------
