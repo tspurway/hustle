@@ -1,3 +1,10 @@
+0.2.0 (April 22 2014)
+	Fixed wrong argument of mget in MarbleStream
+	Fixed the client of EWAHBoolArray to check the index faster
+	Fixed the name collision of nested table
+	Added PyYAML to the setup.py
+	Unified 'dump' and 'edump' to the new function 'cat'
+
 0.2.0 (April 21 2014)
 	Added feature #11. Serialization of Hustle tables
 	Added feature #15. Compression of partition data
