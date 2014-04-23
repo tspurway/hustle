@@ -224,8 +224,9 @@ class Marble(object):
             '''
             A fake mdb-like class just for partition columns.
             '''
-            def __init__(self, partition):
+            def __init__(self, partition, total):
                 self.echome = partition
+                self.total = total
 
             def put(self, txn, row_id, val):
                 return
@@ -237,8 +238,7 @@ class Marble(object):
                     yield self.echome
 
             def get_neighbours(self, txn, key):
-                v = (key, self.echome)
-                return v, v
+                return (key, self.echome), (self.total + 1, self.echome)
 
             def get(self, txn, key, default=None):
                 return self.echome
@@ -247,6 +247,9 @@ class Marble(object):
                 return
 
         class CountDB(object):
+            def __init__(self, total):
+                self.total = total
+
             def close(self):
                 pass
 
@@ -260,7 +263,7 @@ class Marble(object):
                 return repeat(1, len(rids))
 
             def get_neighbours(self, _, rid, default=None):
-                return (rid, 1), (rid, 1)
+                return (rid, 1), (self.total + 1, 1)
 
         class BooleanDB(object):
             def __init__(self, subindexdb, txn):
@@ -331,7 +334,7 @@ class Marble(object):
         number_rows = ujson.loads(meta.get(txn, '_total_rows', "0"))
 
         if not write:
-            dbs = {'_count': (CountDB(), None, None,
+            dbs = {'_count': (CountDB(number_rows), None, None,
                               Column('_count', None, type_indicator=1), None)}
         else:
             dbs = {}
@@ -367,7 +370,7 @@ class Marble(object):
             if column.is_boolean:
                 subdb = BooleanDB(subindexdb, txn)
             elif column.partition:
-                subdb = PartitionDB(column.name)
+                subdb = PartitionDB(column.name, number_rows)
             else:
                 flags = mdb.MDB_CREATE | mdb.MDB_INTEGERKEY
                 if column.is_int:
@@ -545,15 +548,15 @@ class MarbleStream(object):
 
     def mget(self, column_name, keys):
         db, _, _, column, _ = self.dbs[column_name]
-        lower, upper = (-1, None), (-1, None)
+        (lower, l_val), (upper, r_val) = (-1, None), (-1, None)
         for key in keys:
-            if key < upper[0]:
-                data = lower[1]
-            elif key == upper[0]:
-                data = upper[1]
+            if key < upper:
+                data = l_val
+            elif key == upper:
+                data = r_val
             else:
-                lower, upper = db.get_neighbours(self.txn, key)
-                data = lower[1]
+                (lower, l_val), (upper, r_val) = db.get_neighbours(self.txn, key)
+                data = l_val
             yield column.fetcher(data, self.vid16_nodes, self.vid16_kids,
                                  self.vid_nodes, self.vid_kids)
 
