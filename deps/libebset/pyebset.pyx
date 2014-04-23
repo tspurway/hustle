@@ -14,6 +14,10 @@ cdef extern from "<sstream>" namespace "std":
         string str()
         ostream write(char *, size_t)
 
+cdef extern from "<algorithm>" namespace "std":
+    cdef bint binary_search(vector[size_t].iterator,
+                            vector[size_t].iterator,
+                            uint64_t&)
 
 cdef extern from "ewah.h":
     cdef cppclass EWAHBoolArray[T]:
@@ -37,22 +41,29 @@ cdef extern from "ewah.h":
 
 cdef class BitSet:
     cdef EWAHBoolArray[uint64_t] *thisptr
+    cdef vector[size_t] indexes
+    cdef bint updated
 
     def __cinit__(self):
         self.thisptr = new EWAHBoolArray[uint64_t]()
+        self.updated = True
 
     def __dealloc__(self):
         del self.thisptr
 
     def __setitem__(self, key, value):
         if value:
-            self.thisptr.set(key)
+            self.set(key)
 
     def __getitem__(self, key):
         return self.thisptr.get(key)
 
     def set(self, size_t i):
-        return self.thisptr.set(i)
+        if self.thisptr.set(i):
+            self.updated = True
+            return True
+        else:
+            return False
 
     def get(self, size_t i):
         return self.thisptr.get(i)
@@ -68,6 +79,7 @@ cdef class BitSet:
 
         ss.write(s, len(s))
         self.thisptr.read(ss, True)
+        self.updated = True
         return
 
     def size_in_bytes(self):
@@ -105,6 +117,7 @@ cdef class BitSet:
 
     def lnot_inplace(self):
         self.thisptr.inplace_logicalnot()
+        self.updated = True
         return self
 
     def __richcmp__(BitSet l, BitSet r, int op):
@@ -142,4 +155,8 @@ cdef class BitSet:
         return self.dumps()
 
     def __contains__(self, size_t v):
-        return self.thisptr.get(v)
+        if self.updated or (self.indexes.size() == 0):
+            self.indexes = self.thisptr.toArray()
+            self.updated = False
+
+        return binary_search(self.indexes.begin(), self.indexes.end(), v)

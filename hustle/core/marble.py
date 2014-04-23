@@ -282,17 +282,20 @@ class Marble(object):
                 pass
 
             def get(self, _, rid, default=None):
-                if self.true_bm.get(rid):
+                if rid in self.true_bm:
                     return 1
-                return 0
+                else:
+                    return 0
 
             def get_neighbours(self, _, rid, default=None):
-                v = self.true_bm.get(rid)
-                return (rid, v), (rid, v)
+                if rid in self.true_bm:
+                    return (rid, 1), (rid, 1)
+                else:
+                    return (rid, 0), (rid, 0)
 
             def mget(self, _, rids, default=None):
                 for rid in rids:
-                    if self.true_bm.get(rid):
+                    if rid in self.true_bm:
                         yield 1
                     else:
                         yield 0

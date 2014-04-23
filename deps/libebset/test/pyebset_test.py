@@ -112,6 +112,8 @@ class BitSetTest(unittest.TestCase):
         b.set(12323131)
         for i in [1, 4, 10, 100000, 12323131]:
             self.assertTrue(i in b)
+        for i in [2, 3, 5, 6, 1232312]:
+            self.assertTrue(i not in b)
 
     def test_eq_ne(self):
         b = BitSet()
