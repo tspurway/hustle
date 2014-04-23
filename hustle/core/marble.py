@@ -554,7 +554,7 @@ class MarbleStream(object):
             else:
                 lower, upper = db.get_neighbours(self.txn, key)
                 data = lower[1]
-            yield column.fetcher(data, self.vid16_nodes, self.vid_kids,
+            yield column.fetcher(data, self.vid16_nodes, self.vid16_kids,
                                  self.vid_nodes, self.vid_kids)
 
     def get(self, column_name, key):
