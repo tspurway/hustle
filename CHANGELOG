@@ -1,4 +1,9 @@
-0.2.0 (April 22 2014)
+0.2.2 (April 30 2014)
+	Fixed issue #34. Wrong data types for aggregation columns
+	Added decoder for CSV-like files
+	Optimized performance for aggregation queries
+
+0.2.1 (April 22 2014)
 	Fixed wrong argument of mget in MarbleStream
 	Fixed the client of EWAHBoolArray to check the index faster
 	Fixed the name collision of nested table
