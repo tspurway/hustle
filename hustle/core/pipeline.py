@@ -146,6 +146,27 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
             otab.close()
 
 
+def dflt_default():
+    """
+    Default 'default' function for aggregation, simply returns none
+    """
+    return None
+
+
+def dflt_gh(a):
+    """
+    Default 'g/h' function for aggregation, simply returns accum
+    """
+    return a
+
+
+def dflt_f(a, v):
+    """
+    Default 'f' function for aggregation, simply returns value and ignores accum
+    """
+    return v
+
+
 class SelectPipe(Job):
     # profile = True
     required_modules = [
@@ -238,8 +259,15 @@ class SelectPipe(Job):
         # aggregation functions and their defaults
         efs, gees, ehches, dflts = zip(*[(c.f, c.g, c.h, c.default)
                                          if isinstance(c, Aggregation)
-                                         else (None, None, None, None)
+                                         else (dflt_f, dflt_gh, dflt_gh, dflt_default)
                                          for c in project])
+        need_agg = False  # need to commit aggregatation
+        all_agg = True    # whether all columns in select are aggregates
+        for c in project:
+            if isinstance(c, Aggregation):
+                need_agg = True
+            else:
+                all_agg = False
 
         # build the pipeline
         select_hash_cols = ()
@@ -259,6 +287,7 @@ class SelectPipe(Job):
                                              ghfuncs=ehches,
                                              deffuncs=dflts,
                                              wide=wide,
+                                             need_agg=need_agg,
                                              agg_fn=_aggregate,
                                              label_fn=partial(_tuple_hash,
                                                               cols=sort_range,
@@ -266,10 +295,10 @@ class SelectPipe(Job):
             select_hash_cols = (1,)
 
         group_by_stage = []
-        if any(efs):
+        if need_agg:
             # If all columns in project are aggregations, use process_skip_group
             # to skip the internal groupby
-            if all([isinstance(c, Aggregation) for c in project]):
+            if all_agg:
                 process_group_fn = process_skip_group
                 group_by_range = []
             else:
@@ -341,6 +370,7 @@ class SelectPipe(Job):
                                                  ghfuncs=ehches,
                                                  deffuncs=dflts,
                                                  wide=wide or join or full_join,
+                                                 need_agg=need_agg,
                                                  agg_fn=_aggregate,
                                                  label_fn=partial(_tuple_hash,
                                                                   cols=select_hash_cols,
@@ -369,16 +399,17 @@ def _tuple_hash(key, cols, p):
 
 def _aggregate(inp, label_fn, ffuncs, ghfuncs, deffuncs):
     vals = {}
+    group_template = [(lambda a: a) if f.__name__ == 'dflt_f' else (lambda a: None)
+                      for f in ffuncs]
     for record, _ in inp:
-        group = tuple(e if ef is None else None for e, ef in zip(record, ffuncs))
+        group = tuple(f(e) for e, f in zip(record, group_template))
         if group in vals:
             accums = vals[group]
         else:
-            accums = [default() if default else None for default in deffuncs]
+            accums = [default() for default in deffuncs]
 
         try:
-            accums = [f(a, v) if None not in (f, a, v) else None
-                      for f, a, v in zip(ffuncs, accums, record)]
+            accums = [f(a, v) for f, a, v in zip(ffuncs, accums, record)]
         except Exception as e:
             print e
             print "YEEHEQW: f=%s a=%s r=%s g=%s" % (ffuncs, accums, record, group)
@@ -389,15 +420,14 @@ def _aggregate(inp, label_fn, ffuncs, ghfuncs, deffuncs):
         vals[group] = accums
 
     for group, accums in vals.iteritems():
-        accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
-        key = tuple(g if g is not None else a for g, a in zip(group, accum))
+        accum = [h(a) for h, a in zip(ghfuncs, accums)]
+        key = tuple(accum)
         out_label = label_fn(group)
         yield out_label, key
-        # interface.output(out_label).add(key, empty)
 
 
 def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
-                     ghfuncs, deffuncs, agg_fn, wide=False):
+                     ghfuncs, deffuncs, agg_fn, wide=False, need_agg=False):
     from disco import util
     empty = ()
 
@@ -415,7 +445,7 @@ def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
                         % str(inp.input))
 
     # opportunistically aggregate in this stage
-    if any(ffuncs) and not wide:
+    if need_agg and not wide:
         for out_label, key in agg_fn(inp, label_fn, ffuncs, ghfuncs, deffuncs):
             interface.output(out_label).add(key, empty)
     else:
@@ -426,7 +456,7 @@ def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
 
 
 def process_join(interface, state, label, inp, task, full_join, label_fn,
-                 ffuncs, ghfuncs, deffuncs, agg_fn, wide=False):
+                 ffuncs, ghfuncs, deffuncs, agg_fn, wide=False, need_agg=False):
     """
     Processor function for the join stage.
 
@@ -461,7 +491,7 @@ def process_join(interface, state, label, inp, task, full_join, label_fn,
                         newrecord = _merge_record(2, first_record, record)
                         yield newrecord, value
 
-    if any(ffuncs) and not wide:
+    if need_agg and not wide:
         for out_label, key in agg_fn(_join_input(), label_fn, ffuncs, ghfuncs, deffuncs):
             interface.output(out_label).add(key, empty)
     else:
@@ -484,21 +514,24 @@ def process_order(interface, state, label, inp, task, distinct, limit):
             interface.output(label).add(key, value)
 
 
-def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs, label_fn=None):
+def process_group(interface, state, label, inp, task, ffuncs, ghfuncs,
+                  deffuncs, label_fn=None):
     """Process function of aggregation combine stage."""
     from itertools import groupby
 
     empty = ()
 
+    group_template = [(lambda a: a) if f.__name__ == 'dflt_f' else (lambda a: None)
+                      for f in ffuncs]
     # pull the key apart
-    for group, tups in groupby(inp, lambda (k, _):
-                               tuple(e if ef is None else None for e, ef in zip(k, ffuncs))):
-        accums = [default() if default else None for default in deffuncs]
+    for group, tups in groupby(inp,
+                               lambda (k, _):
+                               tuple(ef(e) for e, ef in zip(k, group_template))):
+        accums = [default() for default in deffuncs]
         for record, _ in tups:
-            # print "REC: %s" % repr(record)
+            # print "Group: %s, REC: %s" % (group, repr(record))
             try:
-                accums = [f(a, v) if None not in (f, a, v) else None
-                          for f, a, v in zip(ffuncs, accums, record)]
+                accums = [f(a, v) for f, a, v in zip(ffuncs, accums, record)]
             except Exception as e:
                 print e
                 print "YOLO: f=%s a=%s r=%s g=%s" % (ffuncs, accums, record, group)
@@ -506,11 +539,10 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs, deffuncs,
                 print traceback.format_exc(15)
                 raise e
 
-        accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
+        accum = [h(a) for h, a in zip(ghfuncs, accums)]
         if label_fn:
             label = label_fn(group)
-        key = tuple(g if g is not None else a for g, a in zip(group, accum))
-        # print "GROUP: %s \nKEY: %s" % (repr(group), repr(key))
+        key = tuple(accum)
         interface.output(label).add(key, empty)
 
 
@@ -519,15 +551,14 @@ def process_skip_group(interface, state, label, inp, task, ffuncs,
     """Process function of aggregation combine stage without groupby.
     """
     empty = ()
-    accums = [default() if default else None for default in deffuncs]
+    accums = [default() for default in deffuncs]
     for record, _ in inp:
         try:
-            accums = [f(a, v) if None not in (f, a, v) else None
-                      for f, a, v in zip(ffuncs, accums, record)]
+            accums = [f(a, v) for f, a, v in zip(ffuncs, accums, record)]
         except Exception as e:
             raise e
 
-    accum = [h(a) if None not in (h, a) else None for h, a in zip(ghfuncs, accums)]
+    accum = [h(a) for h, a in zip(ghfuncs, accums)]
     interface.output(0).add(tuple(accum), empty)
 
 
