@@ -420,8 +420,7 @@ def _aggregate(inp, label_fn, ffuncs, ghfuncs, deffuncs):
         vals[group] = accums
 
     for group, accums in vals.iteritems():
-        accum = [h(a) for h, a in zip(ghfuncs, accums)]
-        key = tuple(accum)
+        key = tuple(h(a) for h, a in zip(ghfuncs, accums))
         out_label = label_fn(group)
         yield out_label, key
 
@@ -539,10 +538,9 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs,
                 print traceback.format_exc(15)
                 raise e
 
-        accum = [h(a) for h, a in zip(ghfuncs, accums)]
+        key = tuple(h(a) for h, a in zip(ghfuncs, accums))
         if label_fn:
             label = label_fn(group)
-        key = tuple(accum)
         interface.output(label).add(key, empty)
 
 
@@ -558,8 +556,8 @@ def process_skip_group(interface, state, label, inp, task, ffuncs,
         except Exception as e:
             raise e
 
-    accum = [h(a) for h, a in zip(ghfuncs, accums)]
-    interface.output(0).add(tuple(accum), empty)
+    key = tuple(h(a) for h, a in zip(ghfuncs, accums))
+    interface.output(0).add(key, empty)
 
 
 def _get_sort_range(select_offset, select_columns, order_by_columns):
