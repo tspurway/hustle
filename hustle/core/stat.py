@@ -27,12 +27,13 @@ def stat_input_stream(fd, size, url, params):
         rows = otab.number_rows
         frows = float(rows)
         rval = {'_': rows, }
-        for field, (subdb, subindexdb, _, column) in otab.dbs.iteritems():
+        for field, (subdb, subindexdb, _, column, _) in otab.dbs.iteritems():
             if subindexdb:
                 rval[field] = subindexdb.stat(otab.txn)['ms_entries'] / frows
         yield '', rval
     except Exception as e:
         print "Gibbers: %s" % e
+        raise e
     finally:
         if otab:
             otab.close()

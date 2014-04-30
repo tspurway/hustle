@@ -175,7 +175,7 @@ if __name__ == '__main__':
     # modules we want in our imported namespace
     from hustle import Table, h_min, h_avg, h_max, h_sum, h_count, \
         select, cat, insert, star, tables, get_tables, \
-        delete, drop, schema, partitions
+        delete, drop, schema, partitions, stat
     from hustle.core.settings import Settings, overrides
 
     # make all tables visible as well
@@ -200,6 +200,7 @@ if __name__ == '__main__':
         "partitions": partitions,
         "star": star,
         "insert": insert,
+        "stat": stat,
         "_settings": settings,
     }
 
@@ -218,6 +219,7 @@ Type `help(<command>)` for more help:
   tables()    - print currently available Hustle Tables
   schema()    - print the schema for a given table
   partitions()- print all active partitions for a given table
+  stat()      - return a dict of column key cardinalities (0...100) for indexed columns in a table
 """
 
     imported_objects['commands'] = commands

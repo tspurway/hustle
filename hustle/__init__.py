@@ -227,7 +227,7 @@ class Table(Marble):
 
 def insert(table, phile=None, streams=None, preprocess=None,
            maxsize=100 * 1024 * 1024, tmpdir='/tmp', decoder=None,
-           lru_size=10000, **kwargs):
+           lru_size=10000, header=False, **kwargs):
     """
     Insert data into a Hustle :class:`Table <hustle.Table>`.
 
@@ -297,7 +297,8 @@ def insert(table, phile=None, streams=None, preprocess=None,
         streams = [open(phile)]
     lines, partition_files = table._insert(streams, preprocess=preprocess,
                                            maxsize=maxsize, tmpdir=tmpdir,
-                                           decoder=decoder, lru_size=lru_size)
+                                           decoder=decoder, lru_size=lru_size,
+                                           header=header)
     if partition_files is not None:
         for part, pfile in partition_files.iteritems():
             tag = part_tag(table._name, part)

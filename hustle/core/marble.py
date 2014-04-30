@@ -15,6 +15,7 @@ import rtrie
 import tempfile
 import time
 import ujson
+import sys
 
 
 class Marble(object):
@@ -388,7 +389,7 @@ class Marble(object):
         return env, txn, dbs, meta
 
     def _insert(self, streams, preprocess=None, maxsize=1024 * 1024 * 1024,
-                tmpdir='/tmp', decoder=None, lru_size=10000):
+                tmpdir='/tmp', decoder=None, lru_size=10000, header=False, verbose=True):
         """insert a file into the hustle table."""
         from wtrie import Trie
 
@@ -404,74 +405,86 @@ class Marble(object):
         vid16_tries = {}
         page_size = 4096
         pdata = None
+        err = 0
 
         try:
             for stream in streams:
+                if header:
+                    # skip the first line
+                    stream.next()
+
                 for line in stream:
                     # print "Line: %s" % line
                     try:
                         data = decoder(line)
-                    except Exception as e:
-                        print "Exception decoding record (skipping): %s %s" % (e, line)
-                    else:
                         if preprocess:
                             preprocess(data)
+                    except Exception as e:
+                        if verbose:
+                            print "Exception decoding/preprocessing record (skipping): %s %s" % (e, line)
+                        else:
+                            print ". ",
+                            err += 1
+                            if err % 100 == 0:
+                                print err,
+                                sys.stdout.flush()
+                        continue
 
-                        newpdata = str(data.get(self._partition, ''))
-                        if pdata != newpdata:
-                            pdata = newpdata
-                            if pdata in partitions:
-                                bigfile, env, txn, dbs, meta, pmaxsize = partitions[pdata]
-                            else:
-                                bigfile = tempfile.mktemp(prefix="hustle", dir=tmpdir) + '.big'
-                                env, txn, dbs, meta = self._open(bigfile, maxsize=maxsize,
-                                                                 write=True, lru_size=lru_size)
-                                page_size = env.stat()['ms_psize']
-                                partitions[pdata] = bigfile, env, txn, dbs, meta, maxsize
-                                counters[pdata] = 0
-                                autoincs[pdata] = 1
-                                vid_tries[pdata] = Trie()
-                                vid16_tries[pdata] = Trie()
-                                pmaxsize = maxsize
-
-                        if counters[pdata] >= COMMIT_THRESHOLD:
-                            txn.commit()
-                            total_pages = pmaxsize / page_size
-                            last_page = env.info()['me_last_pgno']
-                            pages_left = total_pages - last_page
-                            highwatermark = int(0.75 * total_pages)
-                            if pages_left < highwatermark:
-                                pmaxsize = int(pmaxsize * 1.5)
-                                try:
-                                    print "======= attempting to resize mmap ======"
-                                    env.set_mapsize(pmaxsize)
-                                    env, txn, dbs, meta = self._open_dbs(env,
-                                                                         write=True,
-                                                                         lru_size=lru_size)
-                                except Exception as e:
-                                    import traceback
-                                    print "Error resizing MDB: %s" % e
-                                    print traceback.format_exc(15)
-                                    return 0, None
-                            else:
-                                txn = env.begin_txn()
-                            #TODO: a bit a hack - need to reset txns and dbs for all of our indexes
-                            #  (iff they are LRUDicts)
-                            for index, (_, subindexdb, bitmap_dict, _, _) in dbs.iteritems():
-                                if bitmap_dict is not _dummy and type(bitmap_dict) is not defaultdict:
-                                    lru_evict = bitmap_dict._Evict
-                                    lru_fetch = bitmap_dict._Fetch
-                                    lru_evict.txn = lru_fetch.txn = txn
-                                    lru_evict.db = lru_fetch.db = subindexdb
-                            partitions[pdata] = bigfile, env, txn, dbs, meta, pmaxsize
+                    newpdata = str(data.get(self._partition, ''))
+                    if pdata != newpdata:
+                        pdata = newpdata
+                        if pdata in partitions:
+                            bigfile, env, txn, dbs, meta, pmaxsize = partitions[pdata]
+                        else:
+                            bigfile = tempfile.mktemp(prefix="hustle", dir=tmpdir) + '.big'
+                            env, txn, dbs, meta = self._open(bigfile, maxsize=maxsize,
+                                                             write=True, lru_size=lru_size)
+                            page_size = env.stat()['ms_psize']
+                            partitions[pdata] = bigfile, env, txn, dbs, meta, maxsize
                             counters[pdata] = 0
+                            autoincs[pdata] = 1
+                            vid_tries[pdata] = Trie()
+                            vid16_tries[pdata] = Trie()
+                            pmaxsize = maxsize
 
-                        updated_dbs = _insert_row(data, txn, dbs, autoincs[pdata],
-                                                  vid_tries[pdata], vid16_tries[pdata])
-                        autoincs[pdata] += 1
-                        counters[pdata] += 1
-                        if updated_dbs:
-                            partitions[pdata] = bigfile, env, txn, updated_dbs, meta, pmaxsize
+                    if counters[pdata] >= COMMIT_THRESHOLD:
+                        txn.commit()
+                        total_pages = pmaxsize / page_size
+                        last_page = env.info()['me_last_pgno']
+                        pages_left = total_pages - last_page
+                        highwatermark = int(0.75 * total_pages)
+                        if pages_left < highwatermark:
+                            pmaxsize = int(pmaxsize * 1.5)
+                            try:
+                                print "======= attempting to resize mmap ======"
+                                env.set_mapsize(pmaxsize)
+                                env, txn, dbs, meta = self._open_dbs(env,
+                                                                     write=True,
+                                                                     lru_size=lru_size)
+                            except Exception as e:
+                                import traceback
+                                print "Error resizing MDB: %s" % e
+                                print traceback.format_exc(15)
+                                return 0, None
+                        else:
+                            txn = env.begin_txn()
+                        #TODO: a bit a hack - need to reset txns and dbs for all of our indexes
+                        #  (iff they are LRUDicts)
+                        for index, (_, subindexdb, bitmap_dict, _, _) in dbs.iteritems():
+                            if bitmap_dict is not _dummy and type(bitmap_dict) is not defaultdict:
+                                lru_evict = bitmap_dict._Evict
+                                lru_fetch = bitmap_dict._Fetch
+                                lru_evict.txn = lru_fetch.txn = txn
+                                lru_evict.db = lru_fetch.db = subindexdb
+                        partitions[pdata] = bigfile, env, txn, dbs, meta, pmaxsize
+                        counters[pdata] = 0
+
+                    updated_dbs = _insert_row(data, txn, dbs, autoincs[pdata],
+                                              vid_tries[pdata], vid16_tries[pdata])
+                    autoincs[pdata] += 1
+                    counters[pdata] += 1
+                    if updated_dbs:
+                        partitions[pdata] = bigfile, env, txn, updated_dbs, meta, pmaxsize
 
             files = {}
             total_records = 0
@@ -1475,6 +1488,21 @@ def json_decoder(line):
 
 def csv_decoder(line, fieldnames, delimiter=','):
     return dict(zip(fieldnames, line.rstrip().split(delimiter)))
+
+
+def fixed_width_decoder(line, indexes=((0, '_'),)):
+    rval = {}
+    s, field = indexes[0]
+    for e, nextfield in indexes[1:]:
+        if field != '_':
+            val = line[s:e].strip()
+            rval[field] = val
+        s = e
+        field = nextfield
+    if field != '_':
+        val = line[s:].strip()
+        rval[field] = val
+    return rval
 
 
 class Victor(object):

@@ -5,6 +5,8 @@ if __name__ == '__main__':
     from disco.func import disco_input_stream
     from disco.comm import open_url
     from hustle import Table, insert
+    from hustle.core.marble import csv_decoder
+    from functools import partial
 
     parser = ArgumentParser(prog='insert', description="Hustle bulk load")
 
@@ -53,6 +55,19 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
+        "--csv-fields",
+        dest="csv_fields",
+        help="Assume input files are CSV and have the comma separated list of fields provided",
+    )
+
+    parser.add_argument(
+        "--delimiter",
+        dest="delimiter",
+        help="For CSV input, this is the delimeter",
+        default=','
+    )
+
+    parser.add_argument(
         "table",
         metavar='TABLE',
         type=str,
@@ -64,7 +79,7 @@ if __name__ == '__main__':
         metavar='FILES',
         type=str,
         nargs="+",
-        help="The JSON formated files to insert",
+        help="The files to insert",
     )
 
     options = parser.parse_args()
@@ -76,6 +91,10 @@ if __name__ == '__main__':
         files = fd.readlines()
     else:
         files = options.files
+
+    decoder = None
+    if options.csv_fields:
+        decoder = partial(csv_decoder, fieldnames=options.csv_fields.split(options.delimiter))
 
     preproc = None
     if options.processor:
