@@ -268,6 +268,10 @@ class SelectPipe(Job):
                 need_agg = True
             else:
                 all_agg = False
+        if all_agg:
+            _agg_fn = _aggregate_fast
+        else:
+            _agg_fn = _aggregate
 
         # build the pipeline
         select_hash_cols = ()
@@ -288,7 +292,7 @@ class SelectPipe(Job):
                                              deffuncs=dflts,
                                              wide=wide,
                                              need_agg=need_agg,
-                                             agg_fn=_aggregate,
+                                             agg_fn=_agg_fn,
                                              label_fn=partial(_tuple_hash,
                                                               cols=sort_range,
                                                               p=partition))))]
@@ -371,7 +375,7 @@ class SelectPipe(Job):
                                                  deffuncs=dflts,
                                                  wide=wide or join or full_join,
                                                  need_agg=need_agg,
-                                                 agg_fn=_aggregate,
+                                                 agg_fn=_agg_fn,
                                                  label_fn=partial(_tuple_hash,
                                                                   cols=select_hash_cols,
                                                                   p=partition)),
@@ -398,6 +402,10 @@ def _tuple_hash(key, cols, p):
 
 
 def _aggregate(inp, label_fn, ffuncs, ghfuncs, deffuncs):
+    """
+    General channel for executing aggregate function, would be used if
+    columns in project are either aggregation or group by columns
+    """
     vals = {}
     group_template = [(lambda a: a) if f.__name__ == 'dflt_f' else (lambda a: None)
                       for f in ffuncs]
@@ -423,6 +431,26 @@ def _aggregate(inp, label_fn, ffuncs, ghfuncs, deffuncs):
         key = tuple(h(a) for h, a in zip(ghfuncs, accums))
         out_label = label_fn(group)
         yield out_label, key
+
+
+def _aggregate_fast(inp, label_fn, ffuncs, ghfuncs, deffuncs):
+    """
+    Fast channel for executing aggregate function, would be used if
+    all columns in project are aggregations
+    """
+    accums = [default() for default in deffuncs]
+    for record, _ in inp:
+        try:
+            accums = [f(a, v) for f, a, v in zip(ffuncs, accums, record)]
+        except Exception as e:
+            print e
+            print "YEEHEQW: f=%s a=%s r=%s" % (ffuncs, accums, record)
+            import traceback
+            print traceback.format_exc(15)
+            raise e
+
+    key = tuple(h(a) for h, a in zip(ghfuncs, accums))
+    yield 0, key
 
 
 def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
