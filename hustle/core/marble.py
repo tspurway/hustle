@@ -211,7 +211,7 @@ class Marble(object):
             partition = ujson.loads(meta.get(txn, 'partition', 'null'))
             if partition:
                 pdata = ujson.loads(meta.get(txn, '_pdata', 'null'))
-                if not pdata:
+                if pdata is None:
                     raise ValueError("Can't load partition information from meta table.")
                 db, _, _, _, _ = dbs[partition]
                 db.echome = pdata
@@ -974,6 +974,7 @@ class Aggregation(object):
             return self.result_spec.schema_string()
         else:
             return self.column.schema_string()
+
 
 class Expr(object):
     """
