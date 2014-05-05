@@ -1,7 +1,8 @@
 from disco.core import Job
 from disco.worker.task_io import task_input_stream
 from functools import partial
-from hustle.core.marble import Marble, Column, Aggregation
+from hustle.core.marble import Marble, Column, Aggregation,\
+    dflt_f, dflt_gh, dflt_default
 from hustle.core.pipeworker import HustleStage
 
 import sys
@@ -140,31 +141,9 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
 
             for row in izip(*row_iter):
                 yield row, empty
-
     finally:
         if otab:
             otab.close()
-
-
-def dflt_default():
-    """
-    Default 'default' function for aggregation, simply returns none
-    """
-    return None
-
-
-def dflt_gh(a):
-    """
-    Default 'g/h' function for aggregation, simply returns accum
-    """
-    return a
-
-
-def dflt_f(a, v):
-    """
-    Default 'f' function for aggregation, simply returns value and ignores accum
-    """
-    return v
 
 
 class SelectPipe(Job):

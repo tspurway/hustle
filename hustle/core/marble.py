@@ -878,6 +878,27 @@ class Column(object):
         return self.description()
 
 
+def dflt_default():
+    """
+    Default 'default' function for aggregation, simply returns none
+    """
+    return None
+
+
+def dflt_gh(a):
+    """
+    Default 'g/h' function for aggregation, simply returns accum
+    """
+    return a
+
+
+def dflt_f(a, v):
+    """
+    Default 'f' function for aggregation, simply returns value and ignores accum
+    """
+    return v
+
+
 class Aggregation(object):
     """
     An *Aggregation* is a Column Function that represents some aggregating computation over the values of that
@@ -942,8 +963,8 @@ class Aggregation(object):
             Some of Hustle's aggregation functions
 
     """
-    def __init__(self, name, column, f=None, g=lambda a: a, h=lambda a: a,
-                 default=lambda: None, result_spec=None):
+    def __init__(self, name, column, f=None, g=dflt_gh, h=dflt_gh,
+                 default=dflt_default, result_spec=None):
 
         self.column = column
         self.f = f
