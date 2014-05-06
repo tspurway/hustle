@@ -3,6 +3,8 @@ from libc.stdint cimport uint8_t, int8_t, uint16_t, int16_t, uint32_t, \
     int32_t, uint64_t, int64_t
 from cpython.int cimport PyInt_FromLong
 from cpython.long cimport PyLong_FromLongLong, PyLong_FromUnsignedLongLong
+from sys import maxint
+
 
 # env creation flags
 MDB_FIXEDMAP = 0x01
@@ -1404,6 +1406,72 @@ cdef class IntStrDB(DB):
         cmdb.mdb_cursor_close(cursor)
         return neighbours
 
+    def mgetex(self, Txn txn, keys):
+        """
+        Extended mget function that takes a list of monotonously increasing
+        keys. It efficiently moves the cursor to fetch the values. Additionally
+        it supports the ajacent-duplicate hopping table
+        """
+        cdef cmdb.MDB_cursor *cursor
+        cdef cmdb.MDB_val api_key
+        cdef cmdb.MDB_val api_value
+        cdef void *data
+        cdef int64_t skey
+        cdef uint64_t ukey
+        cdef object lower = maxint
+        cdef object upper = -maxint - 1
+        cdef object l_val = None
+        cdef object r_val = None
+        cdef object ret = None
+
+        err = cmdb.mdb_cursor_open(txn.txn, self.dbi, &cursor)
+        if err:
+            raise Exception("Error creating Cursor: %s"
+                    % cmdb.mdb_strerror(err))
+        try:
+            for key in keys:
+                if key < upper:
+                    ret = l_val
+                elif key == upper:
+                    ret = r_val
+                else:
+                    if self.signed:
+                        skey = key
+                        data = &skey
+                    else:
+                        ukey = key
+                        data = &ukey
+                    api_key.mv_size = self.keysize
+                    api_key.mv_data = data
+                    api_value.mv_size = 0
+                    api_value.mv_data = NULL
+
+                    if not cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_SET_RANGE):
+                        key_ = self.caster(api_key.mv_data)
+                        value_ = (<char*>api_value.mv_data)[:api_value.mv_size-1]
+                        upper = key_
+                        r_val = value_
+                        if key == key_:
+                            lower = key_
+                            l_val = value_
+                        else:
+                            cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_PREV)
+                            lower = self.caster(api_key.mv_data)
+                            l_val = (<char*>api_value.mv_data)[:api_value.mv_size-1]
+                    else:
+                        # special case if MDB_SET_RANGE fails, try to get the last one
+                        if not cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_LAST):
+                            upper = lower = self.caster(api_key.mv_data)
+                            l_val = r_val = (<char*>api_value.mv_data)[:api_value.mv_size-1]
+                        else:
+                            upper = maxint
+                            lower = -maxint - 1
+                            l_val = r_val = None
+                    ret = l_val
+                yield ret
+        finally:
+            cmdb.mdb_cursor_close(cursor)
+
     def get_gt(self, Txn txn, key):
         cdef cmdb.MDB_cursor *cursor
         cdef cmdb.MDB_val api_key
@@ -1818,6 +1886,72 @@ cdef class IntIntDB(DB):
                 neighbours = pair, pair
         cmdb.mdb_cursor_close(cursor)
         return neighbours
+
+    def mgetex(self, Txn txn, keys):
+        """
+        Extended mget function that takes a list of monotonously increasing
+        keys. It efficiently moves the cursor to fetch the values. Additionally
+        it supports the ajacent-duplicate hopping table
+        """
+        cdef cmdb.MDB_cursor *cursor
+        cdef cmdb.MDB_val api_key
+        cdef cmdb.MDB_val api_value
+        cdef void *data
+        cdef int64_t skey
+        cdef uint64_t ukey
+        cdef object lower = maxint
+        cdef object upper = - maxint - 1
+        cdef object l_val = None
+        cdef object r_val = None
+        cdef object ret = None
+
+        err = cmdb.mdb_cursor_open(txn.txn, self.dbi, &cursor)
+        if err:
+            raise Exception("Error creating Cursor: %s"
+                    % cmdb.mdb_strerror(err))
+        try:
+            for key in keys:
+                if key < upper:
+                    ret = l_val
+                elif key == upper:
+                    ret = r_val
+                else:
+                    if self.key_signed:
+                        skey = key
+                        data = &skey
+                    else:
+                        ukey = key
+                        data = &ukey
+                    api_key.mv_size = self.keysize
+                    api_key.mv_data = data
+                    api_value.mv_size = 0
+                    api_value.mv_data = NULL
+
+                    if not cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_SET_RANGE):
+                        key_ = self.key_caster(api_key.mv_data)
+                        value_ = self.value_caster(api_value.mv_data)
+                        upper = key_
+                        r_val = value_
+                        if key == key_:
+                            lower = key_
+                            l_val = value_
+                        else:
+                            cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_PREV)
+                            lower = self.key_caster(api_key.mv_data)
+                            l_val = self.value_caster(api_value.mv_data)
+                    else:
+                        # special case if MDB_SET_RANGE fails, try to get the last one
+                        if not cmdb.mdb_cursor_get(cursor, &api_key, &api_value, MDB_LAST):
+                            upper = lower = self.key_caster(api_key.mv_data)
+                            l_val = r_val = self.value_caster(api_value.mv_data)
+                        else:
+                            upper = maxint
+                            lower = -maxint - 1
+                            l_val = r_val = None
+                    ret = l_val
+                yield ret
+        finally:
+            cmdb.mdb_cursor_close(cursor)
 
     def get_gt(self, Txn txn, key):
         cdef cmdb.MDB_cursor *cursor

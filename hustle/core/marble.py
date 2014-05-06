@@ -238,6 +238,12 @@ class Marble(object):
                 for i in range(len(keys)):
                     yield self.echome
 
+            def mgetex(self, txn, keys, default=None):
+                '''keys should be a bitmap
+                '''
+                for i in range(len(keys)):
+                    yield self.echome
+
             def get_neighbours(self, txn, key):
                 return (key, self.echome), (self.total + 1, self.echome)
 
@@ -261,6 +267,9 @@ class Marble(object):
                 return 1
 
             def mget(self, _, rids, default=None):
+                return repeat(1, len(rids))
+
+            def mgetex(self, _, rids, default=None):
                 return repeat(1, len(rids))
 
             def get_neighbours(self, _, rid, default=None):
@@ -295,6 +304,13 @@ class Marble(object):
                     return (rid, 0), (rid, 0)
 
             def mget(self, _, rids, default=None):
+                for rid in rids:
+                    if rid in self.true_bm:
+                        yield 1
+                    else:
+                        yield 0
+
+            def mgetex(self, _, rids, default=None):
                 for rid in rids:
                     if rid in self.true_bm:
                         yield 1
@@ -564,15 +580,7 @@ class MarbleStream(object):
 
     def mget(self, column_name, keys):
         db, _, _, column, _ = self.dbs[column_name]
-        (lower, l_val), (upper, r_val) = (-1, None), (-1, None)
-        for key in keys:
-            if key < upper:
-                data = l_val
-            elif key == upper:
-                data = r_val
-            else:
-                (lower, l_val), (upper, r_val) = db.get_neighbours(self.txn, key)
-                data = l_val
+        for data in db.mgetex(self.txn, keys):
             yield column.fetcher(data, self.vid16_nodes, self.vid16_kids,
                                  self.vid_nodes, self.vid_kids)
 
