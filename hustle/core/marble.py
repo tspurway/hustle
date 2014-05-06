@@ -232,12 +232,6 @@ class Marble(object):
             def put(self, txn, row_id, val):
                 return
 
-            def mget(self, txn, keys, default=None):
-                '''keys should be a bitmap
-                '''
-                for i in range(len(keys)):
-                    yield self.echome
-
             def mgetex(self, txn, keys, default=None):
                 '''keys should be a bitmap
                 '''
@@ -265,9 +259,6 @@ class Marble(object):
 
             def get(self, _, rid, default=None):
                 return 1
-
-            def mget(self, _, rids, default=None):
-                return repeat(1, len(rids))
 
             def mgetex(self, _, rids, default=None):
                 return repeat(1, len(rids))
@@ -302,13 +293,6 @@ class Marble(object):
                     return (rid, 1), (rid, 1)
                 else:
                     return (rid, 0), (rid, 0)
-
-            def mget(self, _, rids, default=None):
-                for rid in rids:
-                    if rid in self.true_bm:
-                        yield 1
-                    else:
-                        yield 0
 
             def mgetex(self, _, rids, default=None):
                 for rid in rids:
