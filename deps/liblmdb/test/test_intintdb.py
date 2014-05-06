@@ -105,6 +105,8 @@ class TestDB(TestCase):
                          ((8, 5), (8, 5)))
         self.assertEqual(db.get_neighbours(txn, 9),
                          ((8, 5), (8, 5)))
+        self.assertListEqual(list(db.mgetex(txn, range(10))),
+                             [1, 1, 1, 1, 1, 2, 2, 3, 5, 5])
 
     def test_contains(self):
         # all keys must be sorted
