@@ -53,6 +53,8 @@ Documentation
 
 [Hustle Mailing List](http://groups.google.com/group/hustle-users)
 
+[Hustle HipChat Hangout (Live Help!)](https://www.hipchat.com/gBd7RjnPv)
+
 Credits
 -------
 
