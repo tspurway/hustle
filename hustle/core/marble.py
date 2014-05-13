@@ -389,7 +389,8 @@ class Marble(object):
         return env, txn, dbs, meta
 
     def _insert(self, streams, preprocess=None, maxsize=1024 * 1024 * 1024,
-                tmpdir='/tmp', decoder=None, lru_size=10000, header=False, verbose=True):
+                tmpdir='/tmp', decoder=None, lru_size=10000, header=False,
+                verbose=True, partition_filter=None):
         """insert a file into the hustle table."""
         from wtrie import Trie
 
@@ -431,6 +432,9 @@ class Marble(object):
                         continue
 
                     newpdata = str(data.get(self._partition, ''))
+                    if partition_filter and partition_filter != newpdata:
+                        continue
+
                     if pdata != newpdata:
                         pdata = newpdata
                         if pdata in partitions:

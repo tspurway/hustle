@@ -227,7 +227,7 @@ class Table(Marble):
 
 def insert(table, phile=None, streams=None, preprocess=None,
            maxsize=100 * 1024 * 1024, tmpdir='/tmp', decoder=None,
-           lru_size=10000, header=False, **kwargs):
+           lru_size=10000, header=False, partition_filter=None, **kwargs):
     """
     Insert data into a Hustle :class:`Table <hustle.Table>`.
 
@@ -280,6 +280,19 @@ def insert(table, phile=None, streams=None, preprocess=None,
 
         You probably won't have to worry about this unless you find your insert is running out of memory or is too
         slow when inserting gigantic files or on nodes with limited memory resources.
+
+    :type header: boolean
+    :param header: whether or not the streams contain a header (as with CSV)
+
+        If you are using CSV and it contains a header with the column names, set this so it gets skipped. Only works if
+        the header is on the first line otherwise you will skip the first line of data.
+
+    :type partition_filter: list of strings
+    :param partition_filter: list of partitions you want to filter your *streams*
+
+        This list will filter the insert to only acknowledge the partition(s) defined if set. Useful for reloads where single
+        files may hold data for multiple partitions.
+
     """
     from hustle.core.settings import Settings
     settings = Settings(**kwargs)
@@ -298,7 +311,7 @@ def insert(table, phile=None, streams=None, preprocess=None,
     lines, partition_files = table._insert(streams, preprocess=preprocess,
                                            maxsize=maxsize, tmpdir=tmpdir,
                                            decoder=decoder, lru_size=lru_size,
-                                           header=header)
+                                           header=header, partition_filter=partition_filter)
     if partition_files is not None:
         for part, pfile in partition_files.iteritems():
             tag = part_tag(table._name, part)
