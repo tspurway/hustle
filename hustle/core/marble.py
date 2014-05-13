@@ -393,6 +393,7 @@ class Marble(object):
                 verbose=True, partition_filter=None):
         """insert a file into the hustle table."""
         from wtrie import Trie
+        from collections import Iterable
 
         COMMIT_THRESHOLD = 50000
 
@@ -405,8 +406,15 @@ class Marble(object):
         vid_tries = {}
         vid16_tries = {}
         page_size = 4096
-        pdata = None
+        pdata, pfilter = None, None
         err = 0
+        if partition_filter is not None:
+            if isinstance(partition_filter, Iterable) \
+                    and not isinstance(partition_filter, (basestring, unicode)):
+                pfilter = set(partition_filter)
+            else:
+                pfilter = set()
+                pfilter.add(partition_filter)
 
         try:
             for stream in streams:
@@ -432,7 +440,7 @@ class Marble(object):
                         continue
 
                     newpdata = str(data.get(self._partition, ''))
-                    if partition_filter and partition_filter != newpdata:
+                    if partition_filter is not None and newpdata not in pfilter:
                         continue
 
                     if pdata != newpdata:

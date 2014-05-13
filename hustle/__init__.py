@@ -287,8 +287,8 @@ def insert(table, phile=None, streams=None, preprocess=None,
         If you are using CSV and it contains a header with the column names, set this so it gets skipped. Only works if
         the header is on the first line otherwise you will skip the first line of data.
 
-    :type partition_filter: list of strings
-    :param partition_filter: list of partitions you want to filter your *streams*
+    :type partition_filter: a single value or a list of values
+    :param partition_filter: a single value or a list of partition values you want to filter your *streams*
 
         This list will filter the insert to only acknowledge the partition(s) defined if set. Useful for reloads where single
         files may hold data for multiple partitions.

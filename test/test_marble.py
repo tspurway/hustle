@@ -310,3 +310,34 @@ class TestMarble(unittest.TestCase):
             self.assertTrue(i in bs)
 
         stream.close()
+
+
+class TestInsertPartitionFilter(unittest.TestCase):
+    def test_partition_numbers(self):
+        self.albums = [dict(zip(_FIELDS_RAW, album)) for album in _ALBUMS]
+        self.marble = Marble(name="Collections",
+                             fields=_FIELDS,
+                             partition=_PARTITIONS)
+        self.n_inserted, self.files = self.marble._insert([(ujson.dumps(l) for l in self.albums)],
+                                                          partition_filter='1992-10-03')
+        self.assertEquals(len(self.files), 1)
+        inserted = len([1 for album in self.albums if album['date'] == '1992-10-03'])
+        self.assertEquals(inserted, self.n_inserted)
+
+        for date, file in self.files.iteritems():
+            os.unlink(file)
+
+    def test_partition_numbers_set(self):
+        self.albums = [dict(zip(_FIELDS_RAW, album)) for album in _ALBUMS]
+        self.marble = Marble(name="Collections",
+                             fields=_FIELDS,
+                             partition=_PARTITIONS)
+        self.n_inserted, self.files = self.marble._insert([(ujson.dumps(l) for l in self.albums)],
+                                                          partition_filter=['1992-10-03', '1986-01-03'])
+        self.assertEquals(len(self.files), 2)
+        inserted = len([1 for album in self.albums if album['date'] == '1992-10-03' or
+                        album['date'] == '1986-01-03'])
+        self.assertEquals(inserted, self.n_inserted)
+
+        for date, file in self.files.iteritems():
+            os.unlink(file)
