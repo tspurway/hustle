@@ -1,3 +1,9 @@
+0.2.3 (May 16 2014)
+	Fixed issue #39. Partition can't handle integer types
+	Fixed issue in the Future class to be compatible with cat()
+	Added feature #41. Support parittion filters
+	Optimized IO performance, speeded up tight loops
+
 0.2.2 (April 30 2014)
 	Fixed issue #34. Wrong data types for aggregation columns
 	Added decoder for CSV-like files
