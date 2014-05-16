@@ -1067,7 +1067,7 @@ class Future(object):
             if self._nest:
                 return self.table
             else:
-                return self._blobs
+                return _query_iterator(self._blobs)
         else:
             self._blobs = self._job.wait()
             self._status = 'ready'
