@@ -1,5 +1,4 @@
 from disco.core import Job
-from disco import util
 from disco.worker.task_io import task_input_stream
 from functools import partial
 from hustle.core.marble import Marble, Column, Aggregation,\
@@ -58,6 +57,7 @@ def hustle_output_stream(stream, partition, url, params, result_table):
         def close(self):
             import os
             import ujson
+            from disco import util
 
             self.meta.put(self.txn, '_total_rows', str(self.autoinc))
             vid_nodes, vid_kids, _ = self.vid_trie.serialize()
@@ -100,6 +100,7 @@ def hustle_output_stream(stream, partition, url, params, result_table):
 
 
 def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_names):
+    from disco import util
     from hustle.core.marble import Expr, MarbleStream
     from itertools import izip, repeat
     empty = ()
@@ -436,6 +437,7 @@ def _aggregate_fast(inp, label_fn, ffuncs, ghfuncs, deffuncs):
 
 def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
                      ghfuncs, deffuncs, agg_fn, wide=False, need_agg=False):
+    from disco import util
     empty = ()
 
     # inp contains a set of replicas, let's force local #HACK
