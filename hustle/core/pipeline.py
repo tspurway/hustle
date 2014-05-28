@@ -1,4 +1,5 @@
 from disco.core import Job
+from disco import util
 from disco.worker.task_io import task_input_stream
 from functools import partial
 from hustle.core.marble import Marble, Column, Aggregation,\
@@ -87,17 +88,18 @@ def hustle_output_stream(stream, partition, url, params, result_table):
                 self.env.copy(self.url)
                 # print "Dumped result to %s" % self.url
             except Exception as e:
-                print "Copy error: %s" % e
+                msg = "Copy error: %s" % e
+                print msg
                 self.txn.abort()
-                raise e
-            self.env.close()
-            os.unlink(self.filename)
+                raise util.DataError(msg, "")
+            finally:
+                self.env.close()
+                os.unlink(self.filename)
 
     return HustleOutputStream(stream, url, params)
 
 
 def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_names):
-    from disco import util
     from hustle.core.marble import Expr, MarbleStream
     from itertools import izip, repeat
     empty = ()
@@ -105,8 +107,8 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
     try:
         scheme, netloc, rest = util.urlsplit(url)
     except Exception as e:
-        print "Error handling hustle_input_stream for %s. %s" % (url, e)
-        raise e
+        msg = "Error handling hustle_input_stream for %s. %s" % (url, e)
+        raise util.DataError(msg, url)
 
     fle = util.localize(rest, disco_data=params._task.disco_data,
                         ddfs_data=params._task.ddfs_data)
@@ -434,7 +436,6 @@ def _aggregate_fast(inp, label_fn, ffuncs, ghfuncs, deffuncs):
 
 def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
                      ghfuncs, deffuncs, agg_fn, wide=False, need_agg=False):
-    from disco import util
     empty = ()
 
     # inp contains a set of replicas, let's force local #HACK
@@ -447,8 +448,8 @@ def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
             break
 
     if not input_processed:
-        raise Exception("Input %s not processed, no LOCAL resource found."
-                        % str(inp.input))
+        raise util.DataError("Input %s not processed, no LOCAL resource found."
+                             % str(inp.input), '')
 
     # opportunistically aggregate in this stage
     if need_agg and not wide:
