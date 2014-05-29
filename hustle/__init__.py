@@ -13,7 +13,7 @@ Queries are run using a :ref:`Python DSL <queryguide>` which is translated dynam
 
 Hustle is ideal for low latency OLAP queries over massive data sets.
 """
-__version__ = '0.2.3'
+__version__ = '0.2.4'
 
 
 from disco.core import Job, Disco
@@ -549,6 +549,17 @@ def select(*project, **kwargs):
 
 
 def stat(where, limit=16, **kwargs):
+    """
+    Fetch statistical information of a collection of selected `Table <hustle.Table>`.
+
+    :type where: sequence of :class:`Table <hustle.Table>` | :class:`Expr <hustle.core.marble.Expr>`
+    :param where: the Tables to fetch data from, as well as the conditions in the *where clause*
+
+    :type limit: int
+    :param limit: the maximum number of blobs from the where clause, default value is 16
+
+    Return a dict of column key cardinalities [0-100] for indexed columns in a table
+    """
     from hustle.core.settings import Settings
     from hustle.core.stat import StatPipe
     from disco.core import result_iterator

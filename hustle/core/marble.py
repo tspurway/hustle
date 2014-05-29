@@ -302,9 +302,8 @@ class Marble(object):
                         yield 0
 
         class BooleanIX(object):
-            def __init__(self, subindexdb, txn, number_rows):
+            def __init__(self, subindexdb, number_rows):
                 self.subindexdb = subindexdb
-                self.txn = txn
                 self.number_rows = number_rows
 
             def close(self):
@@ -312,13 +311,13 @@ class Marble(object):
 
             def put(self, txn, key, val):
                 if key == 1:
-                    self.subindexdb.put(self.txn, key, val)
+                    self.subindexdb.put(txn, key, val)
 
             def stat(self, txn):
                 return {'ms_entries': 2}
 
             def get(self, txn, key, default=None):
-                bm = self.subindexdb.get(self.txn, 1)
+                bm = self.subindexdb.get(txn, 1)
                 if key == 1:
                     return bm
 
@@ -357,7 +356,7 @@ class Marble(object):
                                          key_inttype=column.get_effective_inttype())
 
                 if column.is_boolean:
-                    subindexdb = BooleanIX(subindexdb, txn, number_rows)
+                    subindexdb = BooleanIX(subindexdb, number_rows)
 
                 if write:
                     if column.index_indicator == 2:

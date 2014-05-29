@@ -57,6 +57,7 @@ def hustle_output_stream(stream, partition, url, params, result_table):
         def close(self):
             import os
             import ujson
+            from disco import util
 
             self.meta.put(self.txn, '_total_rows', str(self.autoinc))
             vid_nodes, vid_kids, _ = self.vid_trie.serialize()
@@ -87,11 +88,13 @@ def hustle_output_stream(stream, partition, url, params, result_table):
                 self.env.copy(self.url)
                 # print "Dumped result to %s" % self.url
             except Exception as e:
-                print "Copy error: %s" % e
+                msg = "Copy error: %s" % e
+                print msg
                 self.txn.abort()
-                raise e
-            self.env.close()
-            os.unlink(self.filename)
+                raise util.DataError(msg, "")
+            finally:
+                self.env.close()
+                os.unlink(self.filename)
 
     return HustleOutputStream(stream, url, params)
 
@@ -105,8 +108,8 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
     try:
         scheme, netloc, rest = util.urlsplit(url)
     except Exception as e:
-        print "Error handling hustle_input_stream for %s. %s" % (url, e)
-        raise e
+        msg = "Error handling hustle_input_stream for %s. %s" % (url, e)
+        raise util.DataError(msg, url)
 
     fle = util.localize(rest, disco_data=params._task.disco_data,
                         ddfs_data=params._task.ddfs_data)
@@ -447,8 +450,8 @@ def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
             break
 
     if not input_processed:
-        raise Exception("Input %s not processed, no LOCAL resource found."
-                        % str(inp.input))
+        raise util.DataError("Input %s not processed, no LOCAL resource found."
+                             % str(inp.input), '')
 
     # opportunistically aggregate in this stage
     if need_agg and not wide:

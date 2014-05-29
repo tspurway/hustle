@@ -1,3 +1,7 @@
+0.2.4 (May 29 2014)
+	Fixed issue #44. BooleanIx kept an invalide txn, crashed the insert
+	Upgrade the exception handling to let Disco retry the failed task
+
 0.2.3 (May 16 2014)
 	Fixed issue #39. Partition can't handle integer types
 	Fixed issue in the Future class to be compatible with cat()

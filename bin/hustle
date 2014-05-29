@@ -211,6 +211,7 @@ Type `help(<command>)` for more help:
   cat()       - pretty print a table or query
   ---
   Table.create() - create a new Table
+  Table.from_tag() - load a Table from tag name
   insert()    - insert data into a Table
   ---
   delete()    - delete data based on partition/table
