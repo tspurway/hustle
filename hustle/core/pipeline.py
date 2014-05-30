@@ -157,7 +157,7 @@ class SelectPipe(Job):
         ('hustle.core.pipeline', __file__),
         ('hustle.core.marble', hustle.core.marble.__file__)]
 
-    def get_result_schema(self, project):
+    def get_result_schema(self, project, tag=None):
         import random
         from hustle import Table
 
@@ -168,11 +168,13 @@ class SelectPipe(Job):
             col_spec = col_or_agg.schema_string()
             if col_spec not in fields:
                 fields.append(col_spec)
-        name = '-'.join([w._name for w in self.wheres])[:64]
-        # append a 3-charactor random suffix to avoid name collision
-        self.output_table = Table(name="sub-%s-%s" %
-                                  (name, "".join(random.sample(_POOL, 3))),
-                                  fields=fields)
+        if tag is None:
+            name = '_'.join([w._name for w in self.wheres])[:64]
+            # append a 3-charactor random suffix to avoid name collision
+            name = "sub_%s_%s" % (name, "".join(random.sample(_POOL, 3)))
+        else:
+            name = tag
+        self.output_table = Table(name=name, fields=fields)
         return self.output_table
 
     def _get_table(self, obj):
@@ -226,7 +228,8 @@ class SelectPipe(Job):
                  partition=0,
                  nest=False,
                  wide=False,
-                 pre_order_stage=()):
+                 pre_order_stage=(),
+                 tag=None):
         from hustle.core.pipeworker import Worker
 
         super(SelectPipe, self).__init__(master=master, worker=Worker())
@@ -372,7 +375,7 @@ class SelectPipe(Job):
         # and modify the last stage accordingly
         if nest:
             pipeline[-1][1].output_chain = \
-                [partial(hustle_output_stream, result_table=self.get_result_schema(project))]
+                [partial(hustle_output_stream, result_table=self.get_result_schema(project, tag))]
         self.pipeline = pipeline
 
 
