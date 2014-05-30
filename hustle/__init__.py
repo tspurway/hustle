@@ -51,6 +51,7 @@ class Table(Marble):
         """
         super(Table, self).__init__(name, fields, partition)
         self._blobs = None
+        self._tagged = False
 
     @classmethod
     def from_tag(cls, name, **kwargs):
@@ -63,10 +64,12 @@ class Table(Marble):
         from hustle.core.settings import Settings
         settings = Settings(**kwargs)
         ddfs = settings['ddfs']
-
-        partition = ujson.loads(ddfs.getattr(cls.base_tag(name), '_partition_'))
-        fields = ujson.loads(ddfs.getattr(cls.base_tag(name), '_fields_'))
-        return cls(name=name, fields=fields, partition=partition)
+        try:
+            partition = ujson.loads(ddfs.getattr(cls.base_tag(name), '_partition_'))
+            fields = ujson.loads(ddfs.getattr(cls.base_tag(name), '_fields_'))
+            return cls(name=name, fields=fields, partition=partition)
+        except:
+            return None
 
     @classmethod
     def create(cls, name, columns=(), fields=(), partition=None, force=False, **kwargs):
@@ -223,6 +226,21 @@ class Table(Marble):
         t = cls(dump['name'], dump['fields'], dump['partition'])
         t._blobs = dump['blobs']
         return t
+
+    def tag(self, **kwargs):
+        from hustle.core.settings import Settings
+        if not self.tagged:
+            settings = Settings(**kwargs)
+            ddfs = settings['ddfs']
+            # check whether the table is already existed
+            t = self.create(self._name, fields=self._fields, force=False, **kwargs)
+            try:
+                ddfs.tag(self.base_tag(self._name), self._blobs or [])
+                self.tagged = True
+            except Exception:
+                print('Error tagging result %s', self._name)
+                raise
+            return t
 
 
 def insert(table, phile=None, streams=None, preprocess=None,
@@ -471,6 +489,10 @@ def select(*project, **kwargs):
             active_pix = select(*star(pix), where=pix.isActive > 0, nest=True)
             select(h_sum(active_pix.amount), where=active_pix)
 
+    :type tag: string (default = None)
+    :param tag: specify the tag name for a nested query, note it must be used with option "nest". If this option
+    is not specified, a random name will be given to the result of this nested query.
+
     :type kwargs: dict
     :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
 
@@ -490,6 +512,7 @@ def select(*project, **kwargs):
     limit = settings.pop('limit', None)
     wide = settings.pop('wide', False)
     nest = settings.pop('nest', False)
+    tag = settings.pop('tag', None)
     block = settings.pop('block', True)
     autodump = settings.pop('dump', False)
     pre_order_stage = settings.pop('pre_order_stage', ())
@@ -497,6 +520,12 @@ def select(*project, **kwargs):
     partition = settings.pop('partition', 0)
     if partition < 0:
         partition = 0
+    if tag:
+        t = Table.from_tag(tag)
+        if t is not None:
+            print "The tag name %s is already existed. Try another tag name"
+            " or drop the old one" % tag
+            return
 
     try:
         # if join is a string, extract the actual join columns.
@@ -524,6 +553,7 @@ def select(*project, **kwargs):
                      partition=partition,
                      wide=wide,
                      nest=nest,
+                     tag=tag,
                      pre_order_stage=pre_order_stage)
 
     job.run(name='select_from_%s' % name, input=job_blobs, **settings)
