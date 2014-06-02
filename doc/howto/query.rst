@@ -219,7 +219,7 @@ select() Return Values
 
 To facilitate a nice :ref:`cliguide` and to have usable results when *nesting* queries or just processing row oriented
 results of a 'normal' query, the :func:`select <hustle.select>` function will return a number of different results
-depending on it's parameters.
+depending on its parameters.
 
 * *nest=True* - will return a :class:`Table <hustle.Table>`
 * *dump=True* - this is the default in the CLI - will return None, but will dump the result to stdout
@@ -252,11 +252,11 @@ Also note that it is possible to iterate over all rows in a `Table <hustle.Table
 
 Non-blocking select()
 ---------------------
-If you want to run multiple queries at the same time, consider using non-blocking select - :func:`select_nb <hustle.select_nb>`. It's exactly the same as :func:`select <hustle.select>` except that it returns immediately after submitting query to the cluster. The user can use the return value - a :class:`Future <hustle.Future>` object to check the query's status and fetch its resutls.
+If you want to run multiple queries at the same time, consider passing `block=False` to `select. This causes `select` to return immediately after submitting query to the cluster. The user can use the return value - a :class:`Future <hustle.Future>` object to check the query's status and fetch its resutls.
 
 For example::
 
-    >>> future = select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.date > '2014-01-15', nest=True)
+    >>> future = select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.date > '2014-01-15', nest=True, block=False)
     >>> future.status()
     >>> 'active'
     ... run more queries here ...
@@ -273,5 +273,4 @@ For example::
 
 .. seealso::
 
-    :func:`hustle.select_nb`
     :class:`hustle.Future`
