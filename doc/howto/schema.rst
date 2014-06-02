@@ -5,43 +5,43 @@ Hustle Schema Design Guide
 
 Columns
 -------
-    The syntax for the *columns*  is a sequence of strings, where each string specifies a
-    column using the following syntax::
+The syntax for the *columns*  is a sequence of strings, where each string specifies a
+column using the following syntax::
 
-        [[wide] index][string | uint[8|16|32|64] | int[8|16|32|64] | trie[16|32] | lz4 | binary] column-name
+    [[wide] index][string | uint[8|16|32|64] | int[8|16|32|64] | trie[16|32] | lz4 | binary] column-name
 
-    ========        ==========      ========================================
-    Modifier        Sizes           Description
-    ========        ==========      ========================================
-    wide                            Use LRU cache when inserting this index
-    index                           Create index for this column
-    string                          String Type
-    bit                             1-bit integer / boolean type
-    uint            8 16 32 64      Unsigned Integer Type
-    int             8 16 32 64      Signed Integer Type
-    trie            16 32           Prefix Trie Compressed String type
-    lz4                             LZ4 Compressed String type
-    binary                          Unencoded, uncompressed string type
-    ========        ==========      ========================================
+========        ==========      ========================================
+Modifier        Sizes           Description
+========        ==========      ========================================
+wide                            Use LRU cache when inserting this index
+index                           Create index for this column
+string                          String Type
+bit                             1-bit integer / boolean type
+uint            8 16 32 64      Unsigned Integer Type
+int             8 16 32 64      Signed Integer Type
+trie            16 32           Prefix Trie Compressed String type
+lz4                             LZ4 Compressed String type
+binary                          Unencoded, uncompressed string type
+========        ==========      ========================================
 
 
-    If modifiers are omitted, the **DEFAULT** type is :code:`trie32` (un-indexed)
+If modifiers are omitted, the **DEFAULT** type is :code:`trie32` (un-indexed)
 
-    If sizes are omitted for :code:`uint int trie`, the **DEFAULT** is 32 bits
+If sizes are omitted for :code:`uint int trie`, the **DEFAULT** is 32 bits
 
-    Example::
+Example::
 
-        pixels = Table.create('pixels',
-              columns=['wide index string token', 'index uint8 isActive', 'index site_id', 'uint32 amount',
-                       'index int32 account_id', 'index city', 'index trie16 state', 'index int16 metro',
-                       'string ip', 'lz4 keyword', 'index string date'],
-              partition='date',
-              force=True)
+    pixels = Table.create('pixels',
+          columns=['wide index string token', 'index uint8 isActive', 'index site_id', 'uint32 amount',
+                   'index int32 account_id', 'index city', 'index trie16 state', 'index int16 metro',
+                   'string ip', 'lz4 keyword', 'index string date'],
+          partition='date',
+          force=True)
 
 Accessing Fields
 ----------------
 
-Consider the following code:
+Consider the following code::
 
     imps = Table.from_tag('impressions')
     select(imps.date, imps.site_id, where=imps)
@@ -53,7 +53,7 @@ Indexes
 -------
 By default, columns in Hustle are unindexed.  By indexing a column you make it available for use as a key in
 *where clause* and *join clauses* in the :func:`hustle.select` statement.  Unindexed columns can still
-be in the list of selected columns or in aggregation function.  The question whether to index a column or not is a
+be in the list of selected columns or in aggregation function.  The question of whether to index a column or not is a
 consideration of overall memory/disk space used by that column in your database.  An indexed column will take up
 to twice the amount of memory as an unindexed column.
 
@@ -113,9 +113,9 @@ Partitions
 Hustle employs a technique for splitting up data into distinct partitions based on a column in the target table.
 This allows us to significantly increase query performance by only considering the data that matches the partition
 specified in the query.  Typically a partition column has the following attributes:
-* the same column is in most Tables
-* the number of unique values for the column is low
-* the column is often in *where clauses*, often as ranges
+- the same column is in most Tables
+- the number of unique values for the column is low
+- the column is often in *where clauses*, often as ranges
 
 The DATE column usually fits the bill for the partition in most LOG type applications.
 
