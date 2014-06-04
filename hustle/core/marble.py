@@ -501,7 +501,7 @@ class Marble(object):
             total_records = 0
             for pdata, (bigfile, env, txn, dbs, meta, pmaxsize) in partitions.iteritems():
                 try:
-                    meta.put(txn, '_total_rows', str(autoincs[pdata]))
+                    meta.put(txn, '_total_rows', str(autoincs[pdata] - 1))
                     total_records += autoincs[pdata] - 1
                     vid_nodes, vid_kids, _ = vid_tries[pdata].serialize()
                     vid16_nodes, vid16_kids, _ = vid16_tries[pdata].serialize()
