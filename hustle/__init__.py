@@ -243,7 +243,7 @@ class Table(Marble):
             return t
 
 
-def insert(table, phile=None, streams=None, preprocess=None,
+def insert(table, File=None, streams=None, preprocess=None,
            maxsize=100 * 1024 * 1024, tmpdir='/tmp', decoder=None,
            lru_size=10000, header=False, partition_filter=None, **kwargs):
     """
@@ -261,11 +261,11 @@ def insert(table, phile=None, streams=None, preprocess=None,
     :type  table: :class:`Table <hustle.Table>`
     :param table: the table to perform the insert on
 
-    :type  phile: string
-    :param phile: the file path to open
+    :type  File: string
+    :param File: the file path to open
 
     :type  streams: sequence of iterable
-    :param streams: as an alternative to the *phile* argument, you can specify a list of generators as input
+    :param streams: as an alternative to the *File* argument, you can specify a list of generators as input
 
     :type  preprocess: function
     :param preprocess: a function that accepts and returns a dict()
@@ -324,8 +324,8 @@ def insert(table, phile=None, streams=None, preprocess=None,
         if partition:
             rval += ':' + str(partition)
         return rval
-    if phile:
-        streams = [open(phile)]
+    if File:
+        streams = [open(File)]
     lines, partition_files = table._insert(streams, preprocess=preprocess,
                                            maxsize=maxsize, tmpdir=tmpdir,
                                            decoder=decoder, lru_size=lru_size,
