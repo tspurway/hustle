@@ -17,7 +17,7 @@ before_install:
   - sudo pip install .
   - sudo apt-get install -y curl erlang python-dev
   - git clone https://github.com/discoproject/disco.git /tmp/disco
-  - cd /tmp/disco && git checkout 0.5 && sudo make install
+  - cd /tmp/disco && git checkout develop && sudo make install
   - cd lib && pip install .
   - popd
 
