@@ -29,7 +29,7 @@ def ensure_tables():
     tags = ddfs.list("hustle:%s:" % IMPS)
     if len(tags) == 0:
         # insert the files
-        insert(imps, phile='fixtures/imps.json', preprocess=imp_process)
+        insert(imps, File='fixtures/imps.json', preprocess=imp_process)
     return imps
 
 
