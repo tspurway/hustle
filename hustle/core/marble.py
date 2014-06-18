@@ -318,6 +318,8 @@ class Marble(object):
 
             def get(self, txn, key, default=None):
                 bm = self.subindexdb.get(txn, 1)
+                if bm is None:
+                    bm = ZERO_BS.dumps()
                 if key == 1:
                     return bm
 
