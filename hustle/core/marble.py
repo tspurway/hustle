@@ -310,7 +310,7 @@ class Marble(object):
                 self.subindexdb.close()
 
             def put(self, txn, key, val):
-                if key != 0:
+                if key == 1:
                     self.subindexdb.put(txn, key, val)
 
             def stat(self, txn):
@@ -320,7 +320,7 @@ class Marble(object):
                 bm = self.subindexdb.get(txn, 1)
                 if bm is None:
                     bm = BitSet().dumps()
-                if key != 0:
+                if key == 1:
                     return bm
 
                 bitmap = BitSet()
