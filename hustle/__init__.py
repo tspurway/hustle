@@ -245,7 +245,7 @@ class Table(Marble):
 
 def insert(table, File=None, streams=None, preprocess=None,
            maxsize=100 * 1024 * 1024, tmpdir='/tmp', decoder=None,
-           lru_size=10000, header=False, partition_filter=None, **kwargs):
+           lru_size=10000, header=False, partition_filter=None, purge_local=True, **kwargs):
     """
     Insert data into a Hustle :class:`Table <hustle.Table>`.
 
@@ -311,6 +311,13 @@ def insert(table, File=None, streams=None, preprocess=None,
         This list will filter the insert to only acknowledge the partition(s) defined if set. Useful for reloads where single
         files may hold data for multiple partitions.
 
+    :type purge_local: boolean
+    :param purge_local: whether or not to delete the local marble after creation
+
+        If you want to do additional processing with the marble after it has been pushed to DDFS, set this flag to False and it
+        will not be automatically cleaned up after successful insertion.
+        Setting this to False will also return the partition file information.
+
     """
     from hustle.core.settings import Settings
     settings = Settings(**kwargs)
@@ -337,8 +344,11 @@ def insert(table, File=None, streams=None, preprocess=None,
             ddfs.push(tag, [pfile])
             print 'pushed %s(%.2fG), %s to %s' % \
                 (part, st.st_size * 1.0 / 1073741824, tag, ddfs)
-            os.unlink(pfile)
-    return table._name, lines
+            if purge_local:
+                os.unlink(pfile)
+    if purge_local:
+        return table._name, lines
+    return table._name, lines, partition_files
 
 
 def select(*project, **kwargs):
