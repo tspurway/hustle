@@ -349,8 +349,6 @@ def insert(table, File=None, streams=None, preprocess=None,
                 (part, st.st_size * 1.0 / 1073741824, tag, ddfs)
             if purge_local:
                 os.unlink(pfile)
-    if purge_local:
-        return table._name, lines
     return table._name, lines, partition_files
 
 
