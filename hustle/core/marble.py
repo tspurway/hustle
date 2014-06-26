@@ -424,11 +424,12 @@ class Marble(object):
                     stream.next()
 
                 for line in stream:
-                    # print "Line: %s" % line
                     try:
                         data = decoder(line)
                         if preprocess:
-                            preprocess(data)
+                            passed = preprocess(data)
+                            if passed is not None and not passed:  # if preprocess returns None, let it pass
+                                continue
                     except Exception as e:
                         if verbose:
                             print "Exception decoding/preprocessing record (skipping): %s %s" % (e, line)
@@ -440,6 +441,7 @@ class Marble(object):
                                 sys.stdout.flush()
                         continue
 
+                    # test partition filter
                     newpdata = str(data.get(self._partition, ''))
                     if partition_filter is not None and newpdata not in pfilter:
                         continue
