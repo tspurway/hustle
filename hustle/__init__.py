@@ -268,11 +268,14 @@ def insert(table, File=None, streams=None, preprocess=None,
     :param streams: as an alternative to the *File* argument, you can specify a list of generators as input
 
     :type  preprocess: function
-    :param preprocess: a function that accepts and returns a dict()
+    :param preprocess: a function that acts as transformer or filter and returns a boolean or None
 
         The input is transformed into a :class:`dict` by the *decoder* param, then the *preprocess* function is
         called for every record.  This gives you the opportunity to transform, filter or otherwise clean your
-        data before it is inserted into the :class:`Marble <hustle.core.marble.Marble>`
+        data before it is inserted into the :class:`Marble <hustle.core.marble.Marble>`.
+
+        As transformer: it modifies the original data in place, the return value shoule be either None or True
+        As filter: it returns a boolean to flag whether the current data record should be inserted or not
 
     :type  maxsize: int
     :param maxsize: the initial size in bytes of the *LMDB* memory mapped file
