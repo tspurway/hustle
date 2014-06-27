@@ -504,6 +504,15 @@ def select(*project, **kwargs):
     :param tag: specify the tag name for a nested query, note it must be used with option "nest". If this option
     is not specified, a random name will be given to the result of this nested query.
 
+    :type max_cores: int (default = 0)
+    :param max_cores: specify the max number of cores (disco workers) this query could utilize. 0 means no limit
+
+    :type profile: boolean (default = False)
+    :param profile: specify whether generate disco job's profile
+
+    :type purge: boolean (default = True)
+    :param purge: specify whether purge the query related data. This only works when "dump = True" and "profile = False".
+
     :type kwargs: dict
     :param kwargs: custom settings for this query see :mod:`hustle.core.settings`
 
@@ -529,6 +538,9 @@ def select(*project, **kwargs):
     pre_order_stage = settings.pop('pre_order_stage', ())
     ddfs = settings['ddfs']
     partition = settings.pop('partition', 0)
+    max_cores = settings.pop('max_cores', 0)
+    profile = settings.pop('profile', False)
+    purge = settings.pop('purge', True)
     if partition < 0:
         partition = 0
     if tag:
@@ -565,7 +577,9 @@ def select(*project, **kwargs):
                      wide=wide,
                      nest=nest,
                      tag=tag,
-                     pre_order_stage=pre_order_stage)
+                     pre_order_stage=pre_order_stage,
+                     max_cores=max_cores,
+                     profile=profile)
 
     job.run(name='select_from_%s' % name, input=job_blobs, **settings)
     if block:
@@ -583,6 +597,8 @@ def select(*project, **kwargs):
                                     for c in project])
             _print_separator(80)
             cat(_query_iterator(blobs), 80)
+            if purge and not profile:
+                settings['server'].purge(_safe_str(job.name))
             return
         return _query_iterator(blobs)
     else:

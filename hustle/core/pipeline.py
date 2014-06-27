@@ -229,10 +229,17 @@ class SelectPipe(Job):
                  nest=False,
                  wide=False,
                  pre_order_stage=(),
-                 tag=None):
+                 tag=None,
+                 max_cores=0,
+                 profile=False):
         from hustle.core.pipeworker import Worker
 
         super(SelectPipe, self).__init__(master=master, worker=Worker())
+        if max_cores < 0:
+            max_cores = 0
+        if max_cores > 0:
+            self.scheduler = {"max_cores": max_cores}
+        self.profile = profile
         self.wheres = wheres
         self.order_by = self._resolve(order_by, project)
         partition = partition or _NPART
