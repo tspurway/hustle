@@ -1,11 +1,20 @@
+0.2.5 (June 27 2014)
+	Fixed issue #50. BooleanIx didn't handle missing values
+	Added feature #11. Tag the query result in DDFS
+	Added feature #49. Auto purge query related data if applicable
+	Added feature to set the max cores that could be used by a query
+	Added feature to enable profile for a query
+	Fixed preprocess function of insert function to support filter functionality
+	Added option for insert function to leave the marble for other uses
+
 0.2.4 (May 29 2014)
-	Fixed issue #44. BooleanIx kept an invalide txn, crashed the insert
+	Fixed issue #44. BooleanIx kept an invalid txn, crashed the insert
 	Upgrade the exception handling to let Disco retry the failed task
 
 0.2.3 (May 16 2014)
 	Fixed issue #39. Partition can't handle integer types
 	Fixed issue in the Future class to be compatible with cat()
-	Added feature #41. Support parittion filters
+	Added feature #41. Support partition filters
 	Optimized IO performance, speeded up tight loops
 
 0.2.2 (April 30 2014)
@@ -36,7 +45,7 @@
 	Added mget() for lmdb Python client
 	Improved the hustle_input_stream by using mget()
 	Upgraded EWAHBoolArray from upstream
-	Fixed a bug in libebset. len() is inaccuracte on inverted bitsets
+	Fixed a bug in libebset. len() is inaccurate on inverted bitsets
 
 0.1.2 (March 13 2014)
 	Added feature #16. Alias column or aggregate functions
