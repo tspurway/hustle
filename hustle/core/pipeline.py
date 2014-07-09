@@ -99,10 +99,13 @@ def hustle_output_stream(stream, partition, url, params, result_table):
     return HustleOutputStream(stream, url, params)
 
 
-def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_names):
+def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_names, limit):
     from disco import util
     from hustle.core.marble import Expr, MarbleStream
-    from itertools import izip, repeat
+    from itertools import izip, repeat, islice
+    from sys import maxint
+    from pyebset import BitSet
+
     empty = ()
 
     try:
@@ -113,14 +116,9 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
 
     fle = util.localize(rest, disco_data=params._task.disco_data,
                         ddfs_data=params._task.ddfs_data)
-    # print "FLOGLE: %s %s" % (url, fle)
 
     otab = None
     try:
-        # import sys
-        # sys.path.append('/Library/Python/2.7/site-packages/pycharm-debug.egg')
-        # import pydevd
-        # pydevd.settrace('localhost', port=12999, stdoutToServer=True, stderrToServer=True)
         otab = MarbleStream(fle)
         bitmaps = {}
 
@@ -129,11 +127,23 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
             if where._name == otab.marble._name:
                 if type(where) is Expr and not where.is_partition:
                     bm = where(otab)
-                    bitmaps[index] = (bm, len(bm))
+                    if limit != maxint:
+                        bs = BitSet()
+                        for i in islice(bm, 0, limit):
+                            bs.set(i)
+                        bitmaps[index] = (bs, len(bs))
+                    else:
+                        bitmaps[index] = (bm, len(bm))
                 else:
                     # it is either the table itself, or a partition expression.
                     # Either way, returns the entire table
-                    bitmaps[index] = (otab.iter_all(), otab.number_rows)
+                    if limit != maxint:
+                        bs = BitSet()
+                        for i in islice(otab.iter_all(), 0, limit):
+                            bs.set(i)
+                        bitmaps[index] = (bs, len(bs))
+                    else:
+                        bitmaps[index] = (otab.iter_all(), otab.number_rows)
 
         for index, (bitmap, blen) in bitmaps.iteritems():
             prefix_gen = [repeat(index, blen)] if gen_where_index else []
@@ -358,6 +368,16 @@ class SelectPipe(Job):
 
         key_names = self._get_key_names(project, join)
 
+        restrict_distinct = False
+        restrict_limit = 0
+        # check whether need to do a distinct/limit in the restrict select stage
+        if not (join or full_join) and not need_agg and not self.order_by and distinct:
+            restrict_distinct = True
+            restrict_limit = limit or 0
+        # check whether need to do a limit in the hustle_input stream
+        input_stream_limit = 0
+        if not (join or full_join) and not need_agg and not self.order_by and not distinct:
+            input_stream_limit = limit or 0
         pipeline = [(SPLIT,
                      HustleStage('restrict-select',
                                  # combine=True,  # cannot set combine -- see #hack in restrict-select phase
@@ -368,6 +388,8 @@ class SelectPipe(Job):
                                                  wide=wide or join or full_join,
                                                  need_agg=need_agg,
                                                  agg_fn=_agg_fn,
+                                                 distinct=restrict_distinct,
+                                                 limit=restrict_limit or sys.maxint,
                                                  label_fn=partial(_tuple_hash,
                                                                   cols=select_hash_cols,
                                                                   p=partition)),
@@ -375,7 +397,8 @@ class SelectPipe(Job):
                                               partial(hustle_input_stream,
                                                       wheres=wheres,
                                                       gen_where_index=join or full_join,
-                                                      key_names=key_names)]))
+                                                      key_names=key_names,
+                                                      limit=input_stream_limit or sys.maxint)]))
                     ] + join_stage + group_by_stage + list(pre_order_stage) + order_stage
 
         # determine the style of output (ie. if it is a Hustle Table),
@@ -446,8 +469,10 @@ def _aggregate_fast(inp, label_fn, ffuncs, ghfuncs, deffuncs):
 
 
 def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
-                     ghfuncs, deffuncs, agg_fn, wide=False, need_agg=False):
+                     ghfuncs, deffuncs, agg_fn, wide=False, need_agg=False,
+                     distinct=False, limit=sys.maxint):
     from disco import util
+    from itertools import groupby, islice
     empty = ()
 
     # inp contains a set of replicas, let's force local #HACK
@@ -463,15 +488,19 @@ def process_restrict(interface, state, label, inp, task, label_fn, ffuncs,
         raise util.DataError("Input %s not processed, no LOCAL resource found."
                              % str(inp.input), '')
 
-    # opportunistically aggregate in this stage
+    # opportunistically aggregate, distinct and limit in this stage
     if need_agg and not wide:
         for out_label, key in agg_fn(inp, label_fn, ffuncs, ghfuncs, deffuncs):
             interface.output(out_label).add(key, empty)
     else:
-        for key, value in inp:
-            out_label = label_fn(key)
-            # print "RESTRICT: %s %s" % (key, value)
-            interface.output(out_label).add(key, value)
+        if distinct:
+            for uniqkey, _ in islice(groupby(inp, lambda (k, v): tuple(k)), 0, limit):
+                label = label_fn(uniqkey)
+                interface.output(label).add(uniqkey, empty)
+        else:
+            for key, value in islice(inp, 0, limit):
+                out_label = label_fn(key)
+                interface.output(out_label).add(key, value)
 
 
 def process_join(interface, state, label, inp, task, full_join, label_fn,

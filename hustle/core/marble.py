@@ -233,9 +233,9 @@ class Marble(object):
                 return
 
             def mgetex(self, txn, keys, default=None):
-                '''keys should be a bitmap
+                '''keys should be a bitmap or iterable
                 '''
-                for i in range(len(keys)):
+                for _ in keys:
                     yield self.echome
 
             def get_neighbours(self, txn, key):
