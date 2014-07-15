@@ -102,7 +102,7 @@ def hustle_output_stream(stream, partition, url, params, result_table):
 def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_names, limit):
     from disco import util
     from hustle.core.marble import Expr, MarbleStream
-    from itertools import izip, repeat, islice
+    from itertools import izip, repeat, islice, imap
     from sys import maxint
     from pyebset import BitSet
 
@@ -148,9 +148,19 @@ def hustle_input_stream(fd, size, url, params, wheres, gen_where_index, key_name
         for index, (bitmap, blen) in bitmaps.iteritems():
             prefix_gen = [repeat(index, blen)] if gen_where_index else []
 
-            row_iter = prefix_gen + \
-                [otab.mget(col, bitmap) if col is not None else repeat(None, blen)
-                 for col in key_names[index]]
+            # row_iter = prefix_gen + \
+                # [otab.mget(col, bitmap) if col is not None else repeat(None, blen)
+                 # for col in key_names[index]]
+            row_creators = []
+            for col, column_fn in key_names[index]:
+                if col is not None:
+                    if column_fn is None:
+                        row_creators.append(otab.mget(col, bitmap))
+                    else:
+                        row_creators.append(imap(column_fn, otab.mget(col, bitmap)))
+                else:
+                    row_creators.append(repeat(None, blen))
+            row_iter = prefix_gen + row_creators
 
             for row in izip(*row_iter):
                 yield row, empty
@@ -216,12 +226,12 @@ class SelectPipe(Job):
             table_name = self._get_table(where)._name
             keys = []
             if join:
-                join_column = next(c.name for c in join
+                join_column = next((c.name, c.column_fn) for c in join
                                    if c.table._name == table_name)
                 keys.append(join_column)
-            keys += tuple(c.column.name
+            keys += tuple((c.column.name, c.column.column_fn)
                           if c.table is None or c.table._name == table_name
-                          else None for c in project)
+                          else (None, None) for c in project)
             key_names.append(keys)
         return key_names
 

@@ -175,7 +175,7 @@ if __name__ == '__main__':
     # modules we want in our imported namespace
     from hustle import Table, h_min, h_avg, h_max, h_sum, h_count, \
         select, cat, insert, star, tables, get_tables, \
-        delete, drop, schema, partitions, stat
+        delete, drop, schema, partitions, stat, ip_ntoa, ip_aton
     from hustle.core.settings import Settings, overrides
 
     # make all tables visible as well
@@ -202,6 +202,8 @@ if __name__ == '__main__':
         "insert": insert,
         "stat": stat,
         "_settings": settings,
+        "ip_ntoa": ip_ntoa,
+        "ip_aton": ip_aton,
     }
 
     def commands():

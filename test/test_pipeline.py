@@ -1,9 +1,22 @@
 import unittest
+from hustle import ip_ntoa, _ip_ntoa
 from hustle.core.pipeline import SelectPipe, _get_sort_range
 from hustle.core.marble import Marble
+from operator import itemgetter
+
 
 EMP_FIELDS = ("+@2id", "+$name", "+%2hire_date", "+@4salary", "+@2department_id")
 DEPT_FIELDS = ("+@2id", "+%2name", "+%2building", "+@2manager_id")
+
+
+def first_items(items):
+    first = itemgetter(0)
+    return [first(item) for item in items]
+
+
+def second_items(items):
+    first = itemgetter(1)
+    return [first(item) for item in items]
 
 
 class TestPipeline(unittest.TestCase):
@@ -18,18 +31,31 @@ class TestPipeline(unittest.TestCase):
         project = [self.emp.name, self.emp.salary, self.dept.building]
 
         pipe = SelectPipe('server', wheres=wheres, project=project)
-        self.assertTupleEqual(('name', 'salary', None), tuple(pipe._get_key_names(project, ())[0]))
-        self.assertTupleEqual((None, None, 'building'), tuple(pipe._get_key_names(project, ())[1]))
+        self.assertTupleEqual(('name', 'salary', None), tuple(first_items(pipe._get_key_names(project, ())[0])))
+        self.assertTupleEqual((None, None, 'building'), tuple(first_items(pipe._get_key_names(project, ())[1])))
 
         join = [self.dept.id, self.emp.department_id]
         pipe = SelectPipe('server', wheres=wheres, project=project, join=join)
-        self.assertTupleEqual(('department_id', 'name', 'salary', None), tuple(pipe._get_key_names(project, join)[0]))
-        self.assertTupleEqual(('id', None, None, 'building'), tuple(pipe._get_key_names(project, join)[1]))
+        self.assertTupleEqual(('department_id', 'name', 'salary', None), tuple(first_items(pipe._get_key_names(project, join)[0])))
+        self.assertTupleEqual(('id', None, None, 'building'), tuple(first_items(pipe._get_key_names(project, join)[1])))
 
         project = [self.dept.building, self.emp.name, self.emp.salary]
         pipe = SelectPipe('server', wheres=wheres, project=project, join=join)
-        self.assertTupleEqual(('department_id', None, 'name', 'salary'), tuple(pipe._get_key_names(project, join)[0]))
-        self.assertTupleEqual(('id', 'building', None, None), tuple(pipe._get_key_names(project, join)[1]))
+        self.assertTupleEqual(('department_id', None, 'name', 'salary'), tuple(first_items(pipe._get_key_names(project, join)[0])))
+        self.assertTupleEqual(('id', 'building', None, None), tuple(first_items(pipe._get_key_names(project, join)[1])))
+
+    def test_get_key_names_with_column_fn(self):
+        wheres = [(self.emp.salary > 25000), self.dept]
+        project = [self.emp.name, ip_ntoa(self.emp.salary), self.dept.building]
+
+        pipe = SelectPipe('server', wheres=wheres, project=project)
+        self.assertTupleEqual((None, _ip_ntoa, None), tuple(second_items(pipe._get_key_names(project, ())[0])))
+        self.assertTupleEqual((None, None, None), tuple(second_items(pipe._get_key_names(project, ())[1])))
+
+        join = [self.dept.id, self.emp.department_id]
+        pipe = SelectPipe('server', wheres=wheres, project=project, join=join)
+        self.assertTupleEqual((None, None, _ip_ntoa, None), tuple(second_items(pipe._get_key_names(project, join)[0])))
+        self.assertTupleEqual((None, None, None, None), tuple(second_items(pipe._get_key_names(project, join)[1])))
 
     def test_get_sort_range(self):
         project = [self.emp.name, self.emp.salary, self.dept.building]

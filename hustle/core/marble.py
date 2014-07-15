@@ -728,7 +728,8 @@ class Column(object):
 
     """
     def __init__(self, name, table=None, index_indicator=0, partition=False, type_indicator=0,
-                 compression_indicator=0, rtrie_indicator=mdb.MDB_UINT_32, alias=None, boolean=False):
+                 compression_indicator=0, rtrie_indicator=mdb.MDB_UINT_32, alias=None, boolean=False,
+                 column_fn=None):
         self.name = name
         self.fullname = "%s.%s" % (table._name, name) if hasattr(table, '_name') else name
         self.table = table
@@ -746,6 +747,7 @@ class Column(object):
         self.is_numeric = self.type_indicator > 0
         self.is_index = self.index_indicator > 0
         self.is_wide = self.index_indicator == 2
+        self.column_fn = column_fn
 
         # use dictionary (trie) compression if required
         if self.is_trie:
@@ -777,7 +779,8 @@ class Column(object):
         """
         newcol = Column(self.name, self.table, self.index_indicator, self.partition,
                         self.type_indicator, self.compression_indicator,
-                        self.rtrie_indicator, alias)
+                        self.rtrie_indicator, alias, boolean = self.is_boolean,
+                        column_fn=self.column_fn)
         return newcol
 
     @property

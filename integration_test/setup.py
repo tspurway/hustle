@@ -3,6 +3,7 @@ from hustle.core.settings import Settings, overrides
 
 IMPS = '__test_imps'
 PIXELS = '__test_pixels'
+IPS = '__test_ips'
 
 
 def imp_process(data):
@@ -33,6 +34,9 @@ def ensure_tables():
                                    'index int16 metro', 'string ip', 'lz4 keyword', 'index string date'],
                           partition='date',
                           force=True)
+    ips = Table.create(IPS,
+                       columns=['index trie16 exchange_id', 'index uint32 ip'],
+                       force=True)
 
     tags = ddfs.list("hustle:%s:" % IMPS)
     if len(tags) == 0:
@@ -44,7 +48,11 @@ def ensure_tables():
         # insert the files
         insert(pixels, File='fixtures/pixel.json')
 
+    tags = ddfs.list("hustle:%s:" % IPS)
+    if len(tags) == 0:
+        # insert the files
+        insert(ips, File='fixtures/ip.json')
+
 
 if __name__ == '__main__':
     ensure_tables()
-
