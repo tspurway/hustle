@@ -758,6 +758,32 @@ def h_avg(col):
                        result_spec=Column('_avg_type', type_indicator=mdb.MDB_INT_32))
 
 
+def _h_combine(a, v, separator):
+    return "%s%s%s" % (v, separator, a)
+
+
+def h_combine(col, separator=','):
+    """
+    Return a combination of the given column.  Like the join function.
+
+    :type col: :class:`hustle.core.marble.Column`
+    :param col: the column to combine
+
+    :type separator: strnig
+    :param separator: the separator of the combination
+    """
+    import mdb
+    import functools
+
+    func = functools.partial(_h_combine, separator=separator)
+    functools.update_wrapper(func, _h_combine)
+    return Aggregation("combine",
+                       col,
+                       f=func,
+                       default=lambda: "",
+                       result_spec=Column('_combine_type', type_indicator=mdb.MDB_STR))
+
+
 def star(table):
     """
     Return the list of all columns in a table.  This is used much like the ``*`` notation in SQL::

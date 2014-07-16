@@ -427,12 +427,15 @@ def _tuple_hash(key, cols, p):
 
 
 def _aggregate(inp, label_fn, ffuncs, ghfuncs, deffuncs):
+    from functools import partial
     """
     General channel for executing aggregate function, would be used if
     columns in project are either aggregation or group by columns
     """
     vals = {}
-    group_template = [(lambda a: a) if f.__name__ == 'dflt_f' else (lambda a: None)
+    # TODO: figure out a way to set __name__ for partial object, update_wrapper
+    # didn't work. Then we can get rid of "type(f) != partial"
+    group_template = [(lambda a: a) if type(f) != partial and f.__name__ == 'dflt_f' else (lambda a: None)
                       for f in ffuncs]
     for record, _ in inp:
         group = tuple(f(e) for e, f in zip(record, group_template))
@@ -576,10 +579,13 @@ def process_group(interface, state, label, inp, task, ffuncs, ghfuncs,
                   deffuncs, label_fn=None):
     """Process function of aggregation combine stage."""
     from itertools import groupby
+    from functools import partial
 
     empty = ()
 
-    group_template = [(lambda a: a) if f.__name__ == 'dflt_f' else (lambda a: None)
+    # TODO: figure out a way to set __name__ for partial object, update_wrapper
+    # didn't work. Then we can get rid of "type(f) != partial"
+    group_template = [(lambda a: a) if type(f) != partial and f.__name__ == 'dflt_f' else (lambda a: None)
                       for f in ffuncs]
     # pull the key apart
     for group, tups in groupby(inp,
