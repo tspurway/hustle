@@ -759,7 +759,7 @@ def h_avg(col):
 
 
 def _h_combine(a, v, separator):
-    return "%s%s%s" % (v, separator, a)
+    return "%s%s%s" % (a, separator, v) if a is not None else "%s" % (v,)
 
 
 def h_combine(col, separator=','):
@@ -780,7 +780,7 @@ def h_combine(col, separator=','):
     return Aggregation("combine",
                        col,
                        f=func,
-                       default=lambda: "",
+                       default=lambda: None,
                        result_spec=Column('_combine_type', type_indicator=mdb.MDB_STR))
 
 
