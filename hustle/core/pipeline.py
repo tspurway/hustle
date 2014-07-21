@@ -9,6 +9,7 @@ import sys
 import hustle
 import hustle.core
 import hustle.core.marble
+import hustle.core.column_fn
 
 
 SPLIT = "split"
@@ -175,7 +176,8 @@ class SelectPipe(Job):
         ('hustle', hustle.__file__),
         ('hustle.core', hustle.core.__file__),
         ('hustle.core.pipeline', __file__),
-        ('hustle.core.marble', hustle.core.marble.__file__)]
+        ('hustle.core.marble', hustle.core.marble.__file__),
+        ('hustle.core.column_fn', hustle.core.column_fn.__file__)]
 
     def get_result_schema(self, project, tag=None):
         import random

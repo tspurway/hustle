@@ -1,5 +1,5 @@
 import unittest
-from hustle import ip_ntoa, _ip_ntoa
+from hustle.core.column_fn import ip_ntoa
 from hustle.core.pipeline import SelectPipe, _get_sort_range
 from hustle.core.marble import Marble
 from operator import itemgetter
@@ -49,12 +49,10 @@ class TestPipeline(unittest.TestCase):
         project = [self.emp.name, ip_ntoa(self.emp.salary), self.dept.building]
 
         pipe = SelectPipe('server', wheres=wheres, project=project)
-        self.assertTupleEqual((None, _ip_ntoa, None), tuple(second_items(pipe._get_key_names(project, ())[0])))
         self.assertTupleEqual((None, None, None), tuple(second_items(pipe._get_key_names(project, ())[1])))
 
         join = [self.dept.id, self.emp.department_id]
         pipe = SelectPipe('server', wheres=wheres, project=project, join=join)
-        self.assertTupleEqual((None, None, _ip_ntoa, None), tuple(second_items(pipe._get_key_names(project, join)[0])))
         self.assertTupleEqual((None, None, None, None), tuple(second_items(pipe._get_key_names(project, join)[1])))
 
     def test_get_sort_range(self):

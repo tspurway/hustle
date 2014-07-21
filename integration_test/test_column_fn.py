@@ -1,5 +1,6 @@
 import unittest
-from hustle import select, Table, ip_ntoa, h_max, h_min
+from hustle import select, Table, h_max, h_min
+from hustle.core.column_fn import ip_ntoa
 from setup import IPS
 from hustle.core.settings import Settings, overrides
 
