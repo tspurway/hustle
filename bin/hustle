@@ -164,6 +164,13 @@ if __name__ == '__main__':
         help="set auto-dump of results to OFF",
     )
 
+    parser.add_argument(
+        "--server",
+        dest="disco_server",
+        default=None,
+        help="override disco server target",
+    )
+
     options = parser.parse_args()
 
     import code
@@ -182,6 +189,9 @@ if __name__ == '__main__':
     # make all tables visible as well
     foptions = vars(options)
     overrides['dump'] = options.dump
+    # Have to name it differently or it gets overridden by foptions
+    if options.disco_server:
+        overrides['server'] = options.disco_server
     settings = Settings(**foptions)
     ddfs = settings['ddfs']
 
