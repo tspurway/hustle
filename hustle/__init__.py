@@ -13,7 +13,7 @@ Queries are run using a :ref:`Python DSL <queryguide>` which is translated dynam
 
 Hustle is ideal for low latency OLAP queries over massive data sets.
 """
-__version__ = '0.2.5'
+__version__ = '0.2.6'
 
 
 from disco.core import Job, Disco

@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 if sys.version_info[:2] < (2, 6):
     raise RuntimeError('Requires Python 2.6 or better')
 
-VERSION = '0.2.5'
+VERSION = '0.2.6'
 
 install_requires = [
     'pyyaml',

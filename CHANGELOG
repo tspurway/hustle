@@ -1,3 +1,12 @@
+0.2.6 (July 29 2014)
+	Optimized #48. Making "limit" run faster
+	Added column functions. Being able to do column transforms, e.g. ip_aton,
+	ip_ntoa...
+	Added aggregate function h_combine. Being able to combine multiple values
+	with similar keys
+	Added feature #66. Making query result purgable
+	Added "server" option for the Hustle CLI
+
 0.2.5 (June 27 2014)
 	Fixed issue #50. BooleanIx didn't handle missing values
 	Added feature #11. Tag the query result in DDFS
