@@ -210,7 +210,7 @@ class Table(Marble):
         return a generator of all columns from a table
 
         """
-        return select(*star(self), where=self, dump=False, nest=False)
+        return iter(select(*star(self), where=self, dump=False, nest=False))
 
     def dumps(self):
         dump = {}
@@ -600,7 +600,7 @@ def select(*project, **kwargs):
             if purge and not profile:
                 settings['server'].purge(_safe_str(job.name))
             return
-        return _query_iterator(blobs)
+        return QueryResult(job.name, blobs, settings['server'])
     else:
         return Future(job.name, job, settings['server'], nest, *project)
 
@@ -1105,6 +1105,22 @@ def _resolve_join(wheres, joins):
     return join_cols
 
 
+class QueryResult(object):
+    def __init__(self, job_name, blobs, server):
+        self.job_name = job_name
+        self.blobs = blobs
+        self.server = server
+        self._purged = False
+
+    def __iter__(self):
+        return _query_iterator(self.blobs)
+
+    def purge(self):
+        if not self._purged:
+            self.server.purge(self.job_name)
+            self._purged = True
+
+
 class Future(object):
     """
     Return value of non-blocking function :func:`select_nb() <hustle.select_nb>`.
@@ -1161,14 +1177,14 @@ class Future(object):
             if self._nest:
                 return self.table
             else:
-                return _query_iterator(self._blobs)
+                return QueryResult(self._job.name, self._blobs, self._disco)
         else:
             self._blobs = self._job.wait()
             self._status = 'ready'
             if self._nest:
                 return self.table
             else:
-                return _query_iterator(self._blobs)
+                return QueryResult(self._job.name, self._blobs, self._disco)
 
     @property
     def done(self):
@@ -1195,3 +1211,6 @@ class Future(object):
         self._table = self._job.get_result_schema(self._project)
         self._table._blobs = self._blobs
         return self._table
+
+    def purge(self):
+        self._disco.purge(self._job.name)

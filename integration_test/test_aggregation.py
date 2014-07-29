@@ -18,6 +18,7 @@ class TestAggregation(unittest.TestCase):
         imps = Table.from_tag(IMPS)
         res = select(h_count(), where=imps)
         count = list(res)[0][0]
+        res.purge()
         self.assertEqual(count, 200)
 
     def test_simple_aggregation(self):
@@ -30,6 +31,7 @@ class TestAggregation(unittest.TestCase):
                 sum_millis[ad_id] = [0, 0]
             sum_millis[ad_id][0] += millis
             sum_millis[ad_id][1] += 1
+        results.purge()
 
         results = select(imps.ad_id, h_sum(imps.cpm_millis), h_count(), where=imps.date == '2014-01-27')
         self.assertGreater(len(list(results)), 0)
@@ -37,6 +39,7 @@ class TestAggregation(unittest.TestCase):
             ad_tup = sum_millis[ad_id]
             self.assertEqual(millis, ad_tup[0])
             self.assertEqual(count, ad_tup[1])
+        results.purge()
 
     def test_ordered_aggregation(self):
         imps = Table.from_tag(IMPS)
@@ -64,6 +67,8 @@ class TestAggregation(unittest.TestCase):
             self.assertEqual(count, ad_tup[1])
         self.assertEqual(len(list(results)), min(len(sum_millis), 3))
 
+        resx.purge()
+
     def test_multiple_group_bys(self):
         imps = Table.from_tag(IMPS)
         results = select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.date > '2014-01-22')
@@ -75,6 +80,7 @@ class TestAggregation(unittest.TestCase):
                 sum_millis[key] = [0, 0]
             sum_millis[key][0] += millis
             sum_millis[key][1] += 1
+        results.purge()
 
         results = select(imps.ad_id, imps.date, h_sum(imps.cpm_millis), h_count(), where=imps.date > '2014-01-22')
         self.assertGreater(len(list(results)), 0)
@@ -82,6 +88,7 @@ class TestAggregation(unittest.TestCase):
             ad_tup = sum_millis[str(ad_id) + dt]
             self.assertEqual(millis, ad_tup[0])
             self.assertEqual(count, ad_tup[1])
+        results.purge()
 
     def test_nested_agg(self):
         imps = Table.from_tag(IMPS)
@@ -94,6 +101,7 @@ class TestAggregation(unittest.TestCase):
                 sum_millis[key] = [0, 0]
             sum_millis[key][0] += millis
             sum_millis[key][1] += 1
+        results.purge()
 
         newtab = select(imps.ad_id, imps.date, h_sum(imps.cpm_millis), h_count(),
                         where=imps.date > '2014-01-22',
@@ -104,6 +112,7 @@ class TestAggregation(unittest.TestCase):
             ad_tup = sum_millis[str(ad_id) + dt]
             self.assertEqual(millis, ad_tup[0])
             self.assertEqual(count, ad_tup[1])
+        results.purge()
 
     def test_overflow(self):
         from itertools import izip
@@ -117,4 +126,5 @@ class TestAggregation(unittest.TestCase):
         for ((fdate, fimps), (ndate, nimps)) in izip(fly_results, nest_results):
             self.assertEqual(fdate, ndate)
             self.assertEqual(fimps, nimps)
+        nest_results.purge()
 

@@ -19,9 +19,9 @@ class TestJoin(unittest.TestCase):
         pix = Table.from_tag(PIXELS)
 
         imp_sites = [(s, a) for (s, a) in select(imps.site_id, imps.ad_id,
-                                                 where=imps.date < '2014-01-13')]
+                                                 where=imps.date < '2014-01-13', purge=True)]
         pix_sites = [(s, a) for (s, a) in select(pix.site_id, pix.amount,
-                                                 where=pix.date < '2014-01-13')]
+                                                 where=pix.date < '2014-01-13', purge=True)]
 
         join = []
         for imp_site, imp_ad_id in imp_sites:
@@ -35,6 +35,7 @@ class TestJoin(unittest.TestCase):
                      order_by='amount')
         results = list(res)
         self.assertEqual(len(results), len(join))
+        res.purge()
 
         for jtup in join:
             self.assertIn(jtup, results)
@@ -49,10 +50,10 @@ class TestJoin(unittest.TestCase):
         pix = Table.from_tag(PIXELS)
 
         imp_sites = list(select(imps.site_id, imps.ad_id,
-                                where=imps.date < '2014-01-13'))
+                                where=imps.date < '2014-01-13', purge=True))
         pix_sites = list(select(pix.site_id, pix.amount,
                                 where=((pix.date < '2014-01-13') &
-                                       (pix.isActive == True))))
+                                       (pix.isActive == True),), purge=True))
 
         join = []
         for imp_site, imp_ad_id in imp_sites:
@@ -70,6 +71,8 @@ class TestJoin(unittest.TestCase):
         results = [tuple(c) for c in res]
         self.assertEqual(len(results), len(join))
 
+        res.purge()
+
         for jtup in join:
             self.assertIn(jtup, results)
 
@@ -79,10 +82,12 @@ class TestJoin(unittest.TestCase):
         """
         imps = Table.from_tag(IMPS)
 
-        early = list(select(imps.ad_id, imps.cpm_millis,
-                            where=imps.date < '2014-01-20'))
-        late = list(select(imps.ad_id, imps.cpm_millis,
-                           where=imps.date >= '2014-01-20'))
+        early_res = select(imps.ad_id, imps.cpm_millis,
+                           where=imps.date < '2014-01-20')
+        early = list(early_res)
+        late_res = select(imps.ad_id, imps.cpm_millis,
+                          where=imps.date >= '2014-01-20')
+        late = list(late_res)
 
         join = {}
         for eid, ecpm in early:
@@ -111,16 +116,20 @@ class TestJoin(unittest.TestCase):
             self.assertEqual(emillis, ecpm)
             self.assertEqual(lmillis, lcpm)
             self.assertEqual(cnt, ocnt)
-
+        early_res.purge()
+        late_res.purge()
+        jimmy.purge()
 
     def test_aggregate_join(self):
         imps = Table.from_tag(IMPS)
         pix = Table.from_tag(PIXELS)
 
-        imp_sites = list(select(imps.site_id, imps.ad_id,
-                                where=imps.date < '2014-01-13'))
-        pix_sites = list(select(pix.site_id, pix.amount,
-                                where=pix.date < '2014-01-13'))
+        imp_sites_res = select(imps.site_id, imps.ad_id,
+                               where=imps.date < '2014-01-13')
+        pix_sites_res = select(pix.site_id, pix.amount,
+                               where=pix.date < '2014-01-13')
+        imp_sites = list(imp_sites_res)
+        pix_sites = list(pix_sites_res)
 
         join = {}
         for imp_site, imp_ad_id in imp_sites:
@@ -141,4 +150,6 @@ class TestJoin(unittest.TestCase):
             ramount, rcount = join[ad_id]
             self.assertEqual(ramount, amount)
             self.assertEqual(rcount, count)
-
+        imp_sites_res.purge()
+        pix_sites_res.purge()
+        res.purge()

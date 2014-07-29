@@ -21,12 +21,14 @@ class TestSimpleQuery(unittest.TestCase):
                      where=ips.exchange_id == "Adx")
         results = list(res)
         self.assertEqual(len(results), 29)
+        res.purge()
 
     def test_column_fn_with_agg(self):
         ips = Table.from_tag(IPS)
         res = select(ips.exchange_id, h_max(ip_ntoa(ips.ip)),
                      where=ips, order_by=(ips.exchange_id,))
         results = list(res)
+        res.purge()
         exchanges = [ex for ex, _ in results]
         ipss = [ip for _, ip in results]
         self.assertListEqual(['Adx', 'Appnexus', 'OpenX', 'Rubycon'], exchanges)
@@ -35,6 +37,7 @@ class TestSimpleQuery(unittest.TestCase):
         res = select(ips.exchange_id, h_min(ip_ntoa(ips.ip)),
                      where=ips, order_by=(ips.exchange_id,))
         results = list(res)
+        res.purge()
         exchanges = [ex for ex, _ in results]
         ipss = [ip for _, ip in results]
         self.assertListEqual(['Adx', 'Appnexus', 'OpenX', 'Rubycon'], exchanges)
@@ -46,6 +49,7 @@ class TestSimpleQuery(unittest.TestCase):
                      where=ips.exchange_id == "Adx", order_by=(ip_ntoa(ips.ip),),
                      distinct=True)
         results = list(res)
+        res.purge()
         ipss = [ip[0] for ip in results]
         self.assertListEqual(['127.0.0.1', '192.1.1.1', '192.1.1.2', '192.168.1.1'],
                              ipss)
@@ -57,6 +61,7 @@ class TestSimpleQuery(unittest.TestCase):
                      distinct=True, nest=True)
         ret = select(res.ip, where=res, order_by=(res.ip,))
         results = list(ret)
+        ret.purge()
         ipss = [ip[0] for ip in results]
         self.assertListEqual(['127.0.0.1', '192.1.1.1', '192.1.1.2', '192.168.1.1'],
                              ipss)

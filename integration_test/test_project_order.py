@@ -21,6 +21,7 @@ class TestProjectOrder(unittest.TestCase):
         for a, d, c in res:
             self.assertLessEqual(lowest, c)
             lowest = c
+        res.purge()
 
     def test_combo_order(self):
         imps = Table.from_tag(IMPS)
@@ -37,6 +38,7 @@ class TestProjectOrder(unittest.TestCase):
                 self.assertLessEqual(lowest_date, d)
                 lowest_date = d
                 lowest_cpm = c
+        res.purge()
 
     def test_combo_descending(self):
         imps = Table.from_tag(IMPS)
@@ -54,24 +56,28 @@ class TestProjectOrder(unittest.TestCase):
                 self.assertGreaterEqual(highest_date, d)
                 highest_date = d
                 highest_cpm = c
+        res.purge()
 
     def test_high_limit(self):
         imps = Table.from_tag(IMPS)
         res = select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.date == '2014-01-27', limit=100)
         results = list(res)
         self.assertEqual(len(results), 10)
+        res.purge()
 
     def test_low_limit(self):
         imps = Table.from_tag(IMPS)
         res = select(imps.ad_id, imps.date, imps.cpm_millis, where=imps.date == '2014-01-27', limit=4)
         results = list(res)
         self.assertEqual(len(results), 4)
+        res.purge()
 
     def test_distinct(self):
         imps = Table.from_tag(IMPS)
         res = select(imps.ad_id, imps.date, where=imps.date == '2014-01-27', distinct=True)
         results = list(res)
         self.assertEqual(len(results), 8)
+        res.purge()
 
     def test_overall(self):
         imps = Table.from_tag(IMPS)
@@ -80,3 +86,4 @@ class TestProjectOrder(unittest.TestCase):
         results = [a for a, d in res]
         self.assertEqual(len(results), 4)
         self.assertListEqual(results, [30019, 30018, 30017, 30015])
+        res.purge()

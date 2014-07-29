@@ -26,6 +26,7 @@ class TestBool(unittest.TestCase):
         self.assertEqual(clicks, 21)
         self.assertEqual(conversions, 5)
         self.assertEqual(impressions, 174)
+        res.purge()
 
     def test_aggregate(self):
         imps = Table.from_tag(IMPS)
@@ -36,6 +37,7 @@ class TestBool(unittest.TestCase):
         self.assertEqual(clicks, 21)
         self.assertEqual(conversions, 5)
         self.assertEqual(impressions, 174)
+        res.purge()
 
     def test_bool_values(self):
         pix = Table.from_tag(PIXELS)
@@ -45,6 +47,7 @@ class TestBool(unittest.TestCase):
             actives += act
 
         self.assertEqual(actives, 234)
+        res.purge()
 
         res = select(pix.isActive, where=pix.isActive == 0)
         actives = 0
@@ -52,6 +55,7 @@ class TestBool(unittest.TestCase):
             actives += 1
 
         self.assertEqual(actives, 266)
+        res.purge()
 
     def test_bit_values(self):
         pix = Table.from_tag(PIXELS)
@@ -61,6 +65,4 @@ class TestBool(unittest.TestCase):
             actives += act
 
         self.assertEqual(actives, 234)
-
-
-
+        res.purge()
