@@ -44,16 +44,14 @@ cd hustle
 sudo ./bootstrap.sh
 ```
 
-Please refer to the [Installation Guide](http://chango.github.io/hustle/start/install.html) for more details
+Please refer to the [Installation Guide](http://tspurway.github.io/hustle/start/install.html) for more details
 
 Documentation
 -------------
 
-[Hustle User Guide](http://chango.github.io/hustle/)
+[Hustle User Guide](http://tspurway.github.io/hustle/)
 
 [Hustle Mailing List](http://groups.google.com/group/hustle-users)
-
-[Hustle HipChat Hangout (Live Help!)](https://www.hipchat.com/gBd7RjnPv)
 
 Credits
 -------
