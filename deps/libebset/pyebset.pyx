@@ -1,8 +1,12 @@
-from libc.stdint cimport uint64_t
+from libc.stdint cimport uint64_t, uint32_t
 from cython.operator cimport dereference as deref, preincrement as inc
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 
+IF UNAME_MACHINE != "x86_64":
+    ctypedef uint32_t uint_t
+ELSE:
+    ctypedef uint64_t uint_t
 
 cdef extern from "<ostream>" namespace "std":
     cdef cppclass ostream[T]:
@@ -17,7 +21,7 @@ cdef extern from "<sstream>" namespace "std":
 cdef extern from "<algorithm>" namespace "std":
     cdef bint binary_search(vector[size_t].iterator,
                             vector[size_t].iterator,
-                            uint64_t&)
+                            uint_t&)
 
 cdef extern from "ewah.h":
     cdef cppclass EWAHBoolArray[T]:
@@ -40,12 +44,12 @@ cdef extern from "ewah.h":
 
 
 cdef class BitSet:
-    cdef EWAHBoolArray[uint64_t] *thisptr
+    cdef EWAHBoolArray[uint_t] *thisptr
     cdef vector[size_t] indexes
     cdef bint updated
 
     def __cinit__(self):
-        self.thisptr = new EWAHBoolArray[uint64_t]()
+        self.thisptr = new EWAHBoolArray[uint_t]()
         self.updated = True
 
     def __dealloc__(self):
@@ -139,7 +143,7 @@ cdef class BitSet:
         cdef size_t i
 
         IF UNAME_SYSNAME == "Linux":
-            cdef vector[uint64_t].iterator it = v.begin()
+            cdef vector[uint_t].iterator it = v.begin()
             while it != v.end():
                 i = deref(it)
                 yield i

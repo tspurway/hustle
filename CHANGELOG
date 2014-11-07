@@ -1,3 +1,6 @@
+0.2.7 (Nov 7 2014)
+    Fix issues in libebset for 32 bit architectures
+
 0.2.6 (July 29 2014)
 	Optimized #48. Making "limit" run faster
 	Added column functions. Being able to do column transforms, e.g. ip_aton,
