@@ -17,8 +17,7 @@ def h_cardinality(col):
                        f=_inner_hll_accumulate,
                        g=lambda a: a.count(),
                        h=lambda a: a.dumps(),
-                       default=_inner_deault,
-                       is_numeric=True)
+                       default=_inner_deault)
 
 
 def h_union(col):
