@@ -7,13 +7,6 @@ if sys.version_info[:2] < (2, 6):
 
 VERSION = '0.2.7'
 
-install_requires = [
-    'pyyaml',
-    'ujson',
-]
-
-tests_require = install_requires + ['nose']
-
 setup(
     name='hustle',
     version=VERSION,
@@ -26,7 +19,5 @@ setup(
     packages=find_packages(exclude=['test', 'deps', 'examples', 'inferno']),
     include_package_data=True,
     zip_safe=False,
-    install_requires=install_requires,
-    tests_require=tests_require,
     test_suite='nose.collector',
     requires=['disco', 'mdb'])

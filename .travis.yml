@@ -1,3 +1,7 @@
+sudo: required
+dist: trusty
+group: deprecated-2017Q4
+
 language: python
 notification:
     email: false
@@ -11,10 +15,6 @@ virtualenv:
 before_install:
   - pushd .
   - sudo apt-get update -qq
-  - curl -O http://www.cython.org/release/Cython-0.20.zip
-  - unzip Cython-0.20.zip
-  - cd Cython-0.20
-  - sudo pip install .
   - sudo apt-get install -y curl erlang python-dev
   - git clone https://github.com/discoproject/disco.git /tmp/disco
   - cd /tmp/disco && git checkout develop && sudo make install
@@ -22,7 +22,7 @@ before_install:
   - popd
 
 install:
-  - "pip install mock"
   - sudo bash ./bootstrap.sh
+  - sudo pip install -r requirements-dev.txt
 
 script: nosetests test/

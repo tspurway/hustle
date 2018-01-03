@@ -9,8 +9,9 @@ WORK_DIR=${PWD}
 FROM=${WORK_DIR}/settings.yaml
 DEST=${CONFIG_DIR}/settings.yaml
 
+pip install -r requirements.txt
 cd deps && make install
-cd ${WORK_DIR} && ${PYTHON} setup.py install
+cd ${WORK_DIR} && pip install .
 cp bin/hustle ${BIN_DIR}/hustle
 
 if [[ ! -d ${CONFIG_DIR} ]]; then
