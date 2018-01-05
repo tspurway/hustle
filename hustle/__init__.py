@@ -708,7 +708,8 @@ def h_max(col):
         return Aggregation("max",
                            col,
                            f=lambda a, v: a if a > v else v,
-                           default=lambda: unichr(0x00))
+                           default=lambda: unichr(0x00),
+                           result_spec=Column('_max_type', type_indicator=mdb.MDB_STR))
 
 
 def h_min(col):
@@ -734,7 +735,8 @@ def h_min(col):
         return Aggregation("min",
                            col,
                            f=lambda a, v: a if a < v else v,
-                           default=lambda: unichr(0xFFFF))
+                           default=lambda: unichr(0xFFFF),
+                           result_spec=Column('_min_type', type_indicator=mdb.MDB_STR))
 
 
 def h_avg(col):
