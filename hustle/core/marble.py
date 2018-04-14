@@ -994,7 +994,7 @@ class Aggregation(object):
 
     def named(self, alias):
         newag = Aggregation(self.name, self.column.named(alias), self.f,
-                            self.g, self.h, self.default)
+                            self.g, self.h, self.default, self.result_spec)
         return newag
 
     def schema_string(self):

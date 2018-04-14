@@ -267,6 +267,7 @@ class SelectPipe(Job):
         partition = partition or _NPART
         binaries = [i for i, c in enumerate(project)
                     if isinstance(c, (Column, Aggregation)) and c.is_binary]
+
         # if nest is true, use output_schema to store the output table
         self.output_table = None
 
@@ -354,12 +355,25 @@ class SelectPipe(Job):
 
         # process the order_by/distinct stage
         order_stage = []
+
+        # re-scan the binary columns/aggregations for the order-by stage, since
+        # some aggregations could have changed the type of the original column.
+        # For instance, `h_cardinality(hll)` would generate result of integer type
+        # from the binary type `hll`. It should use the type from `result_spec`
+        # instead of the original one.
+        order_by_binaries = []
+        for i, c in enumerate(project):
+            if isinstance(c, Column) and c.is_binary:
+                order_by_binaries.append(i)
+
+            if isinstance(c, Aggregation) and c.result_spec.is_binary:
+                order_by_binaries.append(i)
         if self.order_by or distinct or limit:
             order_stage = [
                 (GROUP_LABEL_NODE,
                  HustleStage('order-combine',
                              sort=sort_range,
-                             binaries=binaries,
+                             binaries=order_by_binaries,
                              desc=desc,
                              process=partial(process_order,
                                              distinct=distinct,
